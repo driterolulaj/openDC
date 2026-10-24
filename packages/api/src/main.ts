@@ -68,7 +68,8 @@ async function main(): Promise<void> {
 
   const urls =
     process.env.OPENDC_LDAP_URLS?.split(',').filter(Boolean) ?? registry.get<string[]>('core.directory.ldapUrls');
-  const caPem = credential('ldap-ca')?.toString('utf8') ?? readOptional(process.env.OPENDC_LDAP_CA);
+  // an empty bundle (non-DC, Samba not provisioned) means: verify against the system CAs
+  const caPem = credential('ldap-ca')?.toString('utf8') || readOptional(process.env.OPENDC_LDAP_CA);
   const tlsServerName = registry.get<string>('core.directory.tlsServerName');
   const baseDn = registry.get<string>('core.directory.baseDn');
   const directory = new DirectoryAuth({

@@ -22,7 +22,7 @@
     "gen": "node --conditions=development packages/shared/src/tools/gen.ts",
     "gen:check": "node --conditions=development packages/shared/src/tools/gen.ts --check",
     "build": "tsc -b && npm run build -w @opendc/web",
-    "typecheck": "tsc -b && npm run typecheck -w @opendc/web",
+    "typecheck": "tsc -b && tsc -p packaging && npm run typecheck -w @opendc/web",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "test": "node --conditions=development --disable-warning=ExperimentalWarning --test \"packages/{shared,os,registry,agent,api,watcher,cli}/src/**/*.test.ts\" \"modules/*/**/*.test.ts\" && npm run test -w @opendc/web",
@@ -31,7 +31,8 @@
     "openapi:check": "node --conditions=development packages/api/src/tools/openapi.ts --check",
     "lab": "node --conditions=development packages/cli/src/tools/lab.ts",
     "clean": "tsc -b --clean",
-    "check": "npm run lint && npm run typecheck && npm run gen:check && npm run openapi:check && npm test && npm run test:coverage"
+    "check": "npm run lint && npm run typecheck && npm run gen:check && npm run openapi:check && npm test && npm run test:coverage",
+    "package": "node packaging/build.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

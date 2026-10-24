@@ -11,6 +11,7 @@ import { detectActions } from '@opendc/os';
 import { agentSocket, nodeRoles, type AgentSocket, type NodeRole } from '@opendc/shared/manifest';
 import { loadAllowlist } from './allowlist.ts';
 import { AgentServer, type LogLine } from './server.ts';
+import { initSecrets } from './init-secrets.ts';
 
 const SD_LISTEN_FDS_START = 3;
 
@@ -54,7 +55,19 @@ function inheritedSockets(): { name: AgentSocket; fd: number }[] {
 }
 
 async function main(): Promise<void> {
-  const { values } = parseArgs({ options: { listen: { type: 'string', multiple: true }, role: { type: 'string' } } });
+  const { values } = parseArgs({
+    options: {
+      listen: { type: 'string', multiple: true },
+      role: { type: 'string' },
+      'init-secrets': { type: 'boolean' },
+    },
+  });
+  if (values['init-secrets']) {
+    await initSecrets(await detectActions(), (msg, extra) => {
+      log({ level: 'info', msg, ...extra });
+    });
+    return;
+  }
   const allowlist = loadAllowlist();
   const os = await detectActions();
   const role =

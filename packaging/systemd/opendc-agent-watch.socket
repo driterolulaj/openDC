@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Agent socket for opendc-watcher and registry commits (ADR-0006).
+[Unit]
+Description=OpenDC agent socket (watch)
+PartOf=opendc-agent.service
+
+[Socket]
+ListenStream=/run/opendc/agent-watch.sock
+FileDescriptorName=watch
+SocketUser=root
+SocketGroup=_opendc-watch
+SocketMode=0660
+DirectoryMode=0755
+Service=opendc-agent.service
+
+[Install]
+WantedBy=sockets.target

@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# The only OpenDC process that runs as root (ADR-0006). No network listener; socket-activated.
+# ProtectSystem can't be strict: managed files live under /etc and /var/lib (SECURITY.md §6).
+[Unit]
+Description=OpenDC agent (typed root operations)
+Requires=opendc-agent-api.socket opendc-agent-watch.socket opendc-agent-cli.socket
+After=opendc-agent-api.socket opendc-agent-watch.socket opendc-agent-cli.socket opendc-secrets-init.service
+Wants=opendc-secrets-init.service
+
+[Service]
+Type=simple
+Sockets=opendc-agent-api.socket opendc-agent-watch.socket opendc-agent-cli.socket
+ExecStart=/usr/lib/opendc/node/bin/node --disable-warning=ExperimentalWarning /usr/lib/opendc/app/node_modules/@opendc/agent/dist/main.js
+LoadCredential=confirm-hmac:/etc/opendc/secrets/api-hmac
+Restart=on-failure
+RestartSec=2
+UMask=0077
+NoNewPrivileges=yes
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=no
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+KeyringMode=private
+
+[Install]
+Also=opendc-agent-api.socket opendc-agent-watch.socket opendc-agent-cli.socket

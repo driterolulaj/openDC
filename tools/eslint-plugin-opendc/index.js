@@ -21,11 +21,12 @@ const noShellExec = {
       bannedFn: '"{{name}}" runs a shell. Use execFile/spawn with an argv array and shell: false.',
       shellTrue: 'shell: true is forbidden. Pass an argv array instead.',
     },
-    schema: [],
+    schema: [{ type: 'object', properties: { allowImport: { type: 'boolean' } }, additionalProperties: false }],
   },
   create(context) {
     const file = context.filename;
-    const allowed = inPackage(file, 'agent', 'os');
+    // Build tooling may import child_process; exec/execSync/shell:true stay banned everywhere.
+    const allowed = inPackage(file, 'agent', 'os') || context.options[0]?.allowImport === true;
     const localNames = new Set();
     const nsNames = new Set();
     return {

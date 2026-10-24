@@ -10,3 +10,6 @@ playwright-report/
 .env
 .DS_Store
 test/env/**/lab.local.env
+packaging/.cache/
+packaging/out/
+.opendc-dev/

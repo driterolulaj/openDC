@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Agent socket for opendc-api (ADR-0006): only the _opendc-api group may connect.
+[Unit]
+Description=OpenDC agent socket (api)
+PartOf=opendc-agent.service
+
+[Socket]
+ListenStream=/run/opendc/agent-api.sock
+FileDescriptorName=api
+SocketUser=root
+SocketGroup=_opendc-api
+SocketMode=0660
+DirectoryMode=0755
+Service=opendc-agent.service
+
+[Install]
+WantedBy=sockets.target

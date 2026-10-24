@@ -1,0 +1,3 @@
+#!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-only
+exec /usr/lib/opendc/node/bin/node --disable-warning=ExperimentalWarning /usr/lib/opendc/app/node_modules/@opendc/cli/dist/main.js "$@"

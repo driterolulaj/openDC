@@ -1,0 +1,3 @@
+# ci: a Linux build/test host (Phase 1 acceptance 1, package builds, later the self-hosted CI runner).
+# name    image        node  ip           cores  mem_mb  disk_gb  role
+build1    debian-13    1     10.97.10.71  4      6144    40       none

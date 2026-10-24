@@ -56,6 +56,11 @@ export default tseslint.config(
     ...tseslint.configs.disableTypeChecked,
   },
   {
+    // build tooling runs tar/nfpm/npm; exec, execSync and shell: true stay banned
+    files: ['packaging/**/*.ts'],
+    rules: { 'opendc/no-shell-exec': ['error', { allowImport: true }] },
+  },
+  {
     // the rule definitions list the very literals they look for
     files: ['tools/eslint-plugin-opendc/**'],
     rules: { 'opendc/no-distro-check': 'off', 'opendc/no-raw-ldap': 'off' },

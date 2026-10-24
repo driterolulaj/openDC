@@ -1,0 +1,48 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Directory watcher and registry renderer (unprivileged, ADR-0004, SECURITY.md §6).
+[Unit]
+Description=OpenDC watcher
+After=network-online.target opendc-agent-watch.socket samba-ad-dc.service
+Wants=network-online.target opendc-agent-watch.socket
+
+[Service]
+Type=simple
+User=_opendc-watch
+Group=_opendc-watch
+ExecStart=/usr/lib/opendc/node/bin/node --disable-warning=ExperimentalWarning /usr/lib/opendc/app/node_modules/@opendc/watcher/dist/main.js
+StateDirectory=opendc/watcher
+StateDirectoryMode=0700
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+DevicePolicy=closed
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=no
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+SystemCallErrorNumber=EPERM
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+KeyringMode=private
+RemoveIPC=yes
+
+[Install]
+WantedBy=multi-user.target

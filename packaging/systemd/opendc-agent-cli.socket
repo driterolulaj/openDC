@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Agent socket for the local `opendc` CLI: root and members of opendc-admin (ADR-0006).
+[Unit]
+Description=OpenDC agent socket (cli)
+PartOf=opendc-agent.service
+
+[Socket]
+ListenStream=/run/opendc/agent-cli.sock
+FileDescriptorName=cli
+SocketUser=root
+SocketGroup=opendc-admin
+SocketMode=0660
+DirectoryMode=0755
+Service=opendc-agent.service
+
+[Install]
+WantedBy=sockets.target
