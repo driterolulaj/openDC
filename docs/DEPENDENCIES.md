@@ -7,8 +7,15 @@ Policy (spec §4):
 - no dependency for anything under about 100 lines
 - **ask before adding anything that isn't Approved below**
 
-"Maintenance" is checked at each yearly bump. Transitive dependency counts are measured in Phase 1 with
-`npm ls --all` and recorded here.
+"Maintenance" is checked at each yearly bump. Transitive dependency counts (measured 2026-10-24 with
+`npm ls --omit=dev --all --parseable`):
+- backend runtime (api, agent, watcher, cli): **66 third-party packages**, all pure JavaScript, no install
+  scripts
+- web bundle: 54
+- everything installed for development: 267
+
+Pin policy: the newest release that is at least two weeks old, except security fixes, which are taken at once
+(Phase 1: `fastify` 5.12.7, `zod` 4.6.7, `happy-dom` 21.0.4, Node.js 24.22.1).
 
 ## 1. Runtime dependencies
 
@@ -20,7 +27,7 @@ Policy (spec §4):
 | `@fastify/cookie` | Approved (spec) | api | Signed cookies | Fastify org | ~80 lines in-house |
 | `pino` | Approved (comes with Fastify) | all daemons | JSON logs to stdout → journald | Very active | `console` + JSON formatter |
 | `zod` 4 | Approved (spec) | all | Schemas, types, JSON Schema/OpenAPI generation (`z.toJSONSchema`) | Very active | Valibot / TypeBox (schema rewrite) |
-| `ldapts` | Approved (spec) | api, watcher | LDAP client (TLS, paged results, custom controls) | Active, single main maintainer: **bus-factor risk** | Fork and vendor. The BER layer is the hard part. |
+| `ldapts` | Approved (spec) | api, watcher | LDAP client (TLS, paged results, custom controls) | Active, single main maintainer: **bus-factor risk**. Known limits (Phase 1): its filter-string parser decodes `\xx` escapes as Latin-1, so we only pass filter objects; it can't stream search entries, so no change notification (Spike S2). | Fork and vendor. The BER layer is the hard part. |
 | `nodemailer` | Approved (spec) | api | Password-reset mails, notifications | Active, zero dependencies | SMTP client in-house (~400 lines) |
 | `react` 19, `react-dom` | Approved (spec) | web | UI | Meta | — |
 | `@mantine/core`, `@mantine/hooks` | Approved (spec "Mantine") | web | UI kit, themes, a11y | Active | — |
@@ -36,11 +43,11 @@ Policy (spec §4):
 
 | Package | Status | Why |
 |---|---|---|
-| `typescript` | Approved (spec) | Compiler |
+| `typescript` | Approved (spec) | Compiler. Pinned to 6.0: `typescript-eslint` doesn't support 7 (the native compiler) yet. |
 | `@types/node`, `@types/react`, `@types/react-dom` | Approved (Q8, implied) | Types |
 | `vite`, `@vitejs/plugin-react` | Approved (spec "Vite") / plugin approved (Q8) | Web build. The plugin is needed for React Fast Refresh/JSX. |
-| `vitest`, `jsdom` (or `happy-dom`) | Vitest approved / DOM env approved (Q8) | Frontend unit tests need a DOM |
-| `@testing-library/react` | Approved (Q8, optional) | Component tests. We could test hooks/pure logic only and skip it. |
+| `vitest`, `jsdom` (or `happy-dom`) | Vitest approved / DOM env approved (Q8) | Frontend unit tests need a DOM. **`happy-dom` is used**: current `jsdom` requires Node ≥ 24.15. |
+| `@testing-library/react` | Approved (Q8, optional) | Component tests. Not used yet: it needs `@testing-library/dom`, which isn't approved. |
 | `@playwright/test` | Approved (spec) | E2E |
 | `@axe-core/playwright` | Approved (Q8) | WCAG 2.1 AA automated checks |
 | `eslint`, `@eslint/js` | Approved (spec) | Lint |
@@ -54,8 +61,8 @@ Policy (spec §4):
 
 | Binary | Why | Status |
 |---|---|---|
-| Node.js 24 LTS (official linux-x64/arm64) | ADR-0010 | Approved (Q8) |
-| `nfpm` | Build-time only, packaging | Approved (spec) |
+| Node.js 24 LTS (official linux-x64/arm64) | ADR-0010. 24.22.1, SHA-256 pinned in `packaging/build.ts` | Approved (Q8) |
+| `nfpm` | Build-time only, packaging. 2.47.0, SHA-256 pinned in `packaging/build.ts` | Approved (spec) |
 | `lego` | ACME client (ADR-0021) | **Pending decision** |
 
 ## 4. Orchestrated system components (distro packages or our image; never bundled into npm)

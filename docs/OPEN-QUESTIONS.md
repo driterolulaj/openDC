@@ -3,7 +3,8 @@
 **B** = blocks Phase 1. **L** = needed later (phase noted). Each question has a recommendation.
 
 **Status 2026-10-24:** all blocking questions are answered (marked inline). Still open: Q2 (IANA PEN, before any
-schema work), Q7 (front proxy and ACME, before Phase 3), Q9, Q13–Q16.
+schema work), Q7 (front proxy and ACME, before Phase 3), Q9, Q13–Q16, Q19, Q20 (ADR-0004 amendment, before
+Phase 3).
 
 ## A. Naming, legal, identifiers
 
@@ -137,3 +138,15 @@ characters. `opendc-svc-<host>` with a 15-character NetBIOS host name is 26 (the
 - the CN and `displayName` keep the readable `opendc-svc-<host>` / `opendc-watch-<host>` / `opendc-ro-<host>`
 - `sAMAccountName` becomes `odcs-<host>`, `odcw-<host>` and `odcr-<host>`, at most 20 characters because
   pre-flight caps host names at 15 characters
+
+## H. Raised at the end of Phase 1 (2026-10-24)
+
+**Q19 (L, before the first public package) — Project contact and domain.** The packages and the
+vulnerability-disclosure placeholder use `maintainers@opendc.invalid` / `security@<project domain>`. Which
+domain and addresses should packages, SECURITY.md and the console's "Source code" link (ADR-0023) use?
+
+**Q20 (B for Phase 3) — Approve the ADR-0004 amendment from Spike S2** (`docs/spikes/S2-dirsync.md`):
+- the watcher polls DirSync (default 5 s) instead of relying on change notification, which `ldapts` can't
+  stream
+- the watch account gets DS-Replication-Get-Changes on the domain head, and nothing broader
+- an optional streaming wake-up reader is decided in Phase 3

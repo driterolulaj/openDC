@@ -1,9 +1,11 @@
 # VM lab on Proxmox VE
 
-A lab backend for a Proxmox VE cluster, next to the Incus backend from ADR-0015. It provides the same
-topologies (`small`, `standard`, plus throwaway `spike` hosts). Nothing in it is site-specific; every
-value lives in [`lab.env`](lab.env) and can be overridden with environment variables or a git-ignored
-`lab.local.env`.
+The primary lab backend (ADR-0015). It provides the topologies `small`, `standard`, `ci` (a build host) and
+throwaway `spike` hosts. Nothing in it is site-specific; every value lives in [`lab.env`](lab.env) and can be
+overridden with environment variables or a git-ignored `lab.local.env`.
+
+From a developer machine, `npm run lab -- <command>` (with `LAB_GATEWAY=root@<proxmox node>`) copies files
+to the gateway node and runs `pve-lab.sh` there.
 
 ## Design
 
@@ -30,12 +32,20 @@ value lives in [`lab.env`](lab.env) and can be overridden with environment varia
 ./pve-lab.sh snapshot standard clean     # / rollback standard clean
 ./pve-lab.sh ssh dc1 sudo samba-tool drs showrepl
 ./pve-lab.sh run s1-d13 spikes/s1-schema-matrix.sh
+./pve-lab.sh install-pkgs sdc1 /root/opendc-lab/pkgs     # install the built .deb packages in a VM
+./pve-lab.sh acceptance small /root/opendc-lab/pkgs      # install on the dc-primary + Phase 1 acceptance 3-5
 ./pve-lab.sh down standard               # destroy that topology's VMs
 ./pve-lab.sh net-down                    # remove templates, SDN objects and every gateway file
 ```
 
-To get the files onto the node, copy this directory to `/root/opendc-lab/src`, for example with
-`scp -r test/env/proxmox root@<node>:/root/opendc-lab/src`.
+To get the files onto the node, run `npm run lab -- sync`, or copy this directory to `/root/opendc-lab/src`
+yourself.
+
+### Building on Linux (Phase 1 acceptance 1, packages)
+
+`up ci` creates `build1`; `run build1 roles/build-host.sh` installs the pinned Node.js. Then copy a
+`git archive` of the repository into the VM and run `npm ci --ignore-scripts && npm run build && npm run check
+&& npm run package`. The packages end up in `packaging/out/`.
 
 ## Access from the site LAN
 
@@ -44,7 +54,7 @@ To get the files onto the node, copy this directory to `/root/opendc-lab/src`, f
 | Logins | `./pve-lab.sh credentials` on the gateway node prints the VM user (`opendc`, with sudo) and every lab domain's Administrator password |
 | VM console | Proxmox web UI → VM → Console (xterm.js; the VMs use a serial console) |
 | SSH | `ssh -J root@<gateway node> opendc@<lab ip>`. Lab IPs aren't routed from the LAN, so the gateway node is the only way in. |
-| Web console (from Phase 1) | `https://<gateway node>:8441` → dc1:443, `:8442` → dc2:443. Set by `LAB_PORT_FORWARDS`; re-run `net-up` after changing it. These forwards are the only inbound path into the lab. |
+| Web console | `https://<gateway node>:8443/console/` → sdc1, `:8441` → dc1, `:8442` → dc2 (the console listens on 8443 in each VM). Set by `LAB_PORT_FORWARDS`; re-run `net-up` after changing it. These forwards are the only inbound path into the lab. The certificate is self-signed until the domain CA exists (Phase 3). |
 
 ## Topologies
 
@@ -52,6 +62,7 @@ To get the files onto the node, copy this directory to `/root/opendc-lab/src`, f
 |---|---|---|
 | `topologies/small.tsv` | 1 DC, 1 client | quick checks |
 | `topologies/standard.tsv` | 2 DCs (Debian 13 + Ubuntu 24.04, on different nodes), 1 member, 1 client | Phase 1/2 acceptance |
+| `topologies/ci.tsv` | `build1` (Debian 13, 4 vCPU, 6 GiB) | Linux build and tests, package builds; later the self-hosted CI runner |
 | `topologies/spike.tsv` | Debian 12, Debian 13, Ubuntu 24.04 | Spike S1 schema matrix; destroy afterwards |
 
 `multisite` (two sites with `tc netem` latency) is not built yet. It needs a second vnet and a router VM

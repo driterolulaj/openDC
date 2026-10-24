@@ -1,6 +1,6 @@
 # OpenDC architecture
 
-Status: **Phase 0 draft, awaiting review.** Decisions referenced as `ADR-NNNN` live in `docs/adr/`.
+Status: **reviewed 2026-10-24; Phase 1 implements the foundation described here.** Decisions referenced as `ADR-NNNN` live in `docs/adr/`.
 
 ## 1. Summary
 

@@ -1,6 +1,6 @@
 # Security model and threat model
 
-Status: Phase 0 draft. **Updated at the end of every phase.**
+Status: updated after Phase 1 (2026-10-24, see §12). **Updated at the end of every phase.**
 
 ## 1. Assets
 
@@ -159,3 +159,36 @@ Restore documentation stresses that the backup key must be stored off-host.
 
 ## 11. Vulnerability disclosure
 Placeholder: `security@<project domain>`. Policy text is due in Phase 8.
+
+## 12. Status after Phase 1 (2026-10-24)
+
+### Implemented and tested
+| Control | Where | Evidence |
+|---|---|---|
+| Root actions only through typed agent operations, per-socket allowlists compiled at build time | `packages/agent`, `packages/agent/src/generated/allowlist.ts` | Agent tests reject unknown ops, ops on the wrong socket, extra args, path traversal, unmanaged files and units. The agent refuses to start if the allowlist names an unimplemented op. |
+| No shell strings | ESLint `opendc/no-shell-exec`; `packages/os/src/exec.ts` | `execFile` with argv, `shell: false`, fixed env, timeouts, output caps |
+| LDAP injection | `packages/shared/src/ldap`, ESLint `opendc/no-raw-ldap` | RFC 4515/4514 escaping with property tests. Filters reach `ldapts` as filter objects built by our own byte-exact parser, because `ldapts`' string parser decodes `\xx` escapes as Latin-1. |
+| Login (ADR-0020) | `packages/api/src/directory.ts` | LDAPS to a CA-verified DC (the local Samba CA, copied by `opendc-secrets-init`). Empty passwords are refused before any traffic (AD treats them as an anonymous bind). AD bind sub-codes map to distinct errors. Failover on network errors only. |
+| Sessions and CSRF (§4) | `packages/api/src/sessions.ts`, `http/route.ts` | Session ids stored as SHA-256; `__Host-` cookie, Secure, HttpOnly, SameSite=Strict. CSRF token = HMAC(session id), so nothing is stored. Every write, including login, must come from the same origin. |
+| Authorization (§5) | `packages/api/src/rbac` | Routes can't register without a permission (startup check). Tier-0 permissions only in tier-0 roles. Tier-0 guard for protected targets. OU scopes compared on normalised DNs. Denials are audited. |
+| Audit log (ADR-0013) | `packages/api/src/audit.ts` | Triggers reject UPDATE and DELETE. The per-origin hash chain detects edits made after the triggers are dropped (tested). Secret-looking fields are redacted. |
+| Hardened units (§6) | `packaging/systemd` | `systemd-analyze security` exposure 1.3 for `opendc-api` and `opendc-watcher` on Debian 13 and Ubuntu 24.04 (limit 3.0) |
+| Secrets (§8) | `opendc-agent --init-secrets`, `LoadCredential=` | HMAC key, console key and LDAP CA live in `/etc/opendc/secrets` (0700/0600) and reach services only as credentials. None are in the platform DB, logs, API responses or the agent journal (file contents are never logged). |
+| Supply chain (§9) | `.npmrc`, `packaging/build.ts` | Exact pins, `ignore-scripts`, lockfile. The bundled Node 24.22.1 and nfpm are pinned by SHA-256. Packages ship production dependencies only. CI actions are pinned by commit SHA. |
+
+### Known gaps (accepted for Phase 1, each with the phase that closes it)
+1. **Group changes during a session.** The `tokenGroups` snapshot from login isn't refreshed yet, because that
+   needs the delegated service account (Phase 2). Until then a removed group membership takes effect at the
+   next login, at the latest after the 12 h absolute session lifetime.
+2. **Self-signed console certificate** until the internal CA exists (Phase 3). The API serves HTTPS itself on
+   port 8443 until the front-proxy decision (Q7, ADR-0021).
+3. **One HMAC key** serves both CSRF and the typed confirmations (`api-hmac`). That is residual risk §10.2 as
+   designed; no Phase 1 operation requires a confirmation.
+4. **No TOTP second factor yet** (Phase 2). The Domain Admin role should require it from Phase 2 on (ADR-0020).
+5. **Node role.** The agent reads it from `/etc/opendc/node.json`, which the Phase 2 setup writes; until then
+   every node reports `managed-node`. No Phase 1 operation is role-restricted.
+6. **Rate limits are per process** and reset when the API restarts. The domain lockout policy still applies to
+   every failed bind.
+7. **Packages are not signed yet.** Signing comes with release engineering (Phase 7). Build inputs are
+   checksum-verified.
+8. **Non-DC nodes** trust the system CA store for LDAPS until the domain CA is distributed (Phase 3).

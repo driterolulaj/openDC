@@ -13,8 +13,12 @@ It is a general-purpose product installed by integrators at many client sites. *
 site-specific.** Topology, names, subnets and features are configurable; ship defaults, allow overrides.
 
 ## Current phase
-See `ROADMAP.md`. **Phase 0 (design) was reviewed on 2026-10-24** and all blocking questions are answered. Phase 1
-(foundation) starts only after the user's explicit go-ahead.
+See `ROADMAP.md`. **Phase 1 (foundation) is complete (2026-10-24) and awaits the user's review.** Phase 2 (domain
+core) starts only after the user's explicit go-ahead.
+
+Day-to-day commands: `npm ci --ignore-scripts`, `npm run build`, `npm run check` (lint, typecheck, generated
+files, OpenAPI, tests, coverage gate), `npm run gen` after manifest changes, `npm run openapi` after route
+changes, `npm run package` on Linux, `npm run lab -- ...` for the VM lab.
 
 ## Where things are
 - `docs/ARCHITECTURE.md` — components, data flow, diagrams. Start here.

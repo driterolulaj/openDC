@@ -24,47 +24,56 @@ are updated.
 
 ---
 
-## Phase 1: Foundation
+## Phase 1: Foundation ✅ (2026-10-24, awaiting the project owner's go-ahead)
 - [x] **Spike S1 (first task):** in a lab DC on Samba from Debian 12 (backports per Q10), Debian 13 and
   Ubuntu 24.04, verify `msDS-App-Configuration` + `msDS-Settings` (create, size limit, replication between 2
   DCs) and `msDS-cloudExtensionAttribute*` for base schemas 2008_R2, 2012_R2 and 2016. Write the results into
   ADR-0003.
-  *2026-10-24: run in the Proxmox lab, gate passes. Results in `docs/spikes/S1-app-configuration.md`, written
-  into ADR-0003.*
-- [ ] **Spike S2:** DirSync control and change notification with `ldapts` against Samba (cookie round-trip,
+  *Gate passes; `docs/spikes/S1-app-configuration.md`, written into ADR-0003.*
+- [x] **Spike S2:** DirSync control and change notification with `ldapts` against Samba (cookie round-trip,
   deletions, required rights).
-- [ ] npm workspaces monorepo: `shared`, `api`, `agent`, `watcher`, `registry`, `os`, `cli`, `web`; TS project
+  *DirSync works with an in-house control; change notification needs a streaming reader that `ldapts` lacks.
+  `docs/spikes/S2-dirsync.md`; the ADR-0004 amendment there awaits approval.*
+- [x] npm workspaces monorepo: `shared`, `api`, `agent`, `watcher`, `registry`, `os`, `cli`, `web`; TS project
   references; ESLint (incl. custom rules: no shell exec, no raw LDAP filters, no distro checks outside `os`),
-  Prettier.
-- [ ] `shared`: error codes, LDAP filter/DN escaping helpers, manifest Zod schema, `PlatformDb` interface
+  Prettier. *Plus `modules` and a no-literal-JSX-text rule.*
+- [x] `shared`: error codes, LDAP filter/DN escaping helpers, manifest Zod schema, `PlatformDb` interface
   (+ `node:sqlite` impl), permission names.
-- [ ] `npm run gen` generator (manifests → per-target registries, allowlist) with tests.
-- [ ] API skeleton: Fastify, Zod validator/serializer compilers, OpenAPI generation, sessions, CSRF, LDAPS login,
+- [x] `npm run gen` generator (manifests → per-target registries, allowlist) with tests.
+- [x] API skeleton: Fastify, Zod validator/serializer compilers, OpenAPI generation, sessions, CSRF, LDAPS login,
   RBAC engine (roles, OU scopes, tier-0 guard), audit log (append-only, hash chain), jobs and SSE.
-- [ ] Agent: socket activation, JSON-RPC, per-socket allowlists, typed confirmation tokens, three operations
-  (`system.info`, `service.status`, `file.writeManaged`).
-- [ ] Config Registry: layers, typed keys, TS templates, managed-file headers, commit and rollback, drift diagnostic.
-- [ ] OS adapter: Debian family (Debian 12/13, Ubuntu 24.04/26.04) `OsFacts` + the needed `OsActions`; support
-  matrix; conformance test suite.
+- [x] Agent: socket activation, JSON-RPC, per-socket allowlists, typed confirmation tokens, three operations
+  (`system.info`, `service.status`, `file.writeManaged`). *Plus `samba.version`, `service.start/stop/restart/reload`,
+  `file.readManaged/restorePrevious`, `registry.commitLock` and `--init-secrets`.*
+- [x] Config Registry: layers, typed keys, TS templates, managed-file headers, commit and rollback, drift diagnostic.
+- [x] OS adapter: Debian family (Debian 12/13, Ubuntu 24.04/26.04) `OsFacts` + the needed `OsActions`; support
+  matrix; conformance test suite. *Conformance run on Debian 13 and Ubuntu 24.04 lab hosts.*
 - [ ] Packaging: nfpm configs (`.deb`, `.rpm` skeleton), bundled Node runtime, hardened systemd units, tarball +
-  `install.sh`.
+  `install.sh`. *Done except the `.rpm` skeleton (the RHEL family arrives in Phase 6) and package signing.*
 - [ ] Test lab: `npm run lab -- up small|standard|multisite` (Proxmox VE primary, Incus secondary; ADR-0015).
-  *2026-10-24: Proxmox backend `test/env/proxmox/pve-lab.sh` running `small`/`standard` (no `multisite` yet,
-  no npm wrapper yet).*
-- [ ] CI: lint, typecheck, unit tests, generated-file freshness and OpenAPI diff on every push; nightly VM job
-  skeleton.
+  *`npm run lab` drives `test/env/proxmox/pve-lab.sh` for `small`, `standard`, `ci` and `spike`; `multisite` and
+  the Incus backend are not built yet.*
+- [x] CI: lint, typecheck, unit tests, generated-file freshness and OpenAPI diff on every push; nightly VM job
+  skeleton. *In `.github/workflows/`; they run once the repository has a remote (Q13).*
 
 **Acceptance:**
 1. `npm ci && npm run build && npm test` passes on Linux. Pure-logic tests also pass on Windows.
+   **Met:** `npm run check` on build1 (Debian 13) and on Windows: 103 backend + 4 web tests.
 2. Unit coverage for escaping helpers, registry layering, template rendering, the allowlist (rejects unknown op,
    unknown socket, extra arg, path traversal) and RBAC scope evaluation is ≥ 95% lines.
+   **Met:** 99.9% lines (`npm run test:coverage` enforces 95%).
 3. In the `small` lab (Debian 13): the `.deb` installs, services start hardened (`systemd-analyze security`
    exposure ≤ 3.0 for api/watcher), and the console login page loads over HTTPS.
-4. A test  logs in through LDAPS against a pre-provisioned lab DC, sees an RBAC-filtered placeholder page,
+   **Met:** exposure 1.3 for both, also on Ubuntu 24.04 (sclient1).
+4. A test admin logs in through LDAPS against a pre-provisioned lab DC, sees an RBAC-filtered placeholder page,
    and the login is in the audit log.
+   **Met:** Administrator via LDAPS, Domain Admin role resolved from tokenGroups, a non-admin refused, audit
+   entries for success, denial and failure.
 5. `opendc registry set` on a demo key renders a managed file through the agent with the header, and the drift
    diagnostic flags a manual edit.
+   **Met**, and `opendc registry commit` repairs the drift.
 6. Spikes S1/S2 are documented, and ADR-0003/0004 are confirmed or amended (with approval).
+   **S1 done; S2 documented, the ADR-0004 amendment awaits approval.**
 
 ---
 
