@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# OpenDC VM lab on a Proxmox VE cluster (secondary lab backend next to Incus, see README.md).
+# OpenDC VM lab on a Proxmox VE cluster (the primary lab backend, ADR-0015; see README.md).
 #
 # Runs as root on the cluster node that acts as the lab gateway. Every cross-node action goes through
 # pvesh, so one node drives the whole cluster. The script only ever touches:
@@ -11,6 +11,7 @@
 # Usage: pve-lab.sh net-up | net-down | templates [--refresh] | up <topology> | domain <topology>
 #        | down <topology> | snapshot <topology> <name> | rollback <topology> <name> | status | credentials
 #        | ssh <vm-name> [cmd...] | run <vm-name> <script> [VAR=value...]
+#        | install-pkgs <vm-name> <dir> | acceptance <topology> <dir>
 set -euo pipefail
 
 LAB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -354,6 +355,26 @@ cmd_credentials() { # print every lab login (for the operator at the gateway nod
   done
 }
 
+cmd_install_pkgs() { # <vm-name> <dir with .deb files on this node>
+  local ip; ip="$(vm_ip "$1")"
+  compgen -G "$2/*.deb" >/dev/null || die "No .deb files in $2"
+  ssh -n "${SSH_OPTS[@]}" "$LAB_CIUSER@$ip" 'rm -rf /tmp/opendc-pkgs && mkdir -p /tmp/opendc-pkgs'
+  scp -q "${SSH_OPTS[@]}" "$2"/*.deb "$LAB_CIUSER@$ip:/tmp/opendc-pkgs/" </dev/null
+  ssh -n "${SSH_OPTS[@]}" "$LAB_CIUSER@$ip" \
+    'sudo DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=600 -qq install -y /tmp/opendc-pkgs/*.deb' ||
+    die "$1: package installation failed"
+  log "$1: installed $(cd "$2" && ls ./*.deb | xargs -n1 basename | paste -sd' ')"
+}
+
+cmd_acceptance() { # <topology> <dir with .deb files>: install on the dc-primary, run the Phase 1 checks
+  local topo="$1" name ip realm
+  read -r name ip < <(topology_rows "$topo" | awk '$8 == "dc-primary" { print $1, $4 }')
+  [[ -n "${name:-}" ]] || die "Topology $topo has no dc-primary"
+  realm="$(echo "$topo.$LAB_DOMAIN_SUFFIX" | tr '[:lower:]' '[:upper:]')"
+  cmd_install_pkgs "$name" "$2"
+  lab_secret "$topo-administrator" | cmd_run "$name" "$LAB_DIR/roles/acceptance-phase1.sh" "REALM=$realm"
+}
+
 cmd_status() {
   printf '%-6s %-12s %-9s %-10s %s\n' VMID NODE STATUS NAME TAGS
   cluster_vms | awk -v t="$LAB_TAG" '$4 ~ t { printf "%-6s %-12s %-9s %-10s %s\n", $1, $2, $3, $5, $4 }' | sort -n
@@ -392,5 +413,7 @@ case "${1:-}" in
   credentials) cmd_credentials ;;
   ssh) shift; cmd_ssh "$@" ;;
   run) shift; cmd_run "$@" ;;
+  install-pkgs) cmd_install_pkgs "${2:?vm}" "${3:?package dir}" ;;
+  acceptance) cmd_acceptance "${2:?topology}" "${3:?package dir}" ;;
   *) sed -n '/^# Usage:/,/^set /p' "${BASH_SOURCE[0]}" | sed '$d'; exit 2 ;;
 esac
