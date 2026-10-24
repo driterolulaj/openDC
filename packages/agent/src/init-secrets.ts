@@ -32,12 +32,14 @@ async function writeSecret(path: string, data: Buffer | string): Promise<void> {
 }
 
 function hostAddresses(): string[] {
-  return Object.values(networkInterfaces())
-    .flat()
-    .filter((a) => a && !a.internal)
-    .map((a) => a?.address ?? '')
-    // link-local IPv6 carries a zone id (fe80::1%eth0) that openssl rejects in a SAN
-    .filter((a) => a !== '' && !a.toLowerCase().startsWith('fe80:') && !a.includes('%'));
+  return (
+    Object.values(networkInterfaces())
+      .flat()
+      .filter((a) => a && !a.internal)
+      .map((a) => a?.address ?? '')
+      // link-local IPv6 carries a zone id (fe80::1%eth0) that openssl rejects in a SAN
+      .filter((a) => a !== '' && !a.toLowerCase().startsWith('fe80:') && !a.includes('%'))
+  );
 }
 
 export async function initSecrets(
