@@ -31,9 +31,9 @@ Phase 6). The project owner chose the AGPL, the license UCS also uses.
 - Integrators who modify OpenDC and let users reach the modified version over the network have to offer
   those users the modified source. The integrator documentation (Phase 8) says so plainly.
 - A closed-source fleet console (Q15) is only possible as a separate program that talks to OpenDC over its
-  public API, or under a different license from the copyright holder. Keeping that dual-licensing option
-  open needs a contributor agreement (CLA) before outside contributions arrive. Otherwise a DCO is enough.
-  That decision is due before the repository goes public (new OPEN-QUESTIONS item Q17).
+  public API, or under a different license from the copyright holder. The project owner chose a **DCO** over a CLA (Q17, 2026-10-24). Contributions stay under AGPL-3.0-only with
+  no relicensing grant, so dual-licensing later covers only code the copyright holder owns. `CONTRIBUTING.md`
+  describes the sign-off, and CI checks it on pull requests.
 
 ## Alternatives
 - **Apache-2.0/MIT:** maximises adoption, but lets competitors ship closed forks of the console.

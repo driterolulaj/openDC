@@ -3,7 +3,7 @@
 **B** = blocks Phase 1. **L** = needed later (phase noted). Each question has a recommendation.
 
 **Status 2026-10-24:** all blocking questions are answered (marked inline). Still open: Q2 (IANA PEN, before any
-schema work), Q7 (front proxy and ACME, before Phase 3), Q9, Q13–Q18.
+schema work), Q7 (front proxy and ACME, before Phase 3), Q9, Q13–Q16.
 
 ## A. Naming, legal, identifiers
 
@@ -127,11 +127,11 @@ don't depend on any particular openssl version.
 
 ## G. Raised 2026-10-24
 
-**Q17 (L, before the repository goes public) — Contributor agreement.** With AGPL-3.0-only (ADR-0023), a CLA
+**Q17 (L, before the repository goes public) — Contributor agreement.** *Answered 2026-10-24: DCO.* With AGPL-3.0-only (ADR-0023), a CLA
 keeps the option of dual-licensing (for example a closed fleet console, Q15), and a DCO (`Signed-off-by`)
 is lighter for contributors. I recommend a DCO unless dual-licensing is a real plan.
 
-**Q18 (L, Phase 2) — Service account names exceed the AD limit.** `sAMAccountName` allows at most 20
+**Q18 (L, Phase 2) — Service account names exceed the AD limit.** *Answered 2026-10-24: approved, ADR-0012 §3.* `sAMAccountName` allows at most 20
 characters. `opendc-svc-<host>` with a 15-character NetBIOS host name is 26 (the old `myucs-svc-` was already
 25). Proposal for ADR-0012 and the directory model §1:
 - the CN and `displayName` keep the readable `opendc-svc-<host>` / `opendc-watch-<host>` / `opendc-ro-<host>`

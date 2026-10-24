@@ -17,7 +17,7 @@ reserved design for the project owner to review in case one becomes necessary la
 | Site / subnet / site link | `site`, `subnet`, `siteLink` in the configuration NC | `siteObject`, `cost`, `replInterval`, `schedule` | Changed through `samba.sites.*` operations (tier 0). |
 | GPO | `groupPolicyContainer` | read: `displayName`, `versionNumber`, `gPCFileSysPath`, `flags` | Contents are edited with RSAT; links and backups through the agent. |
 | DNS | `dnsZone`, `dnsNode` in `DC=DomainDnsZones` / `DC=ForestDnsZones` | | Through `dns.*` operations (Phase 3 spike decides between agent and LDAP). |
-| Service accounts (platform) | `user` | `opendc-svc-<host>`, `opendc-watch-<host>`, `opendc-ro-<host>` (RODC), app accounts `app-<appId>-<instance>` | Live in `OU=OpenDC Service Accounts,<domainDN>`, configurable. |
+| Service accounts (platform) | `user` | CN `opendc-svc-<host>` (sAMAccountName `odcs-<host>`), `opendc-watch-<host>` (`odcw-<host>`), `opendc-ro-<host>` (RODC, `odcr-<host>`), app accounts `opendc-app-<appId>-<instance>` (`odca-...`, ADR-0012 §3) | Live in `OU=OpenDC Service Accounts,<domainDN>`, configurable. |
 
 ## 2. Platform container layout
 

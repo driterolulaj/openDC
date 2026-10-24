@@ -1,6 +1,6 @@
 # ADR-0012: `ldapts` and the directory bind model
 
-Status: Accepted 2026-10-24 · Date: 2026-10-06 · Decided by the project owner (Q4)
+Status: Accepted 2026-10-24 · Date: 2026-10-06 · Decided by the project owner (Q4) · Amended 2026-10-24: account naming (Q18)
 
 ## Context
 The API needs an identity to bind to the directory with. `ldapts` supports simple and a few SASL binds but
@@ -32,7 +32,15 @@ would mean keeping their plaintext password in session memory for the whole sess
      DirSync), and no write rights.
    - **RODC:** the API on an RODC has a read-only account whose password is in the RODC's password replication
      policy. Writes are proxied over mTLS to a writable DC's API, which re-checks RBAC.
-3. **Password rotation:** service account passwords are random (32 bytes, base64), rotated every 30 days by the
+3. **Account naming (Q18).** `sAMAccountName` is limited to 20 characters, so each service account has two names:
+   - the CN and `displayName` are readable: `opendc-svc-<host>`, `opendc-watch-<host>`, `opendc-ro-<host>`,
+     `opendc-app-<appId>-<instance>`
+   - `sAMAccountName` is short: `odcs-<host>`, `odcw-<host>`, `odcr-<host>`. Host names are NetBIOS names of at
+     most 15 characters (enforced by pre-flight), so these fit.
+   - App accounts use `odca-<appId cut to 10>-<4 hex of SHA-256(appId/instance)>`, which is also at most 20
+     characters.
+   - Logs and the audit trail show the readable name together with the objectGUID.
+4. **Password rotation:** service account passwords are random (32 bytes, base64), rotated every 30 days by the
    leader through the agent, and redistributed to the owning node only.
 
 ## Consequences
