@@ -1,0 +1,25 @@
+{
+  "name": "@opendc/agent",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "development": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "opendc-agent": "./dist/main.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@opendc/shared": "0.1.0",
+    "@opendc/os": "0.1.0",
+    "zod": "4.6.7"
+  }
+}

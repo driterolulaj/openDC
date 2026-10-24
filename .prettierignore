@@ -1,0 +1,8 @@
+dist/
+node_modules/
+package-lock.json
+**/generated/
+LICENSE
+docs/
+*.md
+test/env/proxmox/**/*.sh

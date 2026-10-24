@@ -1,0 +1,13 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/shared" },
+    { "path": "packages/os" },
+    { "path": "packages/registry" },
+    { "path": "modules" },
+    { "path": "packages/agent" },
+    { "path": "packages/api" },
+    { "path": "packages/watcher" },
+    { "path": "packages/cli" }
+  ]
+}

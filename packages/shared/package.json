@@ -1,0 +1,51 @@
+{
+  "name": "@opendc/shared",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "development": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./api": {
+      "types": "./src/api/index.ts",
+      "development": "./src/api/index.ts",
+      "default": "./dist/api/index.js"
+    },
+    "./errors": {
+      "types": "./src/errors.ts",
+      "development": "./src/errors.ts",
+      "default": "./dist/errors.js"
+    },
+    "./ldap": {
+      "types": "./src/ldap/index.ts",
+      "development": "./src/ldap/index.ts",
+      "default": "./dist/ldap/index.js"
+    },
+    "./manifest": {
+      "types": "./src/manifest/index.ts",
+      "development": "./src/manifest/index.ts",
+      "default": "./dist/manifest/index.js"
+    },
+    "./agent": {
+      "types": "./src/agent/index.ts",
+      "development": "./src/agent/index.ts",
+      "default": "./dist/agent/index.js"
+    },
+    "./db": {
+      "types": "./src/db/index.ts",
+      "development": "./src/db/index.ts",
+      "default": "./dist/db/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "zod": "4.6.7",
+    "ldapts": "9.2.0"
+  }
+}
