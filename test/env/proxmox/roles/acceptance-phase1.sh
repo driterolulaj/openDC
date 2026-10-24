@@ -22,7 +22,8 @@ for u in opendc-agent-api.socket opendc-agent-watch.socket opendc-agent-cli.sock
   row "3 $u" "$([[ "$s" == active ]] && echo ok || echo FAIL)" "$s"
 done
 for u in opendc-api opendc-watcher; do
-  e="$(systemd-analyze security "$u.service" --no-pager 2>/dev/null | awk '/Overall exposure level/ { print $(NF-1) }')"
+  # "→ Overall exposure level for opendc-api.service: 2.1 OK 🙂": take the number after the colon
+  e="$(systemd-analyze security "$u.service" --no-pager 2>/dev/null | grep -o 'Overall exposure level for [^:]*: [0-9.]*' | grep -o '[0-9.]*$')"
   ok="$(awk -v e="${e:-99}" 'BEGIN { print (e <= 3.0) ? "ok" : "FAIL" }')"
   row "3 systemd-analyze security $u" "$ok" "exposure ${e:-?} (limit 3.0)"
 done
@@ -35,9 +36,9 @@ row "3 TLS certificate" "$([[ "$cert" == *"$fqdn"* ]] && echo ok || echo FAIL)" 
 opendc registry set core.directory.ldapUrls "[\"ldaps://$fqdn\"]" >/dev/null
 systemctl restart opendc-api
 for _ in $(seq 30); do curl -sk "$base/api/v1/health" >/dev/null && break; sleep 1; done
-login() { # <user> <password> -> http status; body in /tmp/opendc-login.json
+login() { # <user> <password> [cookie jar] -> http status; body in /tmp/opendc-login.json
   python3 -c 'import json,sys; print(json.dumps({"username": sys.argv[1], "password": sys.stdin.read().rstrip("\n")}))' "$1" <<<"$2" |
-    curl -sk -o /tmp/opendc-login.json -w '%{http_code}' -c "$jar" -H 'content-type: application/json' -H "origin: https://localhost:8443" --data-binary @- "$base/api/v1/session"
+    curl -sk -o /tmp/opendc-login.json -w '%{http_code}' -c "${3:-$jar}" -H 'content-type: application/json' -H "origin: https://localhost:8443" --data-binary @- "$base/api/v1/session"
 }
 status="$(login Administrator "$ADMINPASS")"
 row "4 Administrator logs in via LDAPS" "$([[ "$status" == 200 ]] && echo ok || echo FAIL)" "HTTP $status $(head -c 160 /tmp/opendc-login.json)"
@@ -51,10 +52,10 @@ row "4 login is in the audit log" "$([[ "$audit" == *'"action":"session.login","
 user="opendc-accept-$RANDOM"
 pw="Acc-$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 16)-9x"
 samba-tool user create "$user" "$pw" >/dev/null 2>&1
-status="$(login "$user" "$pw")"
+status="$(login "$user" "$pw" /dev/null)"
 row "4 user without a console role is refused" "$([[ "$status" == 403 ]] && echo ok || echo FAIL)" "HTTP $status $(grep -o '"code":"[^"]*"' /tmp/opendc-login.json)"
 samba-tool user delete "$user" >/dev/null 2>&1
-status="$(login Administrator wrong-password)"
+status="$(login Administrator wrong-password /dev/null)"
 row "4 wrong password is rejected" "$([[ "$status" == 401 ]] && echo ok || echo FAIL)" "HTTP $status $(grep -o '"code":"[^"]*"' /tmp/opendc-login.json)"
 db="$(curl -sk -b "$jar" "$base/api/v1/audit?limit=10" | grep -o '"result":"[a-z]*"' | sort | uniq -c | xargs)"
 row "4 audit has success, denied and failure entries" "$([[ "$db" == *success* && "$db" == *denied* && "$db" == *failure* ]] && echo ok || echo FAIL)" "$db"
