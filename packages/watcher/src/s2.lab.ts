@@ -9,7 +9,7 @@
  * "rights" mode only checks whether S2_USER may run DirSync (used to test the watch account's rights).
  */
 import { readFileSync } from 'node:fs';
-import { Client, type Entry } from 'ldapts';
+import { Attribute, Change, Client, type Entry } from 'ldapts';
 import {
   DirSyncControl,
   DirSyncFlags,
@@ -166,10 +166,13 @@ async function main(): Promise<void> {
   );
   const probeGuid = addedProbe ? guidOf(addedProbe) : '?';
 
-  await c.modify(obj, {
-    operation: 'replace',
-    modification: { type: 'msDS-Settings', values: ['opendc:v1:{"rev":2}'] },
-  } as never);
+  await c.modify(
+    obj,
+    new Change({
+      operation: 'replace',
+      modification: new Attribute({ type: 'msDS-Settings', values: ['opendc:v1:{"rev":2}'] }),
+    }),
+  );
   const modified = await dirsync(c, base, added.cookie);
   const m = modified.entries.find((e) => guidOf(e) === probeGuid);
   result(
