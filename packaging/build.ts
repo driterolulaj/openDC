@@ -15,6 +15,7 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  realpathSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -94,8 +95,10 @@ async function stageApp(appDir: string): Promise<void> {
     ),
   ].sort();
   const copied: string[] = [];
-  for (const p of paths) {
-    if (p === ROOT) continue;
+  for (const listed of paths) {
+    if (listed === ROOT) continue;
+    // npm may list a workspace by its node_modules/@opendc/* symlink; copying the link would dangle.
+    const p = realpathSync(listed);
     if (p.startsWith(rootNm)) {
       // third-party package (top level or nested); nested ones arrive with their parent
       if (copied.some((c) => p.startsWith(c + sep))) continue;
