@@ -15,7 +15,7 @@ trap 'rm -f "$auth"' EXIT
 printf 'username=Administrator\npassword=%s\ndomain=%s\n' "$PW" "$NETBIOS" >"$auth"
 remote=(-H "ldap://$PRIMARY.$domain" -A "$auth")
 local_db=(-H /var/lib/samba/private/sam.ldb)
-c="CN=MyUCS-S1-$self-$(date +%s),CN=System,$b"   # unique spike-only container, removed at the end
+c="CN=OpenDC-S1-$self-$(date +%s),CN=System,$b"   # unique spike-only container, removed at the end
 obj="CN=Settings,$c"
 
 result() { printf '| %s | %s |\n' "$1" "$2"; }
@@ -39,7 +39,7 @@ objectClass: container
 dn: $obj
 objectClass: msDS-App-Configuration
 displayName: S1 settings
-msDS-Settings: myucs:v1:{"schemaVersion":1,"kind":"settings","rev":1}
+msDS-Settings: opendc:v1:{"schemaVersion":1,"kind":"settings","rev":1}
 msDS-ObjectReference: CN=Administrator,CN=Users,$b
 EOF
 )" && result "create container + msDS-App-Configuration over LDAP on $PRIMARY" ok ||
@@ -71,9 +71,9 @@ add: msDS-Settings
 msDS-Settings: $2
 EOF
 }
-v1='myucs:v1:{"schemaVersion":1,"kind":"settings","rev":1}'
-v2='myucs:v1:{"schemaVersion":1,"kind":"settings","rev":2}'
-v3='myucs:v1:{"schemaVersion":1,"kind":"settings","rev":3}'
+v1='opendc:v1:{"schemaVersion":1,"kind":"settings","rev":1}'
+v2='opendc:v1:{"schemaVersion":1,"kind":"settings","rev":2}'
+v3='opendc:v1:{"schemaVersion":1,"kind":"settings","rev":3}'
 out="$(cas "$v1" "$v2")" && result "CAS rev1->rev2 with current old value" ok || result "CAS rev1->rev2" "FAILED: $(tail -1 <<<"$out")"
 out="$(cas "$v1" "$v3")" && result "CAS with stale old value (must fail)" "UNEXPECTEDLY SUCCEEDED" ||
   result "CAS with stale old value (must fail)" "rejected: $(grep -oE 'LDAP error [0-9]+ [A-Z_]+' <<<"$out" | head -1)"

@@ -1,7 +1,8 @@
-# CLAUDE.md — conventions for MyUCS sessions
+# CLAUDE.md — conventions for OpenDC sessions
 
-> **MyUCS** is a *working name* (see `docs/OPEN-QUESTIONS.md` Q1). The lowercase id `myucs` is used for
-> binaries, users, paths and the directory container. Rename with a single find/replace before Phase 1.
+> **OpenDC** is the product name (OPEN-QUESTIONS Q1, decided 2026-10-24; the working name was "MyUCS").
+> The lowercase id `opendc` is used for binaries, users, paths and the directory container
+> `CN=OpenDC,CN=System`. Licensed AGPL-3.0-only (ADR-0023).
 
 ## What this project is
 A self-hosted, distro-agnostic identity and infrastructure platform (UCS-class). A Node.js/TypeScript backend
@@ -12,8 +13,8 @@ It is a general-purpose product installed by integrators at many client sites. *
 site-specific.** Topology, names, subnets and features are configurable; ship defaults, allow overrides.
 
 ## Current phase
-See `ROADMAP.md`. **Phase 0 (design) is complete and awaiting review.** Do not write feature code until the
-user approves Phase 0 and answers the blocking questions in `docs/OPEN-QUESTIONS.md`.
+See `ROADMAP.md`. **Phase 0 (design) was reviewed on 2026-10-24** and all blocking questions are answered. Phase 1
+(foundation) starts only after the user's explicit go-ahead.
 
 ## Where things are
 - `docs/ARCHITECTURE.md` — components, data flow, diagrams. Start here.
@@ -28,7 +29,7 @@ user approves Phase 0 and answers the blocking questions in `docs/OPEN-QUESTIONS
 2. **Never modify the host machine.** Samba/provisioning/join tests run only in disposable VMs (`test/env/`).
 3. **No shell strings.** `execFile`/`spawn` with argument arrays only, `shell: false`. Lint rule enforces it.
 4. **No distro checks outside `packages/os`.** Everything distro-specific goes through the OS adapter.
-5. **Root actions only via `myucs-agent`** typed operations (see `docs/design/agent-operations.md`). The
+5. **Root actions only via `opendc-agent`** typed operations (see `docs/design/agent-operations.md`). The
    allowlist is compiled at build time; it is never extended at runtime.
 6. **Zod at every boundary** (HTTP, agent RPC, node RPC, directory payloads, files, profiles).
 7. **LDAP filters/DNs only via the escaping helpers** in `packages/shared/src/ldap/`. Never concatenate.
@@ -46,6 +47,8 @@ user approves Phase 0 and answers the blocking questions in `docs/OPEN-QUESTIONS
   cause **and** the fix ("Time skew 7m exceeds Kerberos 5m limit; check chrony on dc2").
 - Directory payloads carry `schemaVersion`; readers ignore unknown fields and never rewrite an object whose
   `schemaVersion` is newer than they understand (needed for rolling upgrades).
+- Every source file starts with `// SPDX-License-Identifier: AGPL-3.0-only`. Dependencies must carry an
+  AGPL-compatible license (ADR-0023).
 - Every managed file starts with the generated-file header from the Config Registry.
 - Tests: unit tests next to the code (`*.test.ts`, `node:test`); web uses Vitest; E2E Playwright in `test/e2e`.
 - Commit at each green milestone; messages say what and why.
@@ -57,6 +60,9 @@ user approves Phase 0 and answers the blocking questions in `docs/OPEN-QUESTIONS
   wait for the user's go-ahead.**
 
 ## Dev environment notes
-- The project currently sits in a OneDrive-synced folder on Windows; see `docs/OPEN-QUESTIONS.md` Q11.
+- The repo lives in a local, non-synced folder on the owner's Windows machine, never in OneDrive (Q11).
+- The VM lab is a 2-node Proxmox VE cluster driven by `test/env/proxmox/pve-lab.sh` (ADR-0015). Its gateway node
+  carries the lab network files listed in `test/env/proxmox/README.md`. The lab tooling may change those files,
+  lab-tagged VMs and the lab SDN objects, and nothing else on the cluster.
 - Line endings are LF (`.gitattributes`). Agent/systemd/Samba code only runs on Linux; pure logic tests
   must also pass on Windows/macOS dev machines.

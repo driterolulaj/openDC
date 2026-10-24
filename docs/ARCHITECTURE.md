@@ -1,10 +1,10 @@
-# MyUCS architecture
+# OpenDC architecture
 
 Status: **Phase 0 draft, awaiting review.** Decisions referenced as `ADR-NNNN` live in `docs/adr/`.
 
 ## 1. Summary
 
-MyUCS turns a set of ordinary Linux hosts into a managed Active Directory domain with a web console, an
+OpenDC turns a set of ordinary Linux hosts into a managed Active Directory domain with a web console, an
 App Center, a portal and multi-server management. Each client organisation gets **one forest with one
 domain**. The domain usually has several DCs across one or more sites, plus member servers and managed nodes.
 
@@ -15,13 +15,13 @@ Rules that run through the whole design:
 | Orchestrate, don't reimplement | Samba AD is the directory, KDC and (default) DNS. Kea does DHCP. CUPS does printing. Podman/Docker run apps. |
 | One directory technology | Samba AD only. Platform objects live **in** the directory and replicate with it (ADR-0002, ADR-0003). |
 | Every DC is equal for administration | Any writable DC serves the console and API. Only FSMO-bound operations need a specific DC. Domain-wide singleton jobs follow the PDC emulator (ADR-0017). |
-| Least privilege | Unprivileged API and watcher processes; root only through the typed `myucs-agent` allowlist (ADR-0006). |
+| Least privilege | Unprivileged API and watcher processes; root only through the typed `opendc-agent` allowlist (ADR-0006). |
 | Distro-agnostic core | All distro differences sit behind the OS adapter (ADR-0008). |
 | Client autonomy | A client domain never depends on the integrator's fleet console. |
 
 ## 2. Node roles
 
-| Role | Runs Samba as | MyUCS services | Serves console/API | Notes |
+| Role | Runs Samba as | OpenDC services | Serves console/API | Notes |
 |---|---|---|---|---|
 | Primary DC | AD DC (first in the domain) | api, agent, watcher | yes | "Primary" only means "provisioned first". After setup it's a DC like any other; FSMO roles can move. |
 | Additional DC | AD DC (writable) | api, agent, watcher | yes | Full administration. Replicates via DRS. |
@@ -39,9 +39,9 @@ flowchart LR
   subgraph Node["Linux host (DC shown)"]
     direction LR
     PROXY[Front proxy<br/>nginx - ADR-0021]
-    API["myucs-api<br/>Fastify, unprivileged user _myucs-api"]
-    WATCH["myucs-watcher<br/>unprivileged user _myucs-watch"]
-    AGENT["myucs-agent<br/>root, Unix sockets only"]
+    API["opendc-api<br/>Fastify, unprivileged user _opendc-api"]
+    WATCH["opendc-watcher<br/>unprivileged user _opendc-watch"]
+    AGENT["opendc-agent<br/>root, Unix sockets only"]
     DB[("platform DB<br/>SQLite per node")]
     REG["Config Registry<br/>library + local layers"]
     subgraph System["Orchestrated system components"]
@@ -55,27 +55,27 @@ flowchart LR
   UI -- HTTPS --> PROXY --> API
   API -- LDAPS --> SAMBA
   WATCH -- LDAPS + DirSync --> SAMBA
-  API -- "JSON-RPC over /run/myucs/agent-api.sock" --> AGENT
-  WATCH -- "JSON-RPC over /run/myucs/agent-watch.sock" --> AGENT
+  API -- "JSON-RPC over /run/opendc/agent-api.sock" --> AGENT
+  WATCH -- "JSON-RPC over /run/opendc/agent-watch.sock" --> AGENT
   API --- DB
   WATCH --- DB
   API --- REG
   WATCH --- REG
   AGENT -- "execFile(argv[])" --> SAMBA & KEA & CUPS & PODMAN & CHRONY
-  API <-- "mTLS node RPC :7443" --> OTHER[("myucs-api on other nodes")]
+  API <-- "mTLS node RPC :7443" --> OTHER[("opendc-api on other nodes")]
 ```
 
 | Component | Process / user | Responsibility |
 |---|---|---|
-| `myucs-api` | `_myucs-api`, `NoNewPrivileges`, only `CAP_NET_BIND_SERVICE` if it binds <1024 | REST `/api/v1`, sessions, RBAC, audit, jobs (SSE), module routes, node RPC endpoint, scheduler (leader only). On member nodes it runs in **node mode**: node RPC only. |
-| `myucs-agent` | root, socket-activated | Executes typed, schema-validated operations from a build-time allowlist. Separate sockets per caller with separate allowlists. No network listener. |
-| `myucs-watcher` | `_myucs-watch` | Follows directory changes (USN/DirSync) and dispatches them to module handlers. Keeps a per-DC checkpoint. Triggers registry commits. |
-| Config Registry | library used by api/watcher; local layers stored under `/etc/myucs/registry/` | Typed layered key/value store. Renders managed files from module templates; writes them through `agent:file.writeManaged`. |
-| Platform DB | SQLite file per node (`/var/lib/myucs/platform.db`) | Sessions, jobs, audit log (replicated between writable DCs), watcher checkpoints, caches. **No secrets.** (ADR-0013) |
+| `opendc-api` | `_opendc-api`, `NoNewPrivileges`, only `CAP_NET_BIND_SERVICE` if it binds <1024 | REST `/api/v1`, sessions, RBAC, audit, jobs (SSE), module routes, node RPC endpoint, scheduler (leader only). On member nodes it runs in **node mode**: node RPC only. |
+| `opendc-agent` | root, socket-activated | Executes typed, schema-validated operations from a build-time allowlist. Separate sockets per caller with separate allowlists. No network listener. |
+| `opendc-watcher` | `_opendc-watch` | Follows directory changes (USN/DirSync) and dispatches them to module handlers. Keeps a per-DC checkpoint. Triggers registry commits. |
+| Config Registry | library used by api/watcher; local layers stored under `/etc/opendc/registry/` | Typed layered key/value store. Renders managed files from module templates; writes them through `agent:file.writeManaged`. |
+| Platform DB | SQLite file per node (`/var/lib/opendc/platform.db`) | Sessions, jobs, audit log (replicated between writable DCs), watcher checkpoints, caches. **No secrets.** (ADR-0013) |
 | Front proxy | distro nginx (proposed, ADR-0021) | TLS termination for console and app paths/hosts, HSTS. |
-| `myucs` CLI | user's shell | Thin client of the same REST API (local Unix-socket or remote HTTPS + token). |
+| `opendc` CLI | user's shell | Thin client of the same REST API (local Unix-socket or remote HTTPS + token). |
 
-Secrets: root-owned files under `/etc/myucs/secrets/` (0600), managed by the agent. Services receive them via
+Secrets: root-owned files under `/etc/opendc/secrets/` (0600), managed by the agent. Services receive them via
 systemd `LoadCredential=`, so they never sit in the platform DB or environment variables.
 
 ## 4. Domain topology
@@ -114,7 +114,7 @@ flowchart TB
 sequenceDiagram
   autonumber
   participant B as Browser
-  participant A as myucs-api (dc2)
+  participant A as opendc-api (dc2)
   participant S as Samba (dc2)
   participant D as platform DB (dc2)
   B->>A: PATCH /api/v1/users/{guid}  (cookie + CSRF header)
@@ -136,11 +136,11 @@ after an extra permission check and typed confirmation (ADR-0012).
 ```mermaid
 sequenceDiagram
   autonumber
-  participant W as myucs-watcher (files1)
+  participant W as opendc-watcher (files1)
   participant S as home DC (dc1)
   participant H as module handler (dhcp)
   participant R as Config Registry
-  participant G as myucs-agent (files1)
+  participant G as opendc-agent (files1)
   loop every N s, or right after a change notification
     W->>S: search with DirSync cookie (fallback: uSNChanged > checkpoint)
     S-->>W: changed/deleted objects under watched bases
@@ -166,8 +166,8 @@ Important properties (ADR-0004):
 flowchart LR
   DEF[default<br/>from module manifests] --> M((merge))
   POL["domain-policy<br/>policies linked to the node's OU,<br/>cached locally"] --> M
-  LOC["local<br/>/etc/myucs/registry/local.json"] --> M
-  FOR["forced<br/>/etc/myucs/registry/forced.json"] --> M
+  LOC["local<br/>/etc/opendc/registry/local.json"] --> M
+  FOR["forced<br/>/etc/opendc/registry/forced.json"] --> M
   M --> T[module templates<br/>pure TS functions]
   T --> F["managed files<br/>via agent file.writeManaged(fileId)"]
   F --> HD[handlers: reload/restart via agent]
@@ -182,13 +182,13 @@ renders correctly when it can't reach a DC (ADR-0005).
 | Data | Lives in | Replication / scope |
 |---|---|---|
 | Users, groups, computers, OUs, GPO containers, DNS zones | Samba AD | DRS, domain-wide |
-| Platform objects (policies, DHCP, shares, printers, app registrations, portal, RBAC roles, extended-attribute definitions, node registry) | AD, under `CN=MyUCS,CN=System,<domainDN>` (see `design/directory-object-model.md`) | DRS, domain-wide |
-| SYSVOL (GPO files, logon scripts) | Filesystem on each DC | **Samba does not replicate SYSVOL.** MyUCS replicates it one way from the PDC emulator (ADR-0019). |
-| Config Registry local/forced layers | `/etc/myucs/registry/` | Node-local |
+| Platform objects (policies, DHCP, shares, printers, app registrations, portal, RBAC roles, extended-attribute definitions, node registry) | AD, under `CN=OpenDC,CN=System,<domainDN>` (see `design/directory-object-model.md`) | DRS, domain-wide |
+| SYSVOL (GPO files, logon scripts) | Filesystem on each DC | **Samba does not replicate SYSVOL.** OpenDC replicates it one way from the PDC emulator (ADR-0019). |
+| Config Registry local/forced layers | `/etc/opendc/registry/` | Node-local |
 | Sessions, jobs, watcher checkpoints, caches | Platform DB (SQLite) | Node-local |
 | Audit log | Platform DB | Append-only, per-origin sequence numbers; pulled between writable DCs over mTLS so any DC can show full history (ADR-0013) |
-| Secrets (service-account passwords, CA keys, app secrets) | `/etc/myucs/secrets/`, root 0600 | Node-local. Distributed only by agent-to-agent transfer over mTLS when a role needs it. |
-| Certificates and CRLs (public parts) | AD (`CN=PKI,CN=MyUCS,...`) plus files | Domain-wide |
+| Secrets (service-account passwords, CA keys, app secrets) | `/etc/opendc/secrets/`, root 0600 | Node-local. Distributed only by agent-to-agent transfer over mTLS when a role needs it. |
+| Certificates and CRLs (public parts) | AD (`CN=PKI,CN=OpenDC,...`) plus files | Domain-wide |
 
 ## 9. Known platform limitations that shape the design
 
@@ -205,7 +205,7 @@ in `docs/OPEN-QUESTIONS.md`.
    object model).
 4. **Samba internal DNS** supports only global forwarders (no conditional forwarders) and accepts only
    GSS-TSIG for secure dynamic updates. Kea DDNS registration therefore needs GSS-TSIG support in Kea, or a
-   MyUCS lease hook that registers through the agent. BIND9_DLZ is the option when conditional forwarding is
+   OpenDC lease hook that registers through the agent. BIND9_DLZ is the option when conditional forwarding is
    needed.
 5. **`samba-tool domain backup` restore** rebuilds a domain from one DC: the restored DC becomes the only DC
    and other DCs must be re-joined. Replacing one failed DC in a healthy multi-DC domain is a **re-join**, not
@@ -243,8 +243,8 @@ their own UI and a portal tile.
 ## 11. Node-to-node communication
 
 - Every node has a node certificate issued by the domain CA. Its SAN contains the FQDN and
-  `URI:urn:myucs:node:<computer objectGUID>`, which binds the certificate to the machine account (ADR-0007).
-- Node RPC is HTTPS with mutual TLS on port 7443 (configurable), served by `myucs-api`. It's a versioned
+  `URI:urn:opendc:node:<computer objectGUID>`, which binds the certificate to the machine account (ADR-0007).
+- Node RPC is HTTPS with mutual TLS on port 7443 (configurable), served by `opendc-api`. It's a versioned
   JSON-RPC style API (`/node/v1/...`) with Zod schemas shared with the agent catalogue.
 - Authorization: member nodes accept operation requests only from **writable DCs** (checked against the node
   registry and the cert's GUID). The originating DC has already checked the human's RBAC; the request carries
@@ -270,13 +270,13 @@ mTLS, metadata only).
 
 ## 14. Packaging and runtime
 
-- Packages `myucs-common`, `myucs-dc`, `myucs-member`, `myucs-node` (.deb/.rpm via nfpm, plus a tarball and
-  install script). They **bundle a pinned Node.js runtime** under `/usr/lib/myucs/node`, so distro Node
+- Packages `opendc-common`, `opendc-dc`, `opendc-member`, `opendc-node` (.deb/.rpm via nfpm, plus a tarball and
+  install script). They **bundle a pinned Node.js runtime** under `/usr/lib/opendc/node`, so distro Node
   versions don't matter (ADR-0010, ADR-0016).
-- systemd units: `myucs-api.service`, `myucs-watcher.service`, `myucs-agent.socket` + `myucs-agent.service`,
+- systemd units: `opendc-api.service`, `opendc-watcher.service`, `opendc-agent.socket` + `opendc-agent.service`,
   and timers where needed. All hardened (SECURITY.md §6).
-- Paths: `/usr/lib/myucs` (code), `/etc/myucs` (config, registry, secrets), `/var/lib/myucs` (DB, state,
-  backups staging), `/run/myucs` (sockets), logs to journald.
+- Paths: `/usr/lib/opendc` (code), `/etc/opendc` (config, registry, secrets), `/var/lib/opendc` (DB, state,
+  backups staging), `/run/opendc` (sockets), logs to journald.
 
 ## 15. Fleet console (Phase 7)
 

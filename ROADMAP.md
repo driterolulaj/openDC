@@ -1,11 +1,11 @@
-# MyUCS roadmap
+# OpenDC roadmap
 
 Each phase ends with a summary covering what was built, what was tested and the known gaps, then **stops for
 the project owner's go-ahead**. Checkboxes are kept current. "Lab" means the VM topologies in `test/env/`.
 
 ---
 
-## Phase 0: Design ✅ (awaiting review)
+## Phase 0: Design ✅ (reviewed 2026-10-24)
 - [x] `CLAUDE.md`
 - [x] `docs/ARCHITECTURE.md` with Mermaid diagrams
 - [x] ADRs 0001–0022 (`docs/adr/`)
@@ -17,7 +17,7 @@ the project owner's go-ahead**. Checkboxes are kept current. "Lab" means the VM 
 - [x] OS adapter interface (`docs/design/os-adapter.ts`)
 - [x] `ROADMAP.md`
 - [x] Open questions (`docs/OPEN-QUESTIONS.md`)
-- [ ] **Project owner review; ADRs moved to Accepted or revised**
+- [x] **Project owner review; ADRs moved to Accepted or revised** (2026-10-24; ADR-0021 waits for Q7, ADR-0023 added for the license)
 
 **Acceptance:** the project owner approves the design, answers the blocking open questions, and ADR statuses
 are updated.
@@ -62,14 +62,14 @@ are updated.
    exposure ≤ 3.0 for api/watcher), and the console login page loads over HTTPS.
 4. A test  logs in through LDAPS against a pre-provisioned lab DC, sees an RBAC-filtered placeholder page,
    and the login is in the audit log.
-5. `myucs registry set` on a demo key renders a managed file through the agent with the header, and the drift
+5. `opendc registry set` on a demo key renders a managed file through the agent with the header, and the drift
    diagnostic flags a manual edit.
 6. Spikes S1/S2 are documented, and ADR-0003/0004 are confirmed or amended (with approval).
 
 ---
 
 ## Phase 2: Domain core
-- [ ] Setup wizard (web + `myucs setup` CLI): role selection, hostname/FQDN, realm/NetBIOS, network (apply
+- [ ] Setup wizard (web + `opendc setup` CLI): role selection, hostname/FQDN, realm/NetBIOS, network (apply
   with rollback), time, admin password; setup token.
 - [ ] Pre-flight checks: DNS, time drift, ports, hostname validity (NetBIOS ≤ 15), disk, xattr/ACL,
   SELinux/AppArmor, port 53 conflict.
@@ -142,13 +142,13 @@ are updated.
   journald log viewer.
 - [ ] Backup/restore: online/offline domain backup, registry, CA, platform DB; schedules, retention, rsync/SFTP
   targets, encryption; restore runbooks (full-domain DR vs single-DC re-join).
-- [ ] Deployment profiles: versioned YAML schema, wizard export/import, `myucs deploy --profile` with dry-run
+- [ ] Deployment profiles: versioned YAML schema, wizard export/import, `opendc deploy --profile` with dry-run
   plan; starter templates (small office, school, multi-site company).
 - [ ] DC demotion and removal of dead DCs.
 
 **Acceptance:**
 1. `multisite` lab (80 ms latency between sites): 3 DCs incl. RODC deployed from `multi-site-company.yaml` by
-   `myucs deploy` in under 60 minutes, end to end, unattended. Dry-run output matches what was applied.
+   `opendc deploy` in under 60 minutes, end to end, unattended. Dry-run output matches what was applied.
 2. A branch client authenticates against the branch RODC (verified via logs). A password change from the branch
    console is proxied to a hub DC and replicates back.
 3. A GPO edited on the PDC emulator reaches every DC's SYSVOL within 5 minutes, and the sysvol diagnostic is green.
@@ -227,7 +227,7 @@ are updated.
    without a grant.
 3. Load: with 50k users / 10k groups, list pages p95 < 500 ms, search p95 < 1 s, a watcher full resync of the
    platform container < 60 s, and a user-subtree resync < 5 min (documented hardware).
-4. Windows Server 2019/2022 AD at FL ≤ 2016 migrates to MyUCS DCs in the lab with clients keeping their trust.
+4. Windows Server 2019/2022 AD at FL ≤ 2016 migrates to OpenDC DCs in the lab with clients keeping their trust.
 
 ---
 

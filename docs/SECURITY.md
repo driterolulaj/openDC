@@ -8,9 +8,9 @@ Status: Phase 0 draft. **Updated at the end of every phase.**
 |---|---|---|
 | Domain directory and KDC secrets | Domain compromise = compromise of every joined machine | Samba `sam.ldb`, `secrets.ldb` on every DC |
 | `krbtgt` and machine keys | Golden or silver tickets | Samba DB |
-| Platform service-account credentials | Tier-1 directory write | `/etc/myucs/secrets/` on writable DCs |
-| CA root and issuing keys | Can impersonate any node or service; mTLS trust | `/etc/myucs/secrets/pki/` (root can go offline) |
-| Agent socket access | Root-level actions within the allowlist | `/run/myucs/agent-*.sock` |
+| Platform service-account credentials | Tier-1 directory write | `/etc/opendc/secrets/` on writable DCs |
+| CA root and issuing keys | Can impersonate any node or service; mTLS trust | `/etc/opendc/secrets/pki/` (root can go offline) |
+| Agent socket access | Root-level actions within the allowlist | `/run/opendc/agent-*.sock` |
 | Console sessions | Admin rights | Platform DB (session id hashes), cookies |
 | Audit log | Accountability, compliance | Platform DB on DCs (replicated) |
 | Backups | Contain every domain secret | Local staging + remote targets (encrypted) |
@@ -45,7 +45,7 @@ Status: Phase 0 draft. **Updated at the end of every phase.**
 ## 4. Authentication and session design
 
 - **Login:** LDAPS simple bind against a verified DC (ADR-0020). The password is discarded right after the bind.
-- **Session:** a 256-bit random id. The cookie is `__Host-myucs_sid` (Secure, HttpOnly, SameSite=Strict, Path=/).
+- **Session:** a 256-bit random id. The cookie is `__Host-opendc_sid` (Secure, HttpOnly, SameSite=Strict, Path=/).
   The DB stores SHA-256(id), user SID/GUID, the `tokenGroups` snapshot, created, last seen and IP.
   Idle timeout 30 min, absolute 12 h, both configurable. Group changes take effect at the next snapshot
   refresh (every 5 min) or right away for the affected user.
@@ -71,9 +71,9 @@ Status: Phase 0 draft. **Updated at the end of every phase.**
 
 ## 6. Hardened systemd units (baseline)
 
-`myucs-api.service` / `myucs-watcher.service`:
+`opendc-api.service` / `opendc-watcher.service`:
 ```
-User=_myucs-api            # resp. _myucs-watch
+User=_opendc-api            # resp. _opendc-watch
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
@@ -95,12 +95,12 @@ SystemCallFilter=@system-service
 CapabilityBoundingSet=      # empty; the API listens on a Unix socket behind nginx (ADR-0021)
 AmbientCapabilities=
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
-ReadWritePaths=/var/lib/myucs/api /run/myucs
-LoadCredential=ldap-bind:/etc/myucs/secrets/svc-ldap
-LoadCredential=csrf-hmac:/etc/myucs/secrets/api-hmac
+ReadWritePaths=/var/lib/opendc/api /run/opendc
+LoadCredential=ldap-bind:/etc/opendc/secrets/svc-ldap
+LoadCredential=csrf-hmac:/etc/opendc/secrets/api-hmac
 UMask=0077
 ```
-`myucs-agent.service` runs as root (it has to), but still with `ProtectHome=read-only`, `PrivateTmp`,
+`opendc-agent.service` runs as root (it has to), but still with `ProtectHome=read-only`, `PrivateTmp`,
 `ProtectKernelModules`, `RestrictRealtime`, `LockPersonality`, `RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6`
 (INET only for node-RPC pulls such as SYSVOL and secrets) and `SystemCallArchitectures=native`.
 `ProtectSystem` can't be strict, because it writes into `/etc` and `/var/lib/samba`. Each OS adapter supplies a
@@ -123,15 +123,15 @@ UMask=0077
 
 | Secret | Location | Rotation | Exposure |
 |---|---|---|---|
-| Service-account passwords | `/etc/myucs/secrets/svc-*` | 30 days (leader) | systemd credential to the owning service only |
-| CA root key | `/etc/myucs/secrets/pki/root.key` or offline | 10 years | agent only |
-| Issuing CA keys | `/etc/myucs/secrets/pki/issuer.key` per DC | 3 years | agent only |
-| Node TLS key | `/etc/myucs/secrets/node.key` | yearly | api (credential) |
-| Session/CSRF/confirm HMAC keys | `/etc/myucs/secrets/api-hmac` | agent start / 24 h | api + agent |
-| TOTP encryption key | `/etc/myucs/secrets/totp.key` | manual (re-encrypt job) | api credential |
-| Backup encryption key | `/etc/myucs/secrets/backup.key` + printed recovery copy | manual | agent only |
-| App secrets | `/etc/myucs/secrets/apps/<app>/<name>` | per app manifest | Podman secret |
-| Setup token | `/etc/myucs/secrets/setup-token` | one-time | console output at install |
+| Service-account passwords | `/etc/opendc/secrets/svc-*` | 30 days (leader) | systemd credential to the owning service only |
+| CA root key | `/etc/opendc/secrets/pki/root.key` or offline | 10 years | agent only |
+| Issuing CA keys | `/etc/opendc/secrets/pki/issuer.key` per DC | 3 years | agent only |
+| Node TLS key | `/etc/opendc/secrets/node.key` | yearly | api (credential) |
+| Session/CSRF/confirm HMAC keys | `/etc/opendc/secrets/api-hmac` | agent start / 24 h | api + agent |
+| TOTP encryption key | `/etc/opendc/secrets/totp.key` | manual (re-encrypt job) | api credential |
+| Backup encryption key | `/etc/opendc/secrets/backup.key` + printed recovery copy | manual | agent only |
+| App secrets | `/etc/opendc/secrets/apps/<app>/<name>` | per app manifest | Podman secret |
+| Setup token | `/etc/opendc/secrets/setup-token` | one-time | console output at install |
 
 Backups are encrypted (AES-256-GCM via `openssl`, or age-style envelope; the decision comes in Phase 4).
 Restore documentation stresses that the backup key must be stored off-host.

@@ -1,6 +1,6 @@
 # ADR-0001: Record architecture decisions
 
-Status: Proposed · Date: 2026-10-06
+Status: Accepted 2026-10-24 · Date: 2026-10-06
 
 ## Context
 This is a multi-month, multi-contributor product that integrators will run for years. Choices such as schema,

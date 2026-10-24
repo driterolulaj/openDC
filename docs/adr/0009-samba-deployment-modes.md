@@ -1,6 +1,6 @@
 # ADR-0009: Samba deployment modes — native and container
 
-Status: Proposed · Date: 2026-10-06
+Status: Accepted 2026-10-24 · Date: 2026-10-06
 
 ## Context
 - Debian and Ubuntu ship a Heimdal-based Samba AD DC that's widely used in production.
@@ -11,13 +11,13 @@ Status: Proposed · Date: 2026-10-06
 ## Decision
 1. **Native mode:** distro packages. This is Tier 1 for the DC role on Debian 12/13 and Ubuntu 24.04/26.04.
    It also covers member and managed-node roles everywhere.
-2. **Container mode:** a MyUCS-built, pinned Samba AD DC OCI image (Heimdal build, a known Samba version),
+2. **Container mode:** a OpenDC-built, pinned Samba AD DC OCI image (Heimdal build, a known Samba version),
    used for the DC role on RHEL-family distros. Opt-in for Fedora and openSUSE.
    - Runs under rootful Podman (Docker allowed) with **host networking**. Samba needs ports 53, 88, 135, 137-139,
      389, 445, 464, 636, 3268/3269 and the dynamic RPC range 49152-65535.
    - Needs `CAP_SYS_ADMIN` so it can write `security.NTACL` xattrs. The container is therefore not a security
      boundary; it's a packaging mechanism, and the docs say so.
-   - State lives in host bind mounts (`/var/lib/myucs/samba/{private,sysvol,state,etc}`) on a filesystem with
+   - State lives in host bind mounts (`/var/lib/opendc/samba/{private,sysvol,state,etc}`) on a filesystem with
      xattrs and ACLs. Pre-flight verifies this.
    - Wrapper: the OS adapter's `samba` facet exposes the same operations either way. `samba-tool` runs via
      `podman exec`. The agent never cares which mode is active.

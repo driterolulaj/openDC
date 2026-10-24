@@ -1,6 +1,6 @@
 # ADR-0022: Declarative module manifests with build-time code generation
 
-Status: Proposed · Date: 2026-10-06
+Status: Accepted 2026-10-24 · Date: 2026-10-06
 
 ## Context
 A module contributes API routes, UI routes, registry keys and templates, watcher handlers, agent operations,

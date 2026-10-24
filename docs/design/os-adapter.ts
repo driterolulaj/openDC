@@ -1,9 +1,9 @@
 /**
- * MyUCS OS abstraction layer (ADR-0008).
+ * OpenDC OS abstraction layer (ADR-0008).
  *
  * Two halves:
  *  - OsFacts   — read-only, side-effect-free. Usable anywhere (API planning, pre-flight, templates).
- *  - OsActions — state-changing. ONLY instantiated inside myucs-agent (root).
+ *  - OsActions — state-changing. ONLY instantiated inside opendc-agent (root).
  *
  * All command execution inside actions uses execFile with argv arrays (no shell), absolute binary paths
  * from OsFacts.binaries, a fixed environment, timeouts and output limits.
@@ -59,11 +59,11 @@ export interface OsFacts {
 }
 
 export interface PlatformPaths {
-  etc: string; // /etc/myucs
-  secrets: string; // /etc/myucs/secrets
-  lib: string; // /usr/lib/myucs
-  state: string; // /var/lib/myucs
-  run: string; // /run/myucs
+  etc: string; // /etc/opendc
+  secrets: string; // /etc/opendc/secrets
+  lib: string; // /usr/lib/opendc
+  state: string; // /var/lib/opendc
+  run: string; // /run/opendc
   /** Resolve a manifest pathKey (e.g. "kea.dhcp4.conf") to an absolute path; throws if unknown. */
   managedFile(pathKey: string): string;
   /** Allowed roots for any managed write — the agent rejects anything outside after realpath(). */
@@ -182,7 +182,7 @@ export interface PackageActions {
   removeSet(setId: string, progress?: Progress): Promise<void>;
   upgradeAll(opts: { securityOnly: boolean }, progress?: Progress): Promise<{ rebootRequired: boolean }>;
   rebootRequired(): Promise<boolean>;
-  /** Configure the MyUCS package repository/channel (stable|testing) with its signing key. */
+  /** Configure the OpenDC package repository/channel (stable|testing) with its signing key. */
   configurePlatformRepo(channel: 'stable' | 'testing'): Promise<void>;
 }
 
@@ -199,7 +199,7 @@ export interface ServiceActions {
 }
 
 export interface FileActions {
-  /** Atomic write (tmp+fsync+rename), keeps previous as .myucs-prev, enforces managedRoots. */
+  /** Atomic write (tmp+fsync+rename), keeps previous as .opendc-prev, enforces managedRoots. */
   writeManaged(path: string, content: string, owner: { user: string; group: string }, mode: number): Promise<{ changed: boolean; sha256: string }>;
   readManaged(path: string): Promise<string | null>;
   restorePrevious(path: string): Promise<void>;
@@ -207,7 +207,7 @@ export interface FileActions {
 }
 
 export interface FirewallActions {
-  /** Applies the full MyUCS ruleset (union of enabled port sets) in a dedicated table/zone; idempotent. */
+  /** Applies the full OpenDC ruleset (union of enabled port sets) in a dedicated table/zone; idempotent. */
   apply(rules: { id: string; port: number | [number, number]; proto: 'tcp' | 'udp'; sources?: string[] }[]): Promise<void>;
 }
 
@@ -265,7 +265,7 @@ export interface ContainerSpec {
 }
 
 export interface MacActions {
-  /** Install/label policy modules or AppArmor profiles shipped by MyUCS for managed paths. */
+  /** Install/label policy modules or AppArmor profiles shipped by OpenDC for managed paths. */
   ensurePolicy(policyId: string): Promise<void>;
   relabel(path: string): Promise<void>;
 }

@@ -1,6 +1,6 @@
 # ADR-0017: Domain-wide singleton jobs run on the PDC emulator
 
-Status: Proposed · Date: 2026-10-06
+Status: Accepted 2026-10-24 · Date: 2026-10-06
 
 ## Context
 Some jobs must run exactly once per domain: scheduled backups, staged update rollouts, service-account password

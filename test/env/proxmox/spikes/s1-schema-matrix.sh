@@ -38,11 +38,11 @@ run_matrix() {
   for schema in $schemas; do
     [[ "$schema" == *_old ]] && continue
     t="/tmp/s1/$schema"; rm -rf "$t"
-    if ! samba-tool domain provision --targetdir="$t" --realm=S1.MYUCS.TEST --domain=S1 --server-role=dc \
+    if ! samba-tool domain provision --targetdir="$t" --realm=S1.OPENDC.TEST --domain=S1 --server-role=dc \
       --dns-backend=NONE --use-rfc2307 --adminpass='S1-Spike-Pass-1' --base-schema="$schema" >"$t.log" 2>&1; then
       echo "| $schema | provision failed: $(tail -1 "$t.log") | | | | |"; continue
     fi
-    h="$t/private/sam.ldb"; b="DC=s1,DC=myucs,DC=test"
+    h="$t/private/sam.ldb"; b="DC=s1,DC=opendc,DC=test"
     sch() { ldbsearch -H "$h" -b "CN=Schema,CN=Configuration,$b" "(lDAPDisplayName=$1)" "${@:2}" 2>/dev/null; }
 
     local cls="no" attrs="" a r s cloud=0 i create="fail" sizes=""
@@ -59,22 +59,22 @@ run_matrix() {
     for i in $(seq 1 20); do sch "msDS-cloudExtensionAttribute$i" | grep -q '^dn:' && cloud=$((cloud + 1)); done
 
     if ldbadd -H "$h" >/dev/null 2>&1 <<EOF
-dn: CN=MyUCS,CN=System,$b
+dn: CN=OpenDC,CN=System,$b
 objectClass: container
 
-dn: CN=Settings,CN=MyUCS,CN=System,$b
+dn: CN=Settings,CN=OpenDC,CN=System,$b
 objectClass: msDS-App-Configuration
 displayName: S1 test
-msDS-Settings: myucs:v1:{"schemaVersion":1,"kind":"settings","rev":1}
+msDS-Settings: opendc:v1:{"schemaVersion":1,"kind":"settings","rev":1}
 msDS-ObjectReference: CN=Administrator,CN=Users,$b
 msDS-Integer: 42
 EOF
     then
-      ldbsearch -H "$h" -b "CN=Settings,CN=MyUCS,CN=System,$b" -s base msDS-Settings 2>/dev/null |
+      ldbsearch -H "$h" -b "CN=Settings,CN=OpenDC,CN=System,$b" -s base msDS-Settings 2>/dev/null |
         grep -q '"schemaVersion":1' && create="ok"
     fi
     for s in "${SIZES[@]}"; do
-      if { printf 'dn: CN=Settings,CN=MyUCS,CN=System,%s\nchangetype: modify\nreplace: msDS-Settings\nmsDS-Settings:: ' "$b"
+      if { printf 'dn: CN=Settings,CN=OpenDC,CN=System,%s\nchangetype: modify\nreplace: msDS-Settings\nmsDS-Settings:: ' "$b"
            head -c "$s" /dev/zero | tr '\0' 'x' | base64 -w0; printf '\n'; } |
          ldbmodify -H "$h" >/dev/null 2>&1; then
         sizes+="${s} ok, "

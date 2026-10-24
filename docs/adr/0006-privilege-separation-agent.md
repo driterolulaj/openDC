@@ -1,6 +1,6 @@
 # ADR-0006: Privilege separation with a typed root agent
 
-Status: Proposed · Date: 2026-10-06
+Status: Accepted 2026-10-24 · Date: 2026-10-06
 
 ## Context
 The platform has to restart services, write system config, run `samba-tool`, manage packages and containers.
@@ -8,12 +8,12 @@ A web-facing process that runs as root turns any bug into full compromise of the
 compromise of the host means full compromise of the domain.
 
 ## Decision
-1. `myucs-api` runs as `_myucs-api` and `myucs-watcher` as `_myucs-watch`, both unprivileged with hardened
-   systemd units. `myucs-agent` runs as root and has **no network listener**.
+1. `opendc-api` runs as `_opendc-api` and `opendc-watcher` as `_opendc-watch`, both unprivileged with hardened
+   systemd units. `opendc-agent` runs as root and has **no network listener**.
 2. Transport: systemd socket activation with **one socket per caller**:
-   - `/run/myucs/agent-api.sock` (group `_myucs-api`, mode 0660)
-   - `/run/myucs/agent-watch.sock` (group `_myucs-watch`, mode 0660)
-   - `/run/myucs/agent-cli.sock` (group `myucs-admin`; for local root/admin CLI use)
+   - `/run/opendc/agent-api.sock` (group `_opendc-api`, mode 0660)
+   - `/run/opendc/agent-watch.sock` (group `_opendc-watch`, mode 0660)
+   - `/run/opendc/agent-cli.sock` (group `opendc-admin`; for local root/admin CLI use)
 
    Each socket has **its own allowlist subset**. We use filesystem permissions instead of `SO_PEERCRED`, which
    Node can't read without a native addon.
@@ -35,7 +35,7 @@ compromise of the host means full compromise of the domain.
    (`PATH` from the OS adapter, `LANG=C.UTF-8`), timeouts, and output size limits. Binaries are resolved to
    absolute paths by the OS adapter.
 6. The allowlist is generated at build time from module manifests (ADR-0022) and shipped read-only in
-   `/usr/lib/myucs`. The agent loads no code or allowlist data from writable locations.
+   `/usr/lib/opendc`. The agent loads no code or allowlist data from writable locations.
 7. Every operation is logged to journald with requestId, actor, op and argument summary (secrets redacted by
    schema annotations).
 

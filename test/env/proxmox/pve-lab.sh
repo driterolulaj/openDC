@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# MyUCS VM lab on a Proxmox VE cluster (secondary lab backend next to Incus, see README.md).
+# OpenDC VM lab on a Proxmox VE cluster (secondary lab backend next to Incus, see README.md).
 #
 # Runs as root on the cluster node that acts as the lab gateway. Every cross-node action goes through
 # pvesh, so one node drives the whole cluster. The script only ever touches:
 #   - the SDN zone/vnet named in lab.env
 #   - VMs carrying the lab tag, and the lab templates
-#   - three files on the gateway node: /etc/network/interfaces.d/myucs-lab, /etc/sysctl.d/90-myucs-lab.conf,
-#     /etc/myucs-lab/ (+ the myucs-lab-nat.service unit)
+#   - three files on the gateway node: /etc/network/interfaces.d/opendc-lab, /etc/sysctl.d/90-opendc-lab.conf,
+#     /etc/opendc-lab/ (+ the opendc-lab-nat.service unit)
 #
 # Usage: pve-lab.sh net-up | net-down | templates [--refresh] | up <topology> | domain <topology>
 #        | down <topology> | snapshot <topology> <name> | rollback <topology> <name> | status | credentials
@@ -19,7 +19,7 @@ LAB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lab.env
 source "$LAB_DIR/lab.env"
 
-STATE_DIR=/root/myucs-lab
+STATE_DIR=/root/opendc-lab
 KNOWN_HOSTS="$STATE_DIR/known_hosts"
 SSH_OPTS=(-o BatchMode=yes -o StrictHostKeyChecking=accept-new -o "UserKnownHostsFile=$KNOWN_HOSTS"
   -o ConnectTimeout=5 -o LogLevel=ERROR)
@@ -66,7 +66,7 @@ template_id() { # <image> <node-index>
 ensure_image() { # <image> <node>  -> downloads into the import storage, verified by the published checksum
   local image="$1" node="$2" slot url sums algo file sum
   read -r slot url sums algo <<<"$(image_info "$image")"
-  file="myucs-$image.qcow2"
+  file="opendc-$image.qcow2"
   if pvesh get "/nodes/$node/storage/$LAB_IMPORT_STORAGE/content" --content import --output-format json |
     json 'print map { "$_->{volid}\n" } @$d' | grep -qx "$LAB_IMPORT_STORAGE:import/$file"; then
     return 0
@@ -89,7 +89,7 @@ cmd_templates() {
         ((refresh)) || continue
         log "removing template $id for refresh (fails if linked clones still exist)"
         pvesh delete "/nodes/$node/qemu/$id" --purge 1 >/dev/null
-        pvesh delete "/nodes/$node/storage/$LAB_IMPORT_STORAGE/content/$LAB_IMPORT_STORAGE:import/myucs-$image.qcow2" >/dev/null
+        pvesh delete "/nodes/$node/storage/$LAB_IMPORT_STORAGE/content/$LAB_IMPORT_STORAGE:import/opendc-$image.qcow2" >/dev/null
       fi
       ensure_image "$image" "$node"
       log "creating template $id (tpl-$image) on $node"
@@ -97,7 +97,7 @@ cmd_templates() {
       pvesh create "/nodes/$node/qemu" --vmid "$id" --name "tpl-$image" --tags "$LAB_TAG;template" \
         --ostype l26 --machine q35 --cpu host --cores 2 --memory 2048 --agent enabled=1 \
         --scsihw virtio-scsi-single \
-        --scsi0 "$LAB_STORAGE:0,import-from=$LAB_IMPORT_STORAGE:import/myucs-$image.qcow2,discard=on,iothread=1,ssd=1" \
+        --scsi0 "$LAB_STORAGE:0,import-from=$LAB_IMPORT_STORAGE:import/opendc-$image.qcow2,discard=on,iothread=1,ssd=1" \
         --scsi1 "$LAB_STORAGE:cloudinit" --boot order=scsi0 --serial0 socket --vga serial0 \
         --net0 "virtio,bridge=$LAB_VNET,mtu=1" >/dev/null
       pvesh create "/nodes/$node/qemu/$id/template" >/dev/null
@@ -115,7 +115,7 @@ cmd_net_up() {
   fi
   if ! pvesh get "/cluster/sdn/vnets/$LAB_VNET" >/dev/null 2>&1; then
     log "creating SDN vnet $LAB_VNET (VNI $LAB_VXLAN_TAG)"
-    pvesh create /cluster/sdn/vnets --vnet "$LAB_VNET" --zone "$LAB_ZONE" --tag "$LAB_VXLAN_TAG" --alias "MyUCS lab" >/dev/null
+    pvesh create /cluster/sdn/vnets --vnet "$LAB_VNET" --zone "$LAB_ZONE" --tag "$LAB_VXLAN_TAG" --alias "OpenDC lab" >/dev/null
   fi
   log "applying SDN configuration"
   pvesh set /cluster/sdn >/dev/null
@@ -123,28 +123,28 @@ cmd_net_up() {
   ip link show "$LAB_VNET" >/dev/null 2>&1 || die "vnet bridge $LAB_VNET did not appear; check 'pvesh get /cluster/sdn/zones'"
 
   log "configuring gateway $LAB_GW on $(hostname) with NAT to $LAB_UPLINK"
-  cat >/etc/network/interfaces.d/myucs-lab <<EOF
-# Managed by MyUCS test/env/proxmox/pve-lab.sh: lab gateway address on the SDN vnet.
+  cat >/etc/network/interfaces.d/opendc-lab <<EOF
+# Managed by OpenDC test/env/proxmox/pve-lab.sh: lab gateway address on the SDN vnet.
 # Removed by 'pve-lab.sh net-down'.
 iface $LAB_VNET
 	address $LAB_GW/$LAB_PREFIX
 EOF
-  echo "net.ipv4.ip_forward = 1  # MyUCS lab gateway (pve-lab.sh)" >/etc/sysctl.d/90-myucs-lab.conf
-  sysctl -q -p /etc/sysctl.d/90-myucs-lab.conf
-  mkdir -p /etc/myucs-lab
+  echo "net.ipv4.ip_forward = 1  # OpenDC lab gateway (pve-lab.sh)" >/etc/sysctl.d/90-opendc-lab.conf
+  sysctl -q -p /etc/sysctl.d/90-opendc-lab.conf
+  mkdir -p /etc/opendc-lab
   local dnat="" fwd hport fip fport
   for fwd in $LAB_PORT_FORWARDS; do
     IFS=: read -r hport fip fport <<<"$fwd"
     dnat+="    iifname \"$LAB_UPLINK\" fib daddr type local tcp dport $hport dnat ip to $fip:$fport"$'\n'
   done
-  cat >/etc/myucs-lab/nat.nft <<EOF
-# Managed by MyUCS test/env/proxmox/pve-lab.sh
+  cat >/etc/opendc-lab/nat.nft <<EOF
+# Managed by OpenDC test/env/proxmox/pve-lab.sh
 # The lab reaches the internet only. Private, CGNAT and link-local destinations are dropped so lab DNS/DHCP
 # services can never talk to the site LAN, and the gateway node accepts nothing from the lab but ping.
 # The only inbound path is the explicit port forwards in the prerouting chain (LAB_PORT_FORWARDS).
-table inet myucs_lab
-flush table inet myucs_lab
-table inet myucs_lab {
+table inet opendc_lab
+flush table inet opendc_lab
+table inet opendc_lab {
   set blocked4 {
     type ipv4_addr; flags interval
     elements = { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10, 169.254.0.0/16 }
@@ -174,25 +174,25 @@ $dnat  }
   }
 }
 EOF
-  cat >/etc/systemd/system/myucs-lab-nat.service <<'EOF'
-# Managed by MyUCS test/env/proxmox/pve-lab.sh
+  cat >/etc/systemd/system/opendc-lab-nat.service <<'EOF'
+# Managed by OpenDC test/env/proxmox/pve-lab.sh
 [Unit]
-Description=MyUCS lab NAT and isolation rules
+Description=OpenDC lab NAT and isolation rules
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/sbin/nft -f /etc/myucs-lab/nat.nft
-ExecStop=/usr/sbin/nft delete table inet myucs_lab
+ExecStart=/usr/sbin/nft -f /etc/opendc-lab/nat.nft
+ExecStop=/usr/sbin/nft delete table inet opendc_lab
 
 [Install]
 WantedBy=multi-user.target
 EOF
   systemctl daemon-reload
-  systemctl enable myucs-lab-nat.service >/dev/null 2>&1
-  systemctl restart myucs-lab-nat.service
+  systemctl enable opendc-lab-nat.service >/dev/null 2>&1
+  systemctl restart opendc-lab-nat.service
   ifreload -a
   ip -br addr show "$LAB_VNET" | grep -q "$LAB_GW/" || die "gateway address missing on $LAB_VNET after ifreload"
   log "network ready: $LAB_VNET $LAB_CIDR via $LAB_GW; port forwards: ${LAB_PORT_FORWARDS:-none}"
@@ -200,9 +200,9 @@ EOF
 
 cmd_net_down() {
   [[ -z "$(cluster_vms | awk -v t="$LAB_TAG" '$4 ~ t && $4 !~ /template/')" ]] || die "Lab VMs still exist; run 'down <topology>' first"
-  systemctl disable --now myucs-lab-nat.service >/dev/null 2>&1 || true
-  rm -f /etc/systemd/system/myucs-lab-nat.service /etc/network/interfaces.d/myucs-lab /etc/sysctl.d/90-myucs-lab.conf
-  rm -rf /etc/myucs-lab
+  systemctl disable --now opendc-lab-nat.service >/dev/null 2>&1 || true
+  rm -f /etc/systemd/system/opendc-lab-nat.service /etc/network/interfaces.d/opendc-lab /etc/sysctl.d/90-opendc-lab.conf
+  rm -rf /etc/opendc-lab
   systemctl daemon-reload
   sysctl -q -w net.ipv4.ip_forward=0
   log "templates still reference $LAB_VNET; removing them"
@@ -277,9 +277,9 @@ cmd_up() {
       sudo systemctl start qemu-guest-agent' ||
       die "$name: base package install failed"
     # Console (Proxmox xterm.js) and SSH password login for the lab user. SSH into the lab is only possible
-    # through the gateway node (ssh -J root@<gateway> myucs@<ip>), so password auth stays inside the lab.
+    # through the gateway node (ssh -J root@<gateway> opendc@<ip>), so password auth stays inside the lab.
     lab_secret "vm-$LAB_CIUSER" | ssh "${SSH_OPTS[@]}" "$LAB_CIUSER@$ip" "sed 's/^/$LAB_CIUSER:/' | sudo chpasswd &&
-      echo 'PasswordAuthentication yes' | sudo tee /etc/ssh/sshd_config.d/10-myucs-lab.conf >/dev/null &&
+      echo 'PasswordAuthentication yes' | sudo tee /etc/ssh/sshd_config.d/10-opendc-lab.conf >/dev/null &&
       sudo systemctl try-reload-or-restart ssh" || die "$name: setting the $LAB_CIUSER password failed"
   done < <(topology_rows "$topo")
   log "topology $topo is up"
@@ -333,10 +333,10 @@ cmd_domain() { # <topology>: provision the dc-primary, then join every dc
     action=provision; [[ "$role" == dc ]] && action=join
     while read -r name ip; do
       log "$name: samba-dc $action"
-      scp -q "${SSH_OPTS[@]}" "$LAB_DIR/roles/samba-dc.sh" "$LAB_CIUSER@$ip:/tmp/myucs-samba-dc.sh" </dev/null
+      scp -q "${SSH_OPTS[@]}" "$LAB_DIR/roles/samba-dc.sh" "$LAB_CIUSER@$ip:/tmp/opendc-samba-dc.sh" </dev/null
       lab_secret "$topo-administrator" | ssh "${SSH_OPTS[@]}" "$LAB_CIUSER@$ip" \
         "sudo env ACTION=$action REALM=$realm NETBIOS=$netbios SELF_IP=$ip PRIMARY_IP=$primary_ip" \
-        "FORWARDER=$LAB_FORWARDER BASE_SCHEMA=${BASE_SCHEMA:-} bash /tmp/myucs-samba-dc.sh" ||
+        "FORWARDER=$LAB_FORWARDER BASE_SCHEMA=${BASE_SCHEMA:-} bash /tmp/opendc-samba-dc.sh" ||
         die "$name: samba-dc $action failed"
     done < <(topology_rows "$topo" | awk -v r="$role" '$8 == r { print $1, $4 }')
   done
@@ -374,9 +374,9 @@ cmd_ssh() { # <vm-name> [cmd...]
 cmd_run() { # <vm-name> <script> [VAR=value...]: copy a script into the VM and run it as root; stdin is passed on
   local ip script="$2" vars; ip="$(vm_ip "$1")"; shift 2
   [[ -f "$script" ]] || die "No script $script"
-  scp -q "${SSH_OPTS[@]}" "$script" "$LAB_CIUSER@$ip:/tmp/myucs-run.sh" </dev/null
+  scp -q "${SSH_OPTS[@]}" "$script" "$LAB_CIUSER@$ip:/tmp/opendc-run.sh" </dev/null
   vars=""; (($#)) && printf -v vars '%q ' "$@"
-  ssh "${SSH_OPTS[@]}" "$LAB_CIUSER@$ip" "sudo env $vars bash /tmp/myucs-run.sh"
+  ssh "${SSH_OPTS[@]}" "$LAB_CIUSER@$ip" "sudo env $vars bash /tmp/opendc-run.sh"
 }
 
 case "${1:-}" in

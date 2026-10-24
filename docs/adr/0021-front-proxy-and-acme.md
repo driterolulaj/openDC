@@ -15,7 +15,7 @@ Status: Proposed · Date: 2026-10-06 · **Needs the project owner's decision (OP
    - It's in every supported distro and is security-patched by the distro.
    - Config is rendered by the Config Registry (fileId `proxy.sites`), and app manifests contribute
      locations/vhosts.
-   - It terminates TLS with certificates from the internal CA or ACME, sets HSTS, and forwards to `myucs-api`
+   - It terminates TLS with certificates from the internal CA or ACME, sets HSTS, and forwards to `opendc-api`
      on a Unix socket, so the API needs no `CAP_NET_BIND_SERVICE`.
 2. **lego** as the ACME client: a single static Go binary, MIT licence, HTTP-01 and DNS-01 with many DNS
    providers. It's vendored and pinned per release because it isn't packaged on every distro. It's driven by

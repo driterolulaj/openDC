@@ -1,6 +1,6 @@
 # ADR-0014: Frontend — React 19, Vite, Mantine, TanStack Query, React Router, i18next
 
-Status: Proposed · Date: 2026-10-06
+Status: Accepted 2026-10-24 · Date: 2026-10-06
 
 ## Decision
 1. One React 19 SPA (`packages/web`), built with Vite, with three entry areas: `/console` (admin), `/portal`

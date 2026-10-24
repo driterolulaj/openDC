@@ -1,6 +1,6 @@
 # ADR-0020: Console login via LDAPS bind against a verified DC
 
-Status: Proposed · Date: 2026-10-06 · **Deviates from the spec, needs the project owner's decision (OPEN-QUESTIONS Q5)**
+Status: Accepted 2026-10-24 · Date: 2026-10-06 · Spec deviation approved by the project owner (Q5)
 
 ## Context
 The spec says "LDAP bind with Kerberos-verified credentials". Kerberos verification usually means an AS-REQ for

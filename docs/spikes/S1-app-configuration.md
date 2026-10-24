@@ -2,6 +2,9 @@
 
 Date: 2026-10-24 · Gate for ADR-0003 · Raw output: [S1-raw-results.md](S1-raw-results.md)
 
+> Run before the rename from the working name MyUCS to OpenDC. The raw output keeps the original names
+> (`STANDARD.MYUCS.TEST`, `myucs:v1:`). This summary uses the new ones.
+
 ## Verdict
 
 **The ADR-0003 gate passes.** `msDS-App-Configuration` and its carrier attributes exist and are writable on
@@ -17,7 +20,7 @@ findings change details of the design (see "Proposed ADR-0003 amendment" below).
   - Debian 13 with Samba 4.22.11
   - Ubuntu 24.04 with Samba 4.19.5
 - **Live:** the lab `standard` topology.
-  - Domain `STANDARD.MYUCS.TEST`: dc1 runs Debian 13 / Samba 4.22.11, dc2 runs Ubuntu 24.04 / Samba 4.19.5,
+  - Domain `STANDARD.OPENDC.TEST`: dc1 runs Debian 13 / Samba 4.22.11, dc2 runs Ubuntu 24.04 / Samba 4.19.5,
     on different Proxmox nodes.
   - Each DC wrote to the other over LDAP (signed SASL bind) and read the replicated result from its local
     `sam.ldb`.
@@ -42,7 +45,7 @@ findings change details of the design (see "Proposed ADR-0003 amendment" below).
 ## Consequences for the design
 
 1. **Payload size cap.** A platform object's payload is limited to 1,000,000 characters including the
-   `myucs:v1:` prefix.
+   `opendc:v1:` prefix.
    - The directory layer must reject larger payloads with a `PlatformError`, before LDAP returns error 21, and
      the message must say which object and how big it was.
    - Recommendation: a soft limit of 256 KiB per object, so replication stays cheap. The largest planned

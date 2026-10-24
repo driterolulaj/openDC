@@ -1,6 +1,6 @@
 # ADR-0008: OS abstraction layer
 
-Status: Proposed · Date: 2026-10-06
+Status: Accepted 2026-10-24 · Date: 2026-10-06
 
 ## Context
 Package managers, service names, file paths, firewalls, MAC systems, Samba/Kerberos builds, resolver setup
@@ -18,7 +18,7 @@ the whole codebase.
 3. The interface is split in two:
    - `OsFacts`: read-only and side-effect free. Paths, unit names, binary locations, capabilities, version
      detection. Usable from the API for planning and pre-flight checks.
-   - `OsActions`: state-changing. **Only instantiated inside `myucs-agent`.**
+   - `OsActions`: state-changing. **Only instantiated inside `opendc-agent`.**
 4. **No distro conditionals outside `packages/os`.** An ESLint rule bans importing `/etc/os-release` parsing
    and adapter internals elsewhere.
 5. Each adapter has a conformance test suite: the same tests run against every adapter, unit-level with

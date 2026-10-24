@@ -2,18 +2,21 @@
 
 **B** = blocks Phase 1. **L** = needed later (phase noted). Each question has a recommendation.
 
+**Status 2026-10-24:** all blocking questions are answered (marked inline). Still open: Q2 (IANA PEN, before any
+schema work), Q7 (front proxy and ACME, before Phase 3), Q9, Q13–Q18.
+
 ## A. Naming, legal, identifiers
 
-**Q1 (B) — Product name.** "MyUCS" is a working name taken from the folder. "UCS" is Univention's product
+**Q1 (B) — Product name.** *Answered 2026-10-24: **OpenDC**, id `opendc`.* The working name "MyUCS" came from the folder. "UCS" is Univention's product
 name and likely a trademark, so for a product sold through integrators I recommend a distinct name before
-Phase 1. The lowercase id (`myucs`) ends up in package names, system users, paths and the directory
+Phase 1. The lowercase id (`opendc`) ends up in package names, system users, paths and the directory
 container `CN=<Name>,CN=System`. **The directory container name is effectively permanent once client
 domains exist.**
 
 **Q2 (L, before any schema work) — IANA Private Enterprise Number.** Free, takes days to weeks. I recommend
 requesting one now even though no schema extension is planned, so the OID arc is ready.
 
-**Q12 (B) — Project license.** This affects:
+**Q12 (B) — Project license.** *Answered 2026-10-24: AGPL-3.0 (ADR-0023).* This affects:
 - distribution of the Samba container image (GPLv3, so we must publish corresponding source)
 - which dependencies are acceptable
 - whether the fleet console can be closed source
@@ -22,22 +25,22 @@ Options: AGPL-3.0 (like UCS), Apache-2.0/MIT, or proprietary with an open core.
 
 ## B. Decisions where I propose deviating from or adding to the spec
 
-**Q3 (B) — Schema.** Approve "**no schema extension for the MVP**" (ADR-0003):
+**Q3 (B) — Schema.** *Answered 2026-10-24: approved.* Approve "**no schema extension for the MVP**" (ADR-0003):
 - platform objects use `msDS-App-Configuration`
 - extended attributes use the 20 `msDS-cloudExtensionAttribute*` slots
 - the reserved extension design in `design/directory-object-model.md` §5 is for later review only
 
-**Q4 (B) — Directory bind model** (ADR-0012). Approve:
+**Q4 (B) — Directory bind model** (ADR-0012). *Answered 2026-10-24: delegated service accounts.* Approve:
 - a delegated, non-tier-0 service account per writable DC
 - tier-0 operations through the agent on a DC
 
 The alternative (a single Domain Admin service account) is simpler but much riskier.
 
-**Q5 (B) — Console login** (ADR-0020). Approve LDAPS simple bind against a TLS-verified DC instead of
+**Q5 (B) — Console login** (ADR-0020). *Answered 2026-10-24: approved.* Approve LDAPS simple bind against a TLS-verified DC instead of
 "Kerberos-verified credentials". A verified TLS channel already prevents the KDC spoofing that Kerberos
 verification guards against, and we avoid a native GSSAPI addon.
 
-**Q6 (B) — Spec corrections.** Please confirm each:
+**Q6 (B) — Spec corrections.** *Answered 2026-10-24: all confirmed (a–i).* Please confirm each:
 - a. **OU-linked password policies** become PSOs plus auto-maintained shadow groups, because AD PSOs can't link
   to OUs (directory model §3.2).
 - b. **No generic `samba.tool(args[])` agent operation.** Typed operations per subcommand instead, because the
@@ -48,7 +51,7 @@ verification guards against, and we avoid a native GSSAPI addon.
 - e. **RODC.** Samba RODC support is limited. RODCs are supported for branch authentication and reads, the
   console on an RODC is read-only, and writes are proxied to a writable DC.
 - f. **Kea DDNS against Samba internal DNS** needs GSS-TSIG. Depending on the Kea version, we use either Kea's
-  GSS-TSIG hook or a MyUCS lease hook. Decided by a spike in Phase 3.
+  GSS-TSIG hook or a OpenDC lease hook. Decided by a spike in Phase 3.
 - g. **Leader for singleton jobs = PDC emulator holder** (ADR-0017), rather than a new consensus mechanism.
 - h. **CA design:** a root CA plus one issuing CA per writable DC, with the root key optionally taken offline
   (ADR-0007). The spec implies a single CA.
@@ -63,7 +66,7 @@ verification guards against, and we avoid a native GSSAPI addon.
 
 ## C. Dependencies (see `docs/DEPENDENCIES.md`, "Pending approval")
 
-**Q8 (B) — Approve the implied and new packages:**
+**Q8 (B) — Approve the implied and new packages:** *Answered 2026-10-24: all approved.*
 - `react-i18next`
 - `@mantine/notifications`, `@mantine/dates`, `@mantine/form`
 - `postcss` + `postcss-preset-mantine`
@@ -82,9 +85,9 @@ verification guards against, and we avoid a native GSSAPI addon.
 end of life in April 2028. I recommend building on 24 now and deciding at the start of Phase 7 whether 1.0 ships
 on the next LTS line so it covers the published support window.
 
-**Q10 (B) — Minimum Samba version for the DC role.** Debian 12 ships Samba 4.17, which is no longer supported
+**Q10 (B) — Minimum Samba version for the DC role.** *Answered 2026-10-24: oldest upstream-maintained Samba; Debian 12 DCs require bookworm-backports.* Debian 12 ships Samba 4.17, which is no longer supported
 upstream (Debian still backports security fixes), and newer versions are in `bookworm-backports`. Proposal:
-- set the minimum to the oldest Samba still maintained upstream at each MyUCS release
+- set the minimum to the oldest Samba still maintained upstream at each OpenDC release
 - on Debian 12, require backports for the DC role
 - capability-gate newer features (gMSA, FL 2016) by detected version
 
@@ -92,11 +95,11 @@ The alternative is to drop Debian 12 as a DC platform and keep it for members on
 
 ## E. Development environment
 
-**Q11 (B) — Where the VM lab runs, and where the repo lives.** *Lab answered 2026-10-24: a 2-node Proxmox VE
-cluster (ADR-0015 amended). Still open: moving the repo out of OneDrive.*
+**Q11 (B) — Where the VM lab runs, and where the repo lives.** *Answered 2026-10-24: lab on a 2-node Proxmox VE
+cluster (ADR-0015 amended); repo moved out of OneDrive to a local, non-synced folder.*
 - This machine is **Windows 11**, and the project sits in a **OneDrive-synced folder**. `node_modules` and `.git`
   inside OneDrive cause sync storms and file locking. I recommend moving the repo to a non-synced path, ideally
-  inside WSL2 (e.g. `~/src/myucs`).
+  inside WSL2 (e.g. `~/src/opendc`).
 - The lab needs **Linux with KVM** (Incus VMs, ADR-0015). Options:
   - (a) WSL2 with nested virtualisation on this machine. Works for `small`/`standard`; `multisite` (6+ VMs) may
     be tight on RAM.
@@ -113,7 +116,7 @@ cluster (ADR-0015 amended). Still open: moving the repo out of OneDrive.*
 **Q14 (L, Phase 2):**
 - default `idBase` for UIDs/GIDs (proposed 100000)
 - default OU skeleton for new domains (proposed: no extra OUs beyond the AD defaults plus
-  `OU=MyUCS Service Accounts` and `OU=MyUCS Shadow Groups`, with the rest coming from deployment profiles)
+  `OU=OpenDC Service Accounts` and `OU=OpenDC Shadow Groups`, with the rest coming from deployment profiles)
 
 **Q15 (L, Phase 7) — Fleet console stack.** Same stack, separate deployable, own DB (SQLite or Postgres?). Is
 the fleet console part of the open product or a separate commercial component?
@@ -121,3 +124,16 @@ the fleet console part of the open product or a separate commercial component?
 **Q16 (L, Phase 4) — Backup encryption format.** `openssl enc` (AES-256-GCM via a CMS envelope) or an age-style
 format implemented with `node:crypto`. I recommend a small, documented envelope on `node:crypto` so restores
 don't depend on any particular openssl version.
+
+## G. Raised 2026-10-24
+
+**Q17 (L, before the repository goes public) — Contributor agreement.** With AGPL-3.0-only (ADR-0023), a CLA
+keeps the option of dual-licensing (for example a closed fleet console, Q15), and a DCO (`Signed-off-by`)
+is lighter for contributors. I recommend a DCO unless dual-licensing is a real plan.
+
+**Q18 (L, Phase 2) — Service account names exceed the AD limit.** `sAMAccountName` allows at most 20
+characters. `opendc-svc-<host>` with a 15-character NetBIOS host name is 26 (the old `myucs-svc-` was already
+25). Proposal for ADR-0012 and the directory model §1:
+- the CN and `displayName` keep the readable `opendc-svc-<host>` / `opendc-watch-<host>` / `opendc-ro-<host>`
+- `sAMAccountName` becomes `odcs-<host>`, `odcw-<host>` and `odcr-<host>`, at most 20 characters because
+  pre-flight caps host names at 15 characters

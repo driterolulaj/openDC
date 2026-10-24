@@ -1,6 +1,6 @@
 # ADR-0011: Fastify + Zod, OpenAPI generated from Zod with no extra dependencies
 
-Status: Proposed · Date: 2026-10-06
+Status: Accepted 2026-10-24 · Date: 2026-10-06
 
 ## Context
 The spec fixes Fastify 5 (plus helmet, rate-limit and cookie) and Zod with an OpenAPI spec generated from the

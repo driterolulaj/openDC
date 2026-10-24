@@ -1,6 +1,6 @@
 # ADR-0013: Node-local SQLite platform DB; audit log replicated between DCs
 
-Status: Proposed · Date: 2026-10-06
+Status: Accepted 2026-10-24 · Date: 2026-10-06
 
 ## Context
 Sessions, jobs, checkpoints and caches are node-local by nature. The audit log has to be domain-wide, because

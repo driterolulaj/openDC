@@ -1,5 +1,5 @@
 /**
- * MyUCS module manifest contract (ADR-0022).
+ * OpenDC module manifest contract (ADR-0022).
  *
  * A manifest is a PLAIN DATA object: no functions, no imports of module code, no side effects.
  * Code is referenced by module-relative entry paths, which `npm run gen` turns into per-target
@@ -208,7 +208,7 @@ export type TemplateHandler =
 
 export interface WatcherHandlerDefinition {
   id: string;
-  /** Base DN relative to the domain DN, or a token: "{platform}" = CN=MyUCS,CN=System,<domain>. */
+  /** Base DN relative to the domain DN, or a token: "{platform}" = CN=OpenDC,CN=System,<domain>. */
   base: string;
   scope: 'base' | 'one' | 'sub';
   /** LDAP filter (static, validated at gen time). */
@@ -248,7 +248,7 @@ export interface ManagedFileDefinition {
   /** Logical path key resolved by OsFacts.paths.managedFile(fileId); never a literal path here. */
   pathKey: string;
   owner: 'root' | 'service';
-  /** Octal string, e.g. "0644". Files under /etc/myucs/secrets are rejected here. */
+  /** Octal string, e.g. "0644". Files under /etc/opendc/secrets are rejected here. */
   mode: string;
   comment: 'hash' | 'semicolon' | 'slash' | 'xml' | 'json-field' | 'none';
 }
@@ -263,7 +263,7 @@ export interface ManagedUnitDefinition {
 // ---------------------------------------------------------------------------
 
 export interface DirectoryContribution {
-  /** Sub-containers this module owns under CN=MyUCS,CN=System (created at provisioning/upgrade). */
+  /** Sub-containers this module owns under CN=OpenDC,CN=System (created at provisioning/upgrade). */
   containers?: { rdn: string; purpose: I18nKey }[];
   /** Platform object kinds (payload schemas) — see directory-object-model.md. */
   objectKinds?: { kind: string; container: string; schemaEntry: EntryPath; payloadVersion: number }[];

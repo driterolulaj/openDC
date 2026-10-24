@@ -3,9 +3,9 @@
 Status: Phase 0 draft (ADR-0003). **No schema extension is proposed for application.** §5 documents a
 reserved design for the project owner to review in case one becomes necessary later.
 
-## 1. Standard AD objects MyUCS manages
+## 1. Standard AD objects OpenDC manages
 
-| Thing | objectClass | Key attributes MyUCS reads/writes | Notes |
+| Thing | objectClass | Key attributes OpenDC reads/writes | Notes |
 |---|---|---|---|
 | User | `user` | `sAMAccountName`, `userPrincipalName`, `givenName`, `sn`, `displayName`, `mail`, `telephoneNumber`, `title`, `department`, `manager`, `description`, `userAccountControl`, `accountExpires`, `lockoutTime` (reset to 0 for unlock), `pwdLastSet`, `unicodePwd` (write only, over TLS), `thumbnailPhoto` (≤ 100 KB, JPEG), `uidNumber`, `gidNumber`, `loginShell`, `unixHomeDirectory`, `homeDirectory`, `homeDrive`, `profilePath`, `scriptPath`, `msDS-cloudExtensionAttribute1..20` | Read-only/computed: `objectGUID`, `objectSid`, `tokenGroups` (transitive group SIDs, used by RBAC), `msDS-User-Account-Control-Computed`, `msDS-ResultantPSO`, `adminCount`, `whenCreated`, `whenChanged`, `badPwdCount`, `lastLogonTimestamp` |
 | Group | `group` | `sAMAccountName`, `groupType` (security/distribution × global/domain-local/universal), `member`, `description`, `mail`, `gidNumber`, `managedBy` | Nested membership through `member`. `memberOf` is read-only. |
@@ -17,7 +17,7 @@ reserved design for the project owner to review in case one becomes necessary la
 | Site / subnet / site link | `site`, `subnet`, `siteLink` in the configuration NC | `siteObject`, `cost`, `replInterval`, `schedule` | Changed through `samba.sites.*` operations (tier 0). |
 | GPO | `groupPolicyContainer` | read: `displayName`, `versionNumber`, `gPCFileSysPath`, `flags` | Contents are edited with RSAT; links and backups through the agent. |
 | DNS | `dnsZone`, `dnsNode` in `DC=DomainDnsZones` / `DC=ForestDnsZones` | | Through `dns.*` operations (Phase 3 spike decides between agent and LDAP). |
-| Service accounts (platform) | `user` | `myucs-svc-<host>`, `myucs-watch-<host>`, `myucs-ro-<host>` (RODC), app accounts `app-<appId>-<instance>` | Live in `OU=MyUCS Service Accounts,<domainDN>`, configurable. |
+| Service accounts (platform) | `user` | `opendc-svc-<host>`, `opendc-watch-<host>`, `opendc-ro-<host>` (RODC), app accounts `app-<appId>-<instance>` | Live in `OU=OpenDC Service Accounts,<domainDN>`, configurable. |
 
 ## 2. Platform container layout
 
@@ -26,7 +26,7 @@ Phase 1 spike confirms the class and attributes on Samba with base schemas 2008_
 fails, the fallback carrier is `serviceConnectionPoint` (ADR-0003).
 
 ```
-CN=MyUCS,CN=System,<domainDN>                       container
+CN=OpenDC,CN=System,<domainDN>                       container
 ├─ CN=Settings                                       msDS-App-Configuration  domain-wide platform settings
 ├─ CN=Nodes                                          container
 │   └─ CN=<computer objectGUID>                      node registration
@@ -61,7 +61,7 @@ CN=MyUCS,CN=System,<domainDN>                       container
 └─ CN=Fleet                                          fleet enrolment metadata (Phase 7)
 ```
 
-ACLs: the whole subtree is writable by `myucs-svc-*` (via a group `MyUCS Platform Services`) and Domain
+ACLs: the whole subtree is writable by `opendc-svc-*` (via a group `OpenDC Platform Services`) and Domain
 Admins, readable by authenticated users **except** `CN=Settings`, `CN=RBAC`, `CN=Backup`, `CN=Fleet`, which only
 platform services and Domain Admins can read.
 
@@ -74,7 +74,7 @@ Every `msDS-App-Configuration` platform object has:
 | `cn` | UUID (or a natural key where noted). Never renamed. |
 | `displayName` | human name (searchable) |
 | `description` | optional free text |
-| `msDS-Settings` | **one value**: `myucs:v1:` + canonical JSON payload. The prefix lets us detect foreign values and future framing changes. |
+| `msDS-Settings` | **one value**: `opendc:v1:` + canonical JSON payload. The prefix lets us detect foreign values and future framing changes. |
 | `msDS-ObjectReference` | optional linked references (used by policies → OUs, to get back-links) |
 | `msDS-ByteArray` | binary blobs (logo, CRL) where needed |
 
@@ -110,10 +110,10 @@ interface PolicyData {
    shows, for each key, the source policy and the OU it came from.
 
 ### 3.2 Password policy implementation (deviation from a literal "link to OU")
-AD PSOs can't be linked to OUs. For a `password` policy, MyUCS:
-- creates or updates a PSO `MyUCS-<policy uuid>` with the policy's settings, mapping precedence to the policy's
+AD PSOs can't be linked to OUs. For a `password` policy, OpenDC:
+- creates or updates a PSO `OpenDC-<policy uuid>` with the policy's settings, mapping precedence to the policy's
   position (closer OU = lower precedence number, so it wins);
-- maintains a shadow security group `pso-<policy uuid>` in `OU=MyUCS Shadow Groups`, applies the PSO to it, and
+- maintains a shadow security group `pso-<policy uuid>` in `OU=OpenDC Shadow Groups`, applies the PSO to it, and
   has the leader keep its membership equal to "users whose effective password policy is this one" (recomputed
   on user create/move and on policy or link changes);
 - links at the domain head edit the **Default Domain Policy** password settings instead.
@@ -155,15 +155,15 @@ Only needed if more than 20 extended attributes, multi-valued or indexed custom 
 no generic carrier are required. **Applying it requires the project owner's explicit approval** and a
 registered IANA PEN (OPEN-QUESTIONS Q2).
 
-OID arc (placeholder): `1.3.6.1.4.1.<PEN>.1` = MyUCS
+OID arc (placeholder): `1.3.6.1.4.1.<PEN>.1` = OpenDC
 - `.1.1` attributes, `.1.2` classes, `.1.3` syntaxes (unused)
 
 | Name | OID | Syntax | Single | Indexed | Purpose |
 |---|---|---|---|---|---|
-| `myucsExtString` | `.1.1.1` | Unicode string (2.5.5.12), rangeUpper 1024 | no | yes (`searchFlags=1`) | multi-valued `key=value` custom fields (searchable by `key=value*`) |
-| `myucsExtData` | `.1.1.2` | Unicode string, rangeUpper 65536 | yes | no | versioned JSON for non-searchable custom data |
-| `myucsObjectKind` | `.1.1.3` | Unicode string, 64 | yes | yes | server-side filtering of platform objects |
-| `myucsExtensible` (aux class) | `.1.2.1` | — | — | — | `mayContain: myucsExtString, myucsExtData`; auxiliary to `user`, `group`, `computer`, `organizationalUnit` |
+| `opendcExtString` | `.1.1.1` | Unicode string (2.5.5.12), rangeUpper 1024 | no | yes (`searchFlags=1`) | multi-valued `key=value` custom fields (searchable by `key=value*`) |
+| `opendcExtData` | `.1.1.2` | Unicode string, rangeUpper 65536 | yes | no | versioned JSON for non-searchable custom data |
+| `opendcObjectKind` | `.1.1.3` | Unicode string, 64 | yes | yes | server-side filtering of platform objects |
+| `opendcExtensible` (aux class) | `.1.2.1` | — | — | — | `mayContain: opendcExtString, opendcExtData`; auxiliary to `user`, `group`, `computer`, `organizationalUnit` |
 
 Rules if it's ever applied: done once, during a maintenance window, by the schema master's agent
 (`samba.schema.apply`, a new tier-0 op that isn't in the catalogue yet), after a forced online backup. The

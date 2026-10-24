@@ -5,13 +5,13 @@ operation means a catalogue change, review, and a security note.
 
 ## 1. Protocol
 
-- Transport: Unix stream sockets created by `myucs-agent.socket`, one per caller:
+- Transport: Unix stream sockets created by `opendc-agent.socket`, one per caller:
 
   | Socket | Group | Caller |
   |---|---|---|
-  | `/run/myucs/agent-api.sock` | `_myucs-api` | API (incl. node RPC handlers on members) |
-  | `/run/myucs/agent-watch.sock` | `_myucs-watch` | watcher / registry commits |
-  | `/run/myucs/agent-cli.sock` | `myucs-admin` | local CLI run by root/admins (break-glass, setup before the API exists) |
+  | `/run/opendc/agent-api.sock` | `_opendc-api` | API (incl. node RPC handlers on members) |
+  | `/run/opendc/agent-watch.sock` | `_opendc-watch` | watcher / registry commits |
+  | `/run/opendc/agent-cli.sock` | `opendc-admin` | local CLI run by root/admins (break-glass, setup before the API exists) |
 
 - Framing: newline-delimited JSON-RPC 2.0, max frame 4 MiB (larger payloads such as backups go by file
   reference, never inline).
@@ -229,7 +229,7 @@ export const allowlist = {
 The agent refuses to start if the generated allowlist references an operation it doesn't implement.
 
 ## 5. Setup token
-Before the domain exists there are no users or RBAC. `myucs setup` (the CLI as root) or the first-boot wizard
+Before the domain exists there are no users or RBAC. `opendc setup` (the CLI as root) or the first-boot wizard
 uses a **one-time setup token** printed to the console and journal at install time
-(`/etc/myucs/secrets/setup-token`, 0600). The wizard must present it. It unlocks the setup-only operations
+(`/etc/opendc/secrets/setup-token`, 0600). The wizard must present it. It unlocks the setup-only operations
 marked "+setup token", and it's destroyed once provisioning or join completes.

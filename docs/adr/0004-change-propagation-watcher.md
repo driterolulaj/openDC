@@ -1,6 +1,6 @@
 # ADR-0004: Change propagation with a per-node DirSync/USN watcher
 
-Status: Proposed · Date: 2026-10-06
+Status: Accepted 2026-10-24 · Date: 2026-10-06
 
 ## Context
 When directory objects change, local configuration has to follow. For example, a DHCP reservation changes, so
@@ -9,7 +9,7 @@ transaction log. AD offers `uSNChanged`, the DirSync control (`1.2.840.113556.1.
 notification control (`1.2.840.113556.1.4.528`).
 
 ## Decision
-1. Every node runs `myucs-watcher` as the unprivileged `_myucs-watch` user.
+1. Every node runs `opendc-watcher` as the unprivileged `_opendc-watch` user.
    - **On a DC** it watches the local DC.
    - **On other nodes** it watches its home DC, chosen by AD site, and fails over to another DC in the site,
      then to any DC.
@@ -33,7 +33,7 @@ notification control (`1.2.840.113556.1.4.528`).
    whole Kea config) from current directory state. That's what makes idempotency and full resyncs cheap.
 6. Writes to the system go through the Config Registry and agent; handlers never touch the filesystem directly.
 7. The watcher also feeds outbound webhooks (§6.15) and, later, ingestion of Samba's JSON DSDB audit log, so
-   changes made outside MyUCS (for example with RSAT) still show up in history.
+   changes made outside OpenDC (for example with RSAT) still show up in history.
 
 ## Consequences
 - No extra infrastructure (queue or broker), and it keeps working when the network is partitioned (the node

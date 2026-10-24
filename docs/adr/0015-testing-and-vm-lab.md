@@ -1,6 +1,6 @@
 # ADR-0015: Testing strategy and VM lab
 
-Status: Proposed · Date: 2026-10-06 · Amended 2026-10-24: Proxmox VE is the primary lab backend (approved by
+Status: Accepted 2026-10-24 · Date: 2026-10-06 · Amended 2026-10-24: Proxmox VE is the primary lab backend (approved by
 the project owner, answers the lab half of OPEN-QUESTIONS Q11)
 
 ## Context

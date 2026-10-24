@@ -1,6 +1,6 @@
 # ADR-0010: Node.js 24 LTS, strict TypeScript, ESM, bundled runtime
 
-Status: Proposed · Date: 2026-10-06
+Status: Accepted 2026-10-24 · Date: 2026-10-06
 
 ## Context
 The spec chooses Node.js 24 LTS. Distros ship very different Node versions: some none, some old, Alpine
@@ -10,7 +10,7 @@ musl-only. A platform that runs on DCs can't depend on whichever Node the distro
 1. Node.js 24 LTS. TypeScript `strict`, plus `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes` and
    `verbatimModuleSyntax`. ESM only. The backend is compiled with `tsc` (project references); there's no
    bundler for the backend.
-2. **Packages bundle the official Node.js binary** for x86_64 and arm64 (glibc) under `/usr/lib/myucs/node`,
+2. **Packages bundle the official Node.js binary** for x86_64 and arm64 (glibc) under `/usr/lib/opendc/node`,
    pinned and checksum-verified at build time. Distro Node is never used. Alpine (agent only, Tier 2) uses the
    musl build from Alpine's own package, or the unofficial-builds musl binary; to be decided in Phase 6.
 3. Built-ins first: `node:test`, `node:crypto`, global `fetch`, `node:sqlite` (behind `PlatformDb`; it's still
@@ -22,5 +22,5 @@ musl-only. A platform that runs on DCs can't depend on whichever Node the distro
 
 ## Consequences
 - About 40-50 MB more package size; behaviour is the same on every distro.
-- We own Node security updates: a Node security release means a MyUCS patch release (covered by the release
+- We own Node security updates: a Node security release means a OpenDC patch release (covered by the release
   policy, Phase 7).

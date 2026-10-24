@@ -1,6 +1,6 @@
 # ADR-0003: Platform objects live in the directory, no schema extension for the MVP
 
-Status: Proposed · Date: 2026-10-06 · Amended 2026-10-24 with the Spike S1 results (approved by the project owner)
+Status: Accepted 2026-10-24 · Date: 2026-10-06 · Amended 2026-10-24 with the Spike S1 results (approved by the project owner)
 
 ## Context
 Policies, DHCP scopes, share and printer definitions, app registrations, portal configuration, RBAC roles
@@ -9,7 +9,7 @@ replicates and is backed up. AD schema extensions can't be undone, they need the
 client organisations' security teams reject them outright.
 
 ## Decision
-1. All platform objects live under `CN=MyUCS,CN=System,<domainDN>` in one sub-container per kind (full layout
+1. All platform objects live under `CN=OpenDC,CN=System,<domainDN>` in one sub-container per kind (full layout
    in `docs/design/directory-object-model.md`).
 2. **No schema extension for the MVP.** Platform objects use the generic class `msDS-App-Configuration`, which
    provides `msDS-Settings` (multi-valued string), `msDS-ObjectReference` (linked DN), `msDS-Integer`,
@@ -44,7 +44,7 @@ The gate in point 2 passed. Details are in `docs/spikes/S1-app-configuration.md`
   fallback carrier is not needed.
 - All carrier attributes are multi-valued. `msDS-Settings` and `msDS-ByteArray` have `rangeUpper` 1,000,000
   per value, and Samba enforces it (LDAP 21).
-- Payloads are capped at 1,000,000 characters including the `myucs:v1:` prefix. The directory layer rejects
+- Payloads are capped at 1,000,000 characters including the `opendc:v1:` prefix. The directory layer rejects
   larger ones with a `PlatformError`, and the soft limit is 256 KiB.
 - Readers tolerate more than one `msDS-Settings` value: the highest `rev` wins and a diagnostic is raised.
 - CAS conflicts (point 5) surface as LDAP 16 `noSuchAttribute`, which the API maps to HTTP 409.

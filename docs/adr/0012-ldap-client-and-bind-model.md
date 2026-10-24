@@ -1,6 +1,6 @@
 # ADR-0012: `ldapts` and the directory bind model
 
-Status: Proposed · Date: 2026-10-06 · **Needs the project owner's decision (OPEN-QUESTIONS Q4)**
+Status: Accepted 2026-10-24 · Date: 2026-10-06 · Decided by the project owner (Q4)
 
 ## Context
 The API needs an identity to bind to the directory with. `ldapts` supports simple and a few SASL binds but
@@ -17,18 +17,18 @@ would mean keeping their plaintext password in session memory for the whole sess
    - a `<GUID=...>`/`<SID=...>` base-DN helper
    - **filter/DN escaping helpers (RFC 4515 / RFC 4514) with exhaustive unit tests**
 2. **Two tiers of directory access:**
-   - **Tier 1, delegated service account** `myucs-svc-<host>`, one per writable DC, so access can be traced and
+   - **Tier 1, delegated service account** `opendc-svc-<host>`, one per writable DC, so access can be traced and
      revoked per node. It gets AD delegations (ACEs) for create/modify/delete of users, groups, computers, OUs
-     and contacts, password reset, and full control of `CN=MyUCS,CN=System`. **It is not a member of any
+     and contacts, password reset, and full control of `CN=OpenDC,CN=System`. **It is not a member of any
      protected group** and AdminSDHolder doesn't cover it, so it can't modify protected accounts. The API binds
-     with it through a systemd credential (`LoadCredential=`). MyUCS RBAC (§6.10) is enforced **in the API**
+     with it through a systemd credential (`LoadCredential=`). OpenDC RBAC (§6.10) is enforced **in the API**
      before any write.
    - **Tier 0 via the agent on a writable DC:** operations on protected objects (`adminCount=1` accounts,
      privileged groups) and on the domain itself (FSMO, functional level, demotion, sites topology, schema,
      GPO links on domain/DC OUs) are agent operations. The agent uses the DC's local privileges (`samba-tool`
      / ldb against the local `sam.ldb`). The API calls them only after checking a tier-0 permission, and for
      high-impact operations only after a typed confirmation.
-   - **Watcher identity:** `myucs-watch-<host>` with read access plus "Replicating Directory Changes" (for
+   - **Watcher identity:** `opendc-watch-<host>` with read access plus "Replicating Directory Changes" (for
      DirSync), and no write rights.
    - **RODC:** the API on an RODC has a read-only account whose password is in the RODC's password replication
      policy. Writes are proxied over mTLS to a writable DC's API, which re-checks RBAC.
@@ -37,7 +37,7 @@ would mean keeping their plaintext password in session memory for the whole sess
 
 ## Consequences
 - An API compromise (as long as the agent socket isn't abused) reaches tier-1 objects, not Domain Admins.
-- AD-native tools (RSAT) don't see MyUCS's OU-scoped roles unless we also translate roles into ACEs. Phase 2
+- AD-native tools (RSAT) don't see OpenDC's OU-scoped roles unless we also translate roles into ACEs. Phase 2
   keeps RBAC enforcement in the API only; mapping roles to native ACEs is listed as a later option.
 - Some operations take two hops (API to agent). That's acceptable for rare tier-0 actions.
 

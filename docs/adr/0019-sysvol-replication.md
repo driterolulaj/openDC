@@ -1,6 +1,6 @@
 # ADR-0019: SYSVOL replication from the PDC emulator
 
-Status: Proposed · Date: 2026-10-06 · **Fills a gap the spec doesn't mention**
+Status: Accepted 2026-10-24 · Date: 2026-10-06 · Fills a spec gap, approved by the project owner (Q6c)
 
 ## Context
 Samba doesn't implement DFS-R or FRS, so SYSVOL (GPO files, logon scripts) **isn't replicated between Samba
@@ -8,7 +8,7 @@ DCs**. Without replication, GPOs behave differently depending on which DC a clie
 as xattrs that use Samba's local xid mapping (`idmap.ldb`), which differs between DCs unless it's kept in sync.
 
 ## Decision
-1. **Source of truth:** the PDC emulator's SYSVOL. GPMC targets the PDC emulator by default, and MyUCS's GPO
+1. **Source of truth:** the PDC emulator's SYSVOL. GPMC targets the PDC emulator by default, and OpenDC's GPO
    operations always run there.
 2. **One-way replication** from the PDC emulator to every other DC (RODCs included):
    - Trigger: the watcher sees `versionNumber` change on `groupPolicyContainer` objects, plus a periodic run

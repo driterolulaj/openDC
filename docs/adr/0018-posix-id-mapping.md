@@ -1,13 +1,13 @@
 # ADR-0018: POSIX IDs from the RID (RFC2307 attributes)
 
-Status: Proposed · Date: 2026-10-06
+Status: Accepted 2026-10-24 · Date: 2026-10-06
 
 ## Context
 Linux members, NFS and file shares need the same UID/GID for a user on every host. Counter-based allocation in
 a multi-master directory can produce duplicates when two DCs allocate at the same time.
 
 ## Decision
-- New domains are provisioned with `--use-rfc2307`. On creation, MyUCS writes `uidNumber`/`gidNumber` as
+- New domains are provisioned with `--use-rfc2307`. On creation, OpenDC writes `uidNumber`/`gidNumber` as
   **`idBase + RID`** (default `idBase = 100000`, configurable per installation at provisioning time). The RID
   is unique domain-wide by construction (the RID master hands out pools), so there's no counter and no race.
 - Users get `loginShell`, `unixHomeDirectory` and `gidNumber` (primary group, default "Domain Users")

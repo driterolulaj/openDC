@@ -21,7 +21,7 @@ if [[ -f /var/lib/samba/private/sam.ldb ]]; then
 fi
 
 # cloud-init must not rewrite hosts/resolver or the hostname on later boots
-cat >/etc/cloud/cloud.cfg.d/99-myucs-lab.cfg <<'EOF'
+cat >/etc/cloud/cloud.cfg.d/99-opendc-lab.cfg <<'EOF'
 manage_etc_hosts: false
 manage_resolv_conf: false
 preserve_hostname: true
