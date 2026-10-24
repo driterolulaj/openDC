@@ -1,0 +1,5 @@
+# small: 1 DC + 1 Linux client (ADR-0015). Node is the cluster node index (sorted by name).
+# Roles: dc-primary (provisions the domain), dc (joins as writable DC), member, client.
+# name    image        node  ip           cores  mem_mb  disk_gb  role
+sdc1      debian-13    0     10.97.10.51  2      4096    32       dc-primary
+sclient1  ubuntu-2404  0     10.97.10.61  2      2048    24       client

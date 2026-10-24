@@ -9,3 +9,4 @@ playwright-report/
 *.log
 .env
 .DS_Store
+test/env/**/lab.local.env

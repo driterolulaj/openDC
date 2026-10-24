@@ -29,6 +29,8 @@ are updated.
   Ubuntu 24.04, verify `msDS-App-Configuration` + `msDS-Settings` (create, size limit, replication between 2
   DCs) and `msDS-cloudExtensionAttribute*` for base schemas 2008_R2, 2012_R2 and 2016. Write the results into
   ADR-0003.
+  *2026-10-24: run in the Proxmox lab, gate passes. Results in `docs/spikes/S1-app-configuration.md`; the
+  ADR-0003 amendment text there awaits approval.*
 - [ ] **Spike S2:** DirSync control and change notification with `ldapts` against Samba (cookie round-trip,
   deletions, required rights).
 - [ ] npm workspaces monorepo: `shared`, `api`, `agent`, `watcher`, `registry`, `os`, `cli`, `web`; TS project
@@ -47,6 +49,8 @@ are updated.
 - [ ] Packaging: nfpm configs (`.deb`, `.rpm` skeleton), bundled Node runtime, hardened systemd units, tarball +
   `install.sh`.
 - [ ] Test lab: `npm run lab -- up small|standard|multisite` (Incus primary).
+  *2026-10-24: Proxmox backend `test/env/proxmox/pve-lab.sh` running `small`/`standard` (no `multisite` yet,
+  no npm wrapper yet).*
 - [ ] CI: lint, typecheck, unit tests, generated-file freshness and OpenAPI diff on every push; nightly VM job
   skeleton.
 
@@ -56,7 +60,7 @@ are updated.
    unknown socket, extra arg, path traversal) and RBAC scope evaluation is ≥ 95% lines.
 3. In the `small` lab (Debian 13): the `.deb` installs, services start hardened (`systemd-analyze security`
    exposure ≤ 3.0 for api/watcher), and the console login page loads over HTTPS.
-4. A test admin logs in through LDAPS against a pre-provisioned lab DC, sees an RBAC-filtered placeholder page,
+4. A test  logs in through LDAPS against a pre-provisioned lab DC, sees an RBAC-filtered placeholder page,
    and the login is in the audit log.
 5. `myucs registry set` on a demo key renders a managed file through the agent with the header, and the drift
    diagnostic flags a manual edit.

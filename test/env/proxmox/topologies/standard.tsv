@@ -1,0 +1,7 @@
+# standard: 2 DCs + 1 member + 1 client (ADR-0015). Node is the cluster node index (sorted by name).
+# Roles: dc-primary (provisions the domain), dc (joins as writable DC), member, client.
+# name    image        node  ip           cores  mem_mb  disk_gb  role
+dc1       debian-13    0     10.97.10.11  2      4096    32       dc-primary
+dc2       ubuntu-2404  1     10.97.10.12  2      4096    32       dc
+member1   debian-13    1     10.97.10.21  2      2048    24       member
+client1   ubuntu-2404  0     10.97.10.31  2      2048    24       client
