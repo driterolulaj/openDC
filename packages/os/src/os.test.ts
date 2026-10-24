@@ -204,3 +204,23 @@ test('managed file writes: atomic, previous kept, restore, roots enforced', asyn
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('a managed root reached through a symlink (or a Windows short name) still works', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'opendc-alias-'));
+  try {
+    const real = join(root, 'real');
+    mkdirSync(real);
+    // On Windows the temp dir itself is often a short name (C:\Users\RUNNER~1\...), which realpath expands.
+    const alias = process.platform === 'win32' ? real : join(root, 'alias');
+    if (process.platform !== 'win32') symlinkSync(real, alias);
+    const files = new PosixFileActions([alias]);
+    const p = join(alias, 'x.conf');
+    assert.equal((await files.writeManaged(p, 'one', null, 0o644)).changed, true);
+    // The second write re-reads the canonical target; that must not be refused as "outside the roots".
+    assert.equal((await files.writeManaged(p, 'two', null, 0o644)).previousSha256 !== null, true);
+    assert.equal((await files.restorePrevious(p)).restored, true);
+    assert.equal(readFileSync(join(real, 'x.conf'), 'utf8'), 'one');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

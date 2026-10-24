@@ -59,6 +59,15 @@ export class PosixFileActions implements FileActions {
       return null;
     });
     if (!target) return null;
+    return this.#readAt(target);
+  }
+
+  /**
+   * Reads an already checked, canonical target. Re-checking it would compare the canonical path with the
+   * configured roots, which differ when a root (or the temp dir) is reached through a symlink or a Windows
+   * short name.
+   */
+  async #readAt(target: string): Promise<{ content: string; sha256: string } | null> {
     let fh;
     try {
       fh = await open(target, constants.O_RDONLY | O_NOFOLLOW);
@@ -82,7 +91,7 @@ export class PosixFileActions implements FileActions {
   ): Promise<WriteResult> {
     const target = await this.#check(path, true);
     const next = sha256(content);
-    const prev = await this.readManaged(target);
+    const prev = await this.#readAt(target);
     if (prev && prev.sha256 === next) {
       await this.#applyMeta(target, owner, mode);
       return { changed: false, sha256: next, previousSha256: prev.sha256 };
@@ -110,7 +119,7 @@ export class PosixFileActions implements FileActions {
     const target = await this.#check(path, false);
     const backup = target + PREV_SUFFIX;
     const st = await lstat(backup).catch(() => null);
-    if (!st || !st.isFile()) return { restored: false, sha256: (await this.readManaged(target))?.sha256 ?? null };
+    if (!st || !st.isFile()) return { restored: false, sha256: (await this.#readAt(target))?.sha256 ?? null };
     await rename(backup, target);
     await this.#syncDir(dirname(target));
     return { restored: true, sha256: sha256(await readFile(target)) };
