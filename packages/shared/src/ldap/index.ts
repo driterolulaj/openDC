@@ -3,3 +3,4 @@ export * from './escape.ts';
 export * from './filter.ts';
 export * from './dn.ts';
 export * from './ids.ts';
+export * from './ldapts.ts';

@@ -6,3 +6,4 @@ export * as manifest from './manifest/index.ts';
 export * as agent from './agent/index.ts';
 export * as db from './db/index.ts';
 export { platformVersion } from './version.ts';
+export { permissions, type PermissionName } from './generated/permissions.ts';

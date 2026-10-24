@@ -18,15 +18,16 @@
     "dist"
   ],
   "dependencies": {
-    "@opendc/shared": "0.1.0",
-    "@opendc/registry": "0.1.0",
-    "@opendc/modules": "0.1.0",
     "@fastify/cookie": "11.1.3",
     "@fastify/helmet": "13.1.2",
     "@fastify/rate-limit": "11.2.1",
+    "@opendc/modules": "0.1.0",
+    "@opendc/os": "0.1.0",
+    "@opendc/registry": "0.1.0",
+    "@opendc/shared": "0.1.0",
     "fastify": "5.12.7",
-    "pino": "10.4.0",
     "ldapts": "9.2.0",
+    "pino": "10.4.0",
     "zod": "4.6.7"
   }
 }

@@ -57,7 +57,8 @@ export interface CommitReport {
   handlers: string[];
 }
 
-function parseLayer(fileId: string, content: string | null): Record<string, unknown> {
+/** Parses a layer file (local.json / forced.json); exported for read-only consumers like the API. */
+export function parseLayer(fileId: string, content: string | null): Record<string, unknown> {
   if (content === null || content.trim() === '') return {};
   try {
     const { [JSON_HEADER_FIELD]: _h, ...rest } = JSON.parse(content) as Record<string, unknown>;
