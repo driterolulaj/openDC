@@ -29,7 +29,11 @@ function fakeOs(): { os: OsActions; files: Map<string, string>; calls: string[] 
       managedFile: (k: string) => `/managed/${k}`,
       managedRoots: () => ['/managed'],
     },
-    samba: { mode: async () => 'native', version: async () => ({ major: 4, minor: 22, patch: 11, raw: 'Version 4.22.11' }), paths: () => ({}) },
+    samba: {
+      mode: async () => 'native',
+      version: async () => ({ major: 4, minor: 22, patch: 11, raw: 'Version 4.22.11' }),
+      paths: () => ({}),
+    },
   } as unknown as OsFacts;
   const os: OsActions = {
     facts,
@@ -55,7 +59,16 @@ function fakeOs(): { os: OsActions; files: Map<string, string>; calls: string[] 
       },
       restorePrevious: async () => ({ restored: false, sha256: null }),
     },
-    system: { info: async () => ({ hostname: 'dc1', fqdn: 'dc1.standard.opendc.test', kernel: '6.12', uptimeSec: 1, memTotal: 1, cpus: 2 }) },
+    system: {
+      info: async () => ({
+        hostname: 'dc1',
+        fqdn: 'dc1.standard.opendc.test',
+        kernel: '6.12',
+        uptimeSec: 1,
+        memTotal: 1,
+        cpus: 2,
+      }),
+    },
   };
   return { os, files, calls };
 }
@@ -85,7 +98,12 @@ function agent(opts: { allowlist?: AllowlistData; confirmKey?: Buffer } = {}) {
 
 let seq = 0;
 const frame = (method: string, args: unknown, extra: Partial<AgentRequest['params']> = {}, v = 1): string =>
-  JSON.stringify({ jsonrpc: '2.0', id: `r${String(++seq)}`, method, params: { v, args, actor: { name: 'test', via: 'cli' }, ...extra } });
+  JSON.stringify({
+    jsonrpc: '2.0',
+    id: `r${String(++seq)}`,
+    method,
+    params: { v, args, actor: { name: 'test', via: 'cli' }, ...extra },
+  });
 
 type Reply = { result?: unknown; error?: { code: number; data: { code: string; params: Record<string, unknown> } } };
 const parse = (s: string): Reply => JSON.parse(s) as Reply;
@@ -103,12 +121,21 @@ test('rejects: unknown op, op not allowed on this socket, wrong version, extra a
   const a = agent();
   assert.equal(errCode(await a.server.handleFrame('api', frame('samba.tool', { argv: ['x'] }))), 'agent.unknown-op');
   // catalogued and implemented, but not on the api socket
-  assert.equal(errCode(await a.server.handleFrame('api', frame('file.writeManaged', { fileId: 'core.demo', content: 'x' }))), 'agent.op-not-allowed');
+  assert.equal(
+    errCode(await a.server.handleFrame('api', frame('file.writeManaged', { fileId: 'core.demo', content: 'x' }))),
+    'agent.op-not-allowed',
+  );
   // catalogued but not allowlisted anywhere for this build
-  assert.equal(errCode(await a.server.handleFrame('cli', frame('service.start', { unit: 'opendc-api' }))), 'agent.op-not-allowed');
+  assert.equal(
+    errCode(await a.server.handleFrame('cli', frame('service.start', { unit: 'opendc-api' }))),
+    'agent.op-not-allowed',
+  );
   assert.equal(errCode(await a.server.handleFrame('api', frame('system.info', {}, {}, 2))), 'agent.unknown-op');
   assert.equal(errCode(await a.server.handleFrame('api', frame('system.info', { extra: 1 }))), 'agent.invalid-args');
-  assert.equal(errCode(await a.server.handleFrame('api', frame('service.status', { unit: 'opendc-api', force: true }))), 'agent.invalid-args');
+  assert.equal(
+    errCode(await a.server.handleFrame('api', frame('service.status', { unit: 'opendc-api', force: true }))),
+    'agent.invalid-args',
+  );
   assert.equal(parse(await a.server.handleFrame('api', frame('samba.tool', {}))).error?.code, -32601);
   assert.equal(parse(await a.server.handleFrame('api', frame('system.info', { extra: 1 }))).error?.code, -32602);
   assert.equal(a.logs.filter((l) => l.msg === 'op failed').length, 8);
@@ -117,13 +144,29 @@ test('rejects: unknown op, op not allowed on this socket, wrong version, extra a
 test('rejects path traversal and unmanaged files or units', async () => {
   const a = agent();
   for (const fileId of ['../../etc/shadow', '/etc/shadow', 'core.demo/../../x', 'core']) {
-    assert.equal(errCode(await a.server.handleFrame('cli', frame('file.writeManaged', { fileId, content: 'x' }))), 'agent.invalid-args', fileId);
+    assert.equal(
+      errCode(await a.server.handleFrame('cli', frame('file.writeManaged', { fileId, content: 'x' }))),
+      'agent.invalid-args',
+      fileId,
+    );
   }
-  assert.equal(errCode(await a.server.handleFrame('cli', frame('file.writeManaged', { fileId: 'core.other', content: 'x' }))), 'agent.op-not-allowed');
-  assert.equal(errCode(await a.server.handleFrame('api', frame('service.status', { unit: 'sshd' }))), 'agent.op-not-allowed');
+  assert.equal(
+    errCode(await a.server.handleFrame('cli', frame('file.writeManaged', { fileId: 'core.other', content: 'x' }))),
+    'agent.op-not-allowed',
+  );
+  assert.equal(
+    errCode(await a.server.handleFrame('api', frame('service.status', { unit: 'sshd' }))),
+    'agent.op-not-allowed',
+  );
   // samba-ad-dc is managed for status only
-  assert.equal(errCode(await a.server.handleFrame('cli', frame('service.restart', { unit: 'samba-ad-dc' }))), 'agent.op-not-allowed');
-  assert.equal(errCode(await a.server.handleFrame('api', frame('service.status', { unit: 'samba-ad-dc;rm -rf /' }))), 'agent.invalid-args');
+  assert.equal(
+    errCode(await a.server.handleFrame('cli', frame('service.restart', { unit: 'samba-ad-dc' }))),
+    'agent.op-not-allowed',
+  );
+  assert.equal(
+    errCode(await a.server.handleFrame('api', frame('service.status', { unit: 'samba-ad-dc;rm -rf /' }))),
+    'agent.invalid-args',
+  );
   assert.deepEqual(a.calls, []);
   const ok = parse(await a.server.handleFrame('cli', frame('service.restart', { unit: 'opendc-api' })));
   assert.deepEqual(ok.result, { unit: 'opendc-api' });
@@ -132,28 +175,56 @@ test('rejects path traversal and unmanaged files or units', async () => {
 
 test('managed writes: path from the allowlist, stale-file protection, read back', async () => {
   const a = agent();
-  const w = parse(await a.server.handleFrame('watch', frame('file.writeManaged', { fileId: 'core.demo', content: 'one', expectedPrevSha256: null })));
+  const w = parse(
+    await a.server.handleFrame(
+      'watch',
+      frame('file.writeManaged', { fileId: 'core.demo', content: 'one', expectedPrevSha256: null }),
+    ),
+  );
   assert.equal((w.result as { changed: boolean }).changed, true);
   assert.equal(a.files.get('/managed/opendc.demo'), 'one');
   assert.equal(
-    errCode(await a.server.handleFrame('watch', frame('file.writeManaged', { fileId: 'core.demo', content: 'two', expectedPrevSha256: null }))),
+    errCode(
+      await a.server.handleFrame(
+        'watch',
+        frame('file.writeManaged', { fileId: 'core.demo', content: 'two', expectedPrevSha256: null }),
+      ),
+    ),
     'agent.stale-file',
   );
-  const ok = await a.server.handleFrame('watch', frame('file.writeManaged', { fileId: 'core.demo', content: 'two', expectedPrevSha256: sha('one') }));
+  const ok = await a.server.handleFrame(
+    'watch',
+    frame('file.writeManaged', { fileId: 'core.demo', content: 'two', expectedPrevSha256: sha('one') }),
+  );
   assert.equal((parse(ok).result as { previousSha256: string }).previousSha256, sha('one'));
   const read = parse(await a.server.handleFrame('api', frame('file.readManaged', { fileId: 'core.demo' })));
   assert.deepEqual(read.result, { content: 'two', sha256: sha('two') });
   const logged = a.logs.filter((l) => l.op === 'file.writeManaged' && l.msg === 'op ok').map((l) => JSON.stringify(l));
-  assert.ok(logged.length >= 2 && logged.every((l) => !l.includes('"two"') && !l.includes('"one"')), 'file content must not be logged');
-  assert.deepEqual(parse(await a.server.handleFrame('cli', frame('file.restorePrevious', { fileId: 'core.demo' }))).result, { restored: false, sha256: null });
-  assert.equal((parse(await a.server.handleFrame('cli', frame('samba.version', {}))).result as { minor: number }).minor, 22);
+  assert.ok(
+    logged.length >= 2 && logged.every((l) => !l.includes('"two"') && !l.includes('"one"')),
+    'file content must not be logged',
+  );
+  assert.deepEqual(
+    parse(await a.server.handleFrame('cli', frame('file.restorePrevious', { fileId: 'core.demo' }))).result,
+    { restored: false, sha256: null },
+  );
+  assert.equal(
+    (parse(await a.server.handleFrame('cli', frame('samba.version', {}))).result as { minor: number }).minor,
+    22,
+  );
 });
 
 test('malformed frames get JSON-RPC errors', async () => {
   const a = agent();
   assert.equal(errCode(await a.server.handleFrame('api', 'not json')), 'agent.protocol');
-  assert.equal(errCode(await a.server.handleFrame('api', JSON.stringify({ jsonrpc: '2.0', id: 'x', method: 'system.info' }))), 'agent.protocol');
-  assert.equal(parse(await a.server.handleFrame('api', JSON.stringify({ jsonrpc: '1.0', id: 'x' }))).error?.code, -32600);
+  assert.equal(
+    errCode(await a.server.handleFrame('api', JSON.stringify({ jsonrpc: '2.0', id: 'x', method: 'system.info' }))),
+    'agent.protocol',
+  );
+  assert.equal(
+    parse(await a.server.handleFrame('api', JSON.stringify({ jsonrpc: '1.0', id: 'x' }))).error?.code,
+    -32600,
+  );
 });
 
 test('commit lock: one holder at a time, expiry, release by token only', async () => {
@@ -173,12 +244,31 @@ test('commit lock: one holder at a time, expiry, release by token only', async (
   assert.ok(lock.acquire('api', 30).acquired);
 
   const a = agent();
-  const r = parse(await a.server.handleFrame('api', frame('registry.commitLock', { action: 'acquire', holder: 'api', ttlSec: 5 })));
+  const r = parse(
+    await a.server.handleFrame('api', frame('registry.commitLock', { action: 'acquire', holder: 'api', ttlSec: 5 })),
+  );
   const token = (r.result as { token: string }).token;
   assert.match(token, /^[0-9a-f]{32}$/);
-  assert.equal((parse(await a.server.handleFrame('api', frame('registry.commitLock', { action: 'acquire', holder: 'x', ttlSec: 5 }))).result as { acquired: boolean }).acquired, false);
-  assert.equal((parse(await a.server.handleFrame('api', frame('registry.commitLock', { action: 'release', token }))).result as { acquired: boolean }).acquired, false);
-  assert.deepEqual(summarize('registry.commitLock', { action: 'release', token }), { action: 'release', holder: undefined });
+  assert.equal(
+    (
+      parse(
+        await a.server.handleFrame('api', frame('registry.commitLock', { action: 'acquire', holder: 'x', ttlSec: 5 })),
+      ).result as { acquired: boolean }
+    ).acquired,
+    false,
+  );
+  assert.equal(
+    (
+      parse(await a.server.handleFrame('api', frame('registry.commitLock', { action: 'release', token }))).result as {
+        acquired: boolean;
+      }
+    ).acquired,
+    false,
+  );
+  assert.deepEqual(summarize('registry.commitLock', { action: 'release', token }), {
+    action: 'release',
+    holder: undefined,
+  });
 });
 
 test('typed confirmation: required, verified against args and actor', async () => {
@@ -192,9 +282,15 @@ test('typed confirmation: required, verified against args and actor', async () =
     const good = mintConfirmation(key, { op: 'system.info', args: {}, actor: 'test' });
     assert.ok(parse(await a.server.handleFrame('api', frame('system.info', {}, { confirmation: good }))).result);
     const other = mintConfirmation(key, { op: 'system.info', args: {}, actor: 'mallory' });
-    assert.equal(errCode(await a.server.handleFrame('api', frame('system.info', {}, { confirmation: other }))), 'agent.confirmation-invalid');
+    assert.equal(
+      errCode(await a.server.handleFrame('api', frame('system.info', {}, { confirmation: other }))),
+      'agent.confirmation-invalid',
+    );
     const noKey = agent();
-    assert.equal(errCode(await noKey.server.handleFrame('api', frame('system.info', {}, { confirmation: good }))), 'agent.confirmation-invalid');
+    assert.equal(
+      errCode(await noKey.server.handleFrame('api', frame('system.info', {}, { confirmation: good }))),
+      'agent.confirmation-invalid',
+    );
   } finally {
     delete entry.confirm;
   }
@@ -212,7 +308,10 @@ test('the generated allowlist loads and every managed file maps to a Debian path
   const facts = new DebianFacts({ release: parseOsRelease('ID=debian\nVERSION_ID=13\n') });
   for (const [fileId, f] of al.files()) {
     const path = facts.paths.managedFile(f.pathKey);
-    assert.ok(facts.paths.managedRoots().some((r) => path.startsWith(r)), `${fileId} -> ${path}`);
+    assert.ok(
+      facts.paths.managedRoots().some((r) => path.startsWith(r)),
+      `${fileId} -> ${path}`,
+    );
   }
   assert.throws(() => al.op('api', 'file.writeManaged'), PlatformError);
   assert.equal(al.op('cli', 'file.writeManaged'), 'file.writeManaged');
@@ -220,7 +319,10 @@ test('the generated allowlist loads and every managed file maps to a Debian path
 
 test('end to end over a socket with the shared client, including the frame limit', async () => {
   const a = agent();
-  const path = process.platform === 'win32' ? `\\\\.\\pipe\\opendc-agent-test-${String(process.pid)}` : join(tmpdir(), `opendc-agent-${String(process.pid)}.sock`);
+  const path =
+    process.platform === 'win32'
+      ? `\\\\.\\pipe\\opendc-agent-test-${String(process.pid)}`
+      : join(tmpdir(), `opendc-agent-${String(process.pid)}.sock`);
   const server = a.server.createServer('api');
   await new Promise<void>((r) => server.listen(path, r));
   try {
@@ -244,7 +346,11 @@ test('end to end over a socket with the shared client, including the frame limit
     });
     assert.equal(errCode(big.trim()), 'agent.protocol');
     await assert.rejects(
-      new AgentClient(path + '-missing', 'api').call('system.info', {}, { actor: { name: 't', via: 'api' }, timeoutMs: 2000 }),
+      new AgentClient(path + '-missing', 'api').call(
+        'system.info',
+        {},
+        { actor: { name: 't', via: 'api' }, timeoutMs: 2000 },
+      ),
       (e: unknown) => e instanceof PlatformError && e.code === 'agent.unreachable',
     );
   } finally {

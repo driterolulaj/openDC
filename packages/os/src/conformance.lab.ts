@@ -24,7 +24,8 @@ if (process.platform !== 'linux') {
   });
 
   test('platform paths are absolute and the secrets dir is never a managed root', () => {
-    for (const p of [facts.paths.etc, facts.paths.secrets, facts.paths.lib, facts.paths.state, facts.paths.run]) assert.ok(isAbsolute(p), p);
+    for (const p of [facts.paths.etc, facts.paths.secrets, facts.paths.lib, facts.paths.state, facts.paths.run])
+      assert.ok(isAbsolute(p), p);
     for (const r of facts.paths.managedRoots()) {
       assert.ok(isAbsolute(r), r);
       assert.ok(!r.startsWith(facts.paths.secrets), r);
@@ -32,7 +33,8 @@ if (process.platform !== 'linux') {
   });
 
   test('core binaries resolve to absolute paths', async () => {
-    for (const b of ['systemctl', 'journalctl', 'hostname'] as const) assert.ok(isAbsolute(await facts.binaries.resolve(b)), b);
+    for (const b of ['systemctl', 'journalctl', 'hostname'] as const)
+      assert.ok(isAbsolute(await facts.binaries.resolve(b)), b);
   });
 
   test('support verdict for every role', async () => {
@@ -45,7 +47,9 @@ if (process.platform !== 'linux') {
   test('environment kinds are detected', async () => {
     assert.ok(['selinux', 'apparmor', 'none'].includes(await facts.macKind()));
     assert.ok(['systemd-resolved', 'resolv.conf', 'networkmanager'].includes(await facts.resolverKind()));
-    assert.ok(['netplan', 'networkmanager', 'ifupdown', 'systemd-networkd', 'unknown'].includes(await facts.networkKind()));
+    assert.ok(
+      ['netplan', 'networkmanager', 'ifupdown', 'systemd-networkd', 'unknown'].includes(await facts.networkKind()),
+    );
   });
 
   test('service status of a unit that always exists', async () => {

@@ -55,14 +55,18 @@ type Impls = { [O in ImplementedOp]: Impl<O> };
 
 const owner = (o: 'root' | 'service', fileId: string, ctx: OpContext): { uid: number; gid: number } => {
   if (o === 'root') return { uid: 0, gid: 0 };
-  throw new PlatformError('agent.op-failed', { op: 'file.writeManaged', reason: `owner "service" for ${fileId} is not supported before Phase 2`, requestId: ctx.requestId });
+  throw new PlatformError('agent.op-failed', {
+    op: 'file.writeManaged',
+    reason: `owner "service" for ${fileId} is not supported before Phase 2`,
+    requestId: ctx.requestId,
+  });
 };
 
 type ServiceOp = 'service.start' | 'service.stop' | 'service.restart' | 'service.reload';
 
 function serviceOp<O extends ServiceOp>(verb: 'start' | 'stop' | 'restart' | 'reload'): Impl<O> {
   return async (args, ctx) => {
-    const { unit } = args as { unit: string };
+    const { unit } = args;
     ctx.allowlist.unit(unit, verb, ctx.socket, `service.${verb}`);
     await ctx.os.services[verb](unit);
     return { unit } as OpResult<O>;
@@ -73,7 +77,12 @@ export const implementations: Impls = {
   'system.info': async (_args, ctx) => {
     const i = await ctx.os.system.info();
     const r = ctx.os.facts.release;
-    return { ...i, os: { id: r.id, versionId: r.versionId, prettyName: r.prettyName, adapter: ctx.os.facts.adapter }, role: ctx.role, agentVersion: platformVersion };
+    return {
+      ...i,
+      os: { id: r.id, versionId: r.versionId, prettyName: r.prettyName, adapter: ctx.os.facts.adapter },
+      role: ctx.role,
+      agentVersion: platformVersion,
+    };
   },
   'samba.version': async (_args, ctx) => {
     const v = await ctx.os.facts.samba.version();
@@ -94,7 +103,11 @@ export const implementations: Impls = {
       const cur = await ctx.os.files.readManaged(path);
       const actual = cur?.sha256 ?? null;
       if (actual !== args.expectedPrevSha256) {
-        throw new PlatformError('agent.stale-file', { fileId: args.fileId, expected: args.expectedPrevSha256 ?? 'absent', actual: actual ?? 'absent' });
+        throw new PlatformError('agent.stale-file', {
+          fileId: args.fileId,
+          expected: args.expectedPrevSha256 ?? 'absent',
+          actual: actual ?? 'absent',
+        });
       }
     }
     return ctx.os.files.writeManaged(path, args.content, owner(f.owner, args.fileId, ctx), f.mode);
@@ -109,7 +122,9 @@ export const implementations: Impls = {
     return ctx.os.files.restorePrevious(ctx.os.facts.paths.managedFile(f.pathKey));
   },
   'registry.commitLock': async (args, ctx) =>
-    Promise.resolve(args.action === 'acquire' ? ctx.locks.acquire(args.holder, args.ttlSec) : ctx.locks.release(args.token)),
+    Promise.resolve(
+      args.action === 'acquire' ? ctx.locks.acquire(args.holder, args.ttlSec) : ctx.locks.release(args.token),
+    ),
 };
 
 /** Arguments summarised for the log: never file contents, tokens or confirmation material. */
@@ -117,7 +132,11 @@ export function summarize(op: string, args: unknown): Record<string, unknown> {
   if (!args || typeof args !== 'object') return {};
   const a = args as Record<string, unknown>;
   if (op === 'file.writeManaged') {
-    return { fileId: a.fileId, bytes: typeof a.content === 'string' ? Buffer.byteLength(a.content) : undefined, expectedPrevSha256: a.expectedPrevSha256 };
+    return {
+      fileId: a.fileId,
+      bytes: typeof a.content === 'string' ? Buffer.byteLength(a.content) : undefined,
+      expectedPrevSha256: a.expectedPrevSha256,
+    };
   }
   if (op === 'registry.commitLock') return { action: a.action, holder: a.holder };
   return a;

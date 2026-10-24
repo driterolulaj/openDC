@@ -53,12 +53,20 @@ function bindFailure(message: string): PlatformError {
   }
 }
 
-const NETWORK_CODES = new Set(['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', 'EHOSTUNREACH', 'ENETUNREACH', 'ENOTFOUND', 'EAI_AGAIN']);
+const NETWORK_CODES = new Set([
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'ETIMEDOUT',
+  'EHOSTUNREACH',
+  'ENETUNREACH',
+  'ENOTFOUND',
+  'EAI_AGAIN',
+]);
 
 function first(e: Entry, attr: string): string | null {
   const v = e[attr];
   const x = Array.isArray(v) ? v[0] : v;
-  return x === undefined ? null : Buffer.isBuffer(x) ? x.toString('utf8') : String(x);
+  return x === undefined ? null : Buffer.isBuffer(x) ? x.toString('utf8') : x;
 }
 
 function buffers(e: Entry, attr: string): Buffer[] {
@@ -69,6 +77,7 @@ function buffers(e: Entry, attr: string): Buffer[] {
 
 export function normalizeUsername(input: string): string {
   const u = input.normalize('NFC').trim();
+  // eslint-disable-next-line no-control-regex -- rejecting control characters is the point
   if (!u || u.length > 256 || /[\u0000-\u001f\u007f]/.test(u)) throw new PlatformError('auth.invalid-credentials');
   return u;
 }
@@ -128,7 +137,10 @@ export class DirectoryAuth {
           lastNetworkError = new PlatformError('ldap.unreachable', { host, port, reason: err.code }, { cause: e });
           continue;
         }
-        if (/certificate|self[- ]signed|altnames|CERT_|unable to verify/i.test(msg) || (typeof err.code === 'string' && err.code.includes('CERT'))) {
+        if (
+          /certificate|self[- ]signed|altnames|CERT_|unable to verify/i.test(msg) ||
+          (typeof err.code === 'string' && err.code.includes('CERT'))
+        ) {
           lastNetworkError = new PlatformError('ldap.tls-untrusted', { host, reason: msg.slice(0, 200) }, { cause: e });
           continue;
         }
@@ -136,34 +148,76 @@ export class DirectoryAuth {
           lastNetworkError = new PlatformError('ldap.unreachable', { host, port, reason: 'timeout' }, { cause: e });
           continue;
         }
-        throw new PlatformError('ldap.operation-failed', { reason: msg.slice(0, 200), ldapCode: String(err.code ?? '?'), host }, { cause: e });
+        throw new PlatformError(
+          'ldap.operation-failed',
+          { reason: msg.slice(0, 200), ldapCode: err.code ?? '?', host },
+          { cause: e },
+        );
       } finally {
         await client.unbind().catch(() => undefined);
       }
     }
-    throw lastNetworkError ?? new PlatformError('ldap.unreachable', { host: this.#cfg.urls.join(', '), port: '?', reason: 'no DC answered' });
+    throw (
+      lastNetworkError ??
+      new PlatformError('ldap.unreachable', { host: this.#cfg.urls.join(', '), port: '?', reason: 'no DC answered' })
+    );
   }
 
   async #defaultNamingContext(client: LdapClientLike): Promise<string> {
-    const r = await client.search('', { scope: 'base', filter: ldaptsFilter(present('objectClass')), attributes: ['defaultNamingContext'] });
+    const r = await client.search('', {
+      scope: 'base',
+      filter: ldaptsFilter(present('objectClass')),
+      attributes: ['defaultNamingContext'],
+    });
     const nc = r.searchEntries[0] ? first(r.searchEntries[0], 'defaultNamingContext') : null;
-    if (!nc) throw new PlatformError('ldap.operation-failed', { reason: 'rootDSE has no defaultNamingContext; set core.directory.baseDn', ldapCode: '-', host: '-' });
+    if (!nc)
+      throw new PlatformError('ldap.operation-failed', {
+        reason: 'rootDSE has no defaultNamingContext; set core.directory.baseDn',
+        ldapCode: '-',
+        host: '-',
+      });
     return nc;
   }
 
   async #readUser(client: LdapClientLike, baseDn: string, user: string, host: string): Promise<AuthenticatedUser> {
-    const name = user.includes('\\') ? user.split('\\')[1] ?? user : user;
+    const name = user.includes('\\') ? (user.split('\\')[1] ?? user) : user;
     const f = name.includes('@') ? eq('userPrincipalName', name) : eq('sAMAccountName', name);
-    const attrs = ['objectGUID', 'objectSid', 'sAMAccountName', 'displayName', 'userPrincipalName', 'adminCount', 'distinguishedName'];
-    const found = await client.search(baseDn, { scope: 'sub', filter: ldaptsFilter(f), attributes: attrs, explicitBufferAttributes: ['objectGUID', 'objectSid'], sizeLimit: 2 });
+    const attrs = [
+      'objectGUID',
+      'objectSid',
+      'sAMAccountName',
+      'displayName',
+      'userPrincipalName',
+      'adminCount',
+      'distinguishedName',
+    ];
+    const found = await client.search(baseDn, {
+      scope: 'sub',
+      filter: ldaptsFilter(f),
+      attributes: attrs,
+      explicitBufferAttributes: ['objectGUID', 'objectSid'],
+      sizeLimit: 2,
+    });
     const entry = found.searchEntries[0];
     if (!entry || found.searchEntries.length !== 1) throw new PlatformError('auth.invalid-credentials');
     const [guidBuf] = buffers(entry, 'objectGUID');
     const [sidBuf] = buffers(entry, 'objectSid');
-    if (!guidBuf || !sidBuf) throw new PlatformError('ldap.operation-failed', { reason: 'user entry lacks objectGUID/objectSid', ldapCode: '-', host });
+    if (!guidBuf || !sidBuf)
+      throw new PlatformError('ldap.operation-failed', {
+        reason: 'user entry lacks objectGUID/objectSid',
+        ldapCode: '-',
+        host,
+      });
     const sid = sidFromBytes(sidBuf);
-    const tg = await client.search(entry.dn, { scope: 'base', filter: ldaptsFilter(present('objectClass')), attributes: ['tokenGroups'], explicitBufferAttributes: ['tokenGroups'] });
-    const groupSids = tg.searchEntries[0] ? buffers(tg.searchEntries[0], 'tokenGroups').map((b) => sidFromBytes(b)) : [];
+    const tg = await client.search(entry.dn, {
+      scope: 'base',
+      filter: ldaptsFilter(present('objectClass')),
+      attributes: ['tokenGroups'],
+      explicitBufferAttributes: ['tokenGroups'],
+    });
+    const groupSids = tg.searchEntries[0]
+      ? buffers(tg.searchEntries[0], 'tokenGroups').map((b) => sidFromBytes(b))
+      : [];
     const adminCount = first(entry, 'adminCount');
     return {
       sid,

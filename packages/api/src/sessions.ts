@@ -66,7 +66,20 @@ export class SessionStore {
     this.#db.run(
       `INSERT INTO sessions (id_hash, user_sid, user_guid, username, display_name, user_dn, domain_sid, group_sids, groups_at, created_at, last_seen, ip)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [session.idHash, user.sid, user.guid, user.username, user.displayName, user.dn, user.domainSid, JSON.stringify(user.groupSids), now, now, now, ip],
+      [
+        session.idHash,
+        user.sid,
+        user.guid,
+        user.username,
+        user.displayName,
+        user.dn,
+        user.domainSid,
+        JSON.stringify(user.groupSids),
+        now,
+        now,
+        now,
+        ip,
+      ],
     );
     return { id, session };
   }
@@ -107,7 +120,10 @@ export class SessionStore {
 
   purgeExpired(): number {
     const now = this.#o.now();
-    return this.#db.run('DELETE FROM sessions WHERE last_seen < ? OR created_at < ?', [now - this.#o.idleMs, now - this.#o.absoluteMs]).changes;
+    return this.#db.run('DELETE FROM sessions WHERE last_seen < ? OR created_at < ?', [
+      now - this.#o.idleMs,
+      now - this.#o.absoluteMs,
+    ]).changes;
   }
 
   csrfToken(id: string): string {

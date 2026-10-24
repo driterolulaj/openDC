@@ -6,3 +6,4 @@ LICENSE
 docs/
 *.md
 test/env/proxmox/**/*.sh
+packages/api/openapi.json

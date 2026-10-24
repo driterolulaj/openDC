@@ -19,7 +19,10 @@ export interface TemplateEntry {
   fileId: string;
   render: TemplateFunction;
   reads: string[];
-  onChange: ({ kind: 'service'; action: 'reload' | 'restart' | 'try-reload-or-restart'; unit: string } | { kind: 'agent-op' | 'validate'; op: string })[];
+  onChange: (
+    | { kind: 'service'; action: 'reload' | 'restart' | 'try-reload-or-restart'; unit: string }
+    | { kind: 'agent-op' | 'validate'; op: string }
+  )[];
   roles: RoleSelector[];
   comment: CommentStyle;
 }
@@ -27,18 +30,33 @@ export interface TemplateEntry {
 /** The agent calls the registry needs. Implemented with AgentClient in production and fakes in tests. */
 export interface RegistryAgent {
   read(fileId: string): Promise<{ content: string | null; sha256: string | null }>;
-  write(fileId: string, content: string, expectedPrevSha256: string | null): Promise<{ changed: boolean; sha256: string }>;
+  write(
+    fileId: string,
+    content: string,
+    expectedPrevSha256: string | null,
+  ): Promise<{ changed: boolean; sha256: string }>;
   restore(fileId: string): Promise<void>;
   service(action: 'reload' | 'restart', unit: string): Promise<void>;
-  lock(holder: string): Promise<{ acquired: boolean; token?: string | undefined; heldBy?: string | undefined; since?: string | undefined }>;
+  lock(holder: string): Promise<{
+    acquired: boolean;
+    token?: string | undefined;
+    heldBy?: string | undefined;
+    since?: string | undefined;
+  }>;
   unlock(token: string): Promise<void>;
 }
 
-export const LAYER_FILES: Record<WritableLayer, string> = { local: 'core.registry-local', forced: 'core.registry-forced' };
+export const LAYER_FILES: Record<WritableLayer, string> = {
+  local: 'core.registry-local',
+  forced: 'core.registry-forced',
+};
 export const RENDERED_FILE = 'core.registry-rendered';
 
 const layerFileSchema = z.object({ schemaVersion: z.literal(1), values: z.record(z.string(), z.unknown()) });
-const renderedSchema = z.object({ schemaVersion: z.literal(1), files: z.record(z.string(), z.object({ sha256: z.string(), renderedAt: z.string() })) });
+const renderedSchema = z.object({
+  schemaVersion: z.literal(1),
+  files: z.record(z.string(), z.object({ sha256: z.string(), renderedAt: z.string() })),
+});
 type Rendered = z.infer<typeof renderedSchema>;
 
 export const LOCK_STALE_SEC = 120;
@@ -64,7 +82,11 @@ export function parseLayer(fileId: string, content: string | null): Record<strin
     const { [JSON_HEADER_FIELD]: _h, ...rest } = JSON.parse(content) as Record<string, unknown>;
     return layerFileSchema.parse(rest).values;
   } catch (e) {
-    throw new PlatformError('registry.layer-corrupt', { layer: fileId, path: fileId, reason: e instanceof Error ? e.message : String(e) }, { cause: e });
+    throw new PlatformError(
+      'registry.layer-corrupt',
+      { layer: fileId, path: fileId, reason: e instanceof Error ? e.message : String(e) },
+      { cause: e },
+    );
   }
 }
 
@@ -77,7 +99,10 @@ export class RegistryService {
 
   /** Reads the writable layers through the agent and returns a registry with them applied. */
   async load(policy: LayerValues['domain-policy'] = {}): Promise<Registry> {
-    const [local, forced] = await Promise.all([this.#o.agent.read(LAYER_FILES.local), this.#o.agent.read(LAYER_FILES.forced)]);
+    const [local, forced] = await Promise.all([
+      this.#o.agent.read(LAYER_FILES.local),
+      this.#o.agent.read(LAYER_FILES.forced),
+    ]);
     return this.#o.keys
       .withLayer('domain-policy', policy)
       .withLayer('local', parseLayer(LAYER_FILES.local, local.content))
@@ -87,7 +112,11 @@ export class RegistryService {
   async #withLock<T>(fn: () => Promise<T>): Promise<T> {
     const l = await this.#o.agent.lock(this.#o.holder);
     if (!l.acquired || !l.token) {
-      throw new PlatformError('registry.locked', { holder: l.heldBy ?? '?', since: l.since ?? '?', staleSec: LOCK_STALE_SEC });
+      throw new PlatformError('registry.locked', {
+        holder: l.heldBy ?? '?',
+        since: l.since ?? '?',
+        staleSec: LOCK_STALE_SEC,
+      });
     }
     try {
       return await fn();
@@ -105,11 +134,16 @@ export class RegistryService {
       const values = parseLayer(fileId, current.content);
       if (value === undefined) {
         before.definition(key);
-        delete values[key];
+        Reflect.deleteProperty(values, key);
       } else {
         values[key] = before.validate(key, value);
       }
-      const content = withHeader('json-field', 'core', fileId, JSON.stringify({ schemaVersion: 1, values: sortObject(values) }));
+      const content = withHeader(
+        'json-field',
+        'core',
+        fileId,
+        JSON.stringify({ schemaVersion: 1, values: sortObject(values) }),
+      );
       await this.#o.agent.write(fileId, content, current.sha256);
       const after = before.withLayer(layer, values);
       return this.#commit(after, after.diff(before));
@@ -163,13 +197,21 @@ export class RegistryService {
       if (outputs.length) {
         step = 'record rendered hashes';
         const cur = await this.#o.agent.read(RENDERED_FILE);
-        await this.#o.agent.write(RENDERED_FILE, withHeader('json-field', 'core', RENDERED_FILE, JSON.stringify(rendered)), cur.sha256);
+        await this.#o.agent.write(
+          RENDERED_FILE,
+          withHeader('json-field', 'core', RENDERED_FILE, JSON.stringify(rendered)),
+          cur.sha256,
+        );
       }
       return report;
     } catch (e) {
       for (const f of written.reverse()) await this.#o.agent.restore(f).catch(() => undefined);
       if (isPlatformError(e) && e.code === 'registry.invalid-value') throw e;
-      throw new PlatformError('registry.commit-failed', { step, reason: e instanceof Error ? e.message : String(e) }, { cause: e });
+      throw new PlatformError(
+        'registry.commit-failed',
+        { step, reason: e instanceof Error ? e.message : String(e) },
+        { cause: e },
+      );
     }
   }
 

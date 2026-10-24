@@ -14,7 +14,11 @@ export function parseSystemctlShow(text: string): ServiceStatus {
   return {
     active: kv.get('ActiveState') ?? 'unknown',
     sub: kv.get('SubState') ?? 'unknown',
-    enabled: enabledState === 'enabled' || enabledState === 'enabled-runtime' || enabledState === 'static' || enabledState === 'alias',
+    enabled:
+      enabledState === 'enabled' ||
+      enabledState === 'enabled-runtime' ||
+      enabledState === 'static' ||
+      enabledState === 'alias',
     ...(since && since !== 'n/a' ? { since } : {}),
   };
 }
@@ -33,7 +37,13 @@ export class SystemdServiceActions implements ServiceActions {
   async status(unit: string): Promise<ServiceStatus> {
     const r = await this.#exec(
       await this.#systemctl(),
-      ['show', '--no-pager', '--property=ActiveState,SubState,UnitFileState,ActiveEnterTimestamp', '--', this.#unitName(unit)],
+      [
+        'show',
+        '--no-pager',
+        '--property=ActiveState,SubState,UnitFileState,ActiveEnterTimestamp',
+        '--',
+        this.#unitName(unit),
+      ],
       { timeoutMs: 15_000 },
     );
     return parseSystemctlShow(r.stdout);

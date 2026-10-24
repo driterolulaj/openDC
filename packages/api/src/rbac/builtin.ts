@@ -16,7 +16,13 @@ export const BUILTIN_ROLES: readonly Role[] = [
     tier0: false,
     builtin: true,
   },
-  { id: 'builtin.helpdesk', name: 'Helpdesk', permissions: ['core.console.access', 'core.jobs.read'], tier0: false, builtin: true },
+  {
+    id: 'builtin.helpdesk',
+    name: 'Helpdesk',
+    permissions: ['core.console.access', 'core.jobs.read'],
+    tier0: false,
+    builtin: true,
+  },
 ];
 
 /** Assignments that need no configuration: the domain's own administrators get Domain Admin everywhere. */
@@ -36,7 +42,10 @@ export function builtinAssignments(domainSid: string): Assignment[] {
 }
 
 /** Tier-0 guard input: is this object protected (AdminSDHolder territory)? */
-export function isProtected(o: { adminCount?: number | null; sid?: string | null; groupSids?: readonly string[] }, domainSid: string): boolean {
+export function isProtected(
+  o: { adminCount?: number | null; sid?: string | null; groupSids?: readonly string[] },
+  domainSid: string,
+): boolean {
   if (o.adminCount === 1) return true;
   const protectedRids = [
     WELL_KNOWN_RIDS.administrator,

@@ -25,7 +25,15 @@ function memoryOs(): { os: OsActions; files: Map<string, string> } {
   const facts = {
     adapter: 'debian',
     release: { id: 'debian', idLike: [], versionId: '13', prettyName: 'Debian GNU/Linux 13 (trixie)', arch: 'x86_64' },
-    paths: { managedFile: (k: string) => `/mem/${k}`, managedRoots: () => ['/mem'], etc: '/etc/opendc', secrets: '', lib: '', state: '', run: '' },
+    paths: {
+      managedFile: (k: string) => `/mem/${k}`,
+      managedRoots: () => ['/mem'],
+      etc: '/etc/opendc',
+      secrets: '',
+      lib: '',
+      state: '',
+      run: '',
+    },
     samba: { version: async () => null },
   } as unknown as OsFacts;
   const os = {
@@ -37,18 +45,37 @@ function memoryOs(): { os: OsActions; files: Map<string, string> } {
         files.set(p, c);
         return { changed: prev !== c, sha256: sha(c), previousSha256: prev === undefined ? null : sha(prev) };
       },
-      readManaged: async (p: string) => (files.has(p) ? { content: files.get(p) ?? '', sha256: sha(files.get(p) ?? '') } : null),
+      readManaged: async (p: string) =>
+        files.has(p) ? { content: files.get(p) ?? '', sha256: sha(files.get(p) ?? '') } : null,
       restorePrevious: async () => ({ restored: false, sha256: null }),
     },
-    system: { info: async () => ({ hostname: 'sdc1', fqdn: 'sdc1.small.opendc.test', kernel: '6.12', uptimeSec: 5, memTotal: 4e9, cpus: 2 }) },
+    system: {
+      info: async () => ({
+        hostname: 'sdc1',
+        fqdn: 'sdc1.small.opendc.test',
+        kernel: '6.12',
+        uptimeSec: 5,
+        memTotal: 4e9,
+        cpus: 2,
+      }),
+    },
   } as unknown as OsActions;
   return { os, files };
 }
 
 test('opendc registry set/drift/commit through the agent socket', async () => {
   const mem = memoryOs();
-  const server = new AgentServer({ os: mem.os, allowlist: loadAllowlist(), role: 'primary-dc', confirmKey: null, log: () => undefined }).createServer('cli');
-  const path = process.platform === 'win32' ? `\\\\.\\pipe\\opendc-cli-test-${String(process.pid)}` : join(tmpdir(), `opendc-cli-${String(process.pid)}.sock`);
+  const server = new AgentServer({
+    os: mem.os,
+    allowlist: loadAllowlist(),
+    role: 'primary-dc',
+    confirmKey: null,
+    log: () => undefined,
+  }).createServer('cli');
+  const path =
+    process.platform === 'win32'
+      ? `\\\\.\\pipe\\opendc-cli-test-${String(process.pid)}`
+      : join(tmpdir(), `opendc-cli-${String(process.pid)}.sock`);
   await new Promise<void>((r) => server.listen(path, r));
   try {
     const client = new AgentClient(path, 'cli');

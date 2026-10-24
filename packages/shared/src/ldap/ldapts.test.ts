@@ -39,6 +39,9 @@ test('every filter type converts and stringifies like the input', () => {
   );
   const lib = ldaptsFilter(f);
   // ldapts prints Buffer (equality) values hex-escaped; decode them before comparing
-  assert.equal(lib.toString().replace(/\\([0-9a-f]{2})/g, (_m, h: string) => String.fromCharCode(parseInt(h, 16))), f.text);
+  assert.equal(
+    lib.toString().replace(/\\([0-9a-f]{2})/g, (_m, h: string) => String.fromCharCode(parseInt(h, 16))),
+    f.text,
+  );
   assert.throws(() => toLdaptsFilter({ type: 'ge', attr: 'x', value: Uint8Array.from([0xff]) }), /not valid UTF-8/);
 });

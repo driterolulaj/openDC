@@ -72,17 +72,40 @@ export function coreRoutes(t: RouteTable, d: CoreDeps): void {
         user = await d.directory.authenticate(c.body.username, c.body.password);
       } catch (e) {
         if (isPlatformError(e) && e.code.startsWith('auth.')) {
-          d.audit.append({ actor: attempted, sourceIp: c.ip, action: 'session.login', result: 'failure', after: { reason: e.code }, requestId: c.requestId });
+          d.audit.append({
+            actor: attempted,
+            sourceIp: c.ip,
+            action: 'session.login',
+            result: 'failure',
+            after: { reason: e.code },
+            requestId: c.requestId,
+          });
         }
         throw e;
       }
       const engine = d.engineFor(user.domainSid);
       if (!engine.can({ sid: user.sid, groupSids: user.groupSids }, 'core.console.access').allow) {
-        d.audit.append({ actor: user.username, actorSid: user.sid, sourceIp: c.ip, action: 'session.login', result: 'denied', targetGuid: user.guid, requestId: c.requestId });
+        d.audit.append({
+          actor: user.username,
+          actorSid: user.sid,
+          sourceIp: c.ip,
+          action: 'session.login',
+          result: 'denied',
+          targetGuid: user.guid,
+          requestId: c.requestId,
+        });
         throw new PlatformError('auth.forbidden', { permission: 'core.console.access' });
       }
       const { id, session } = d.sessions.create(
-        { sid: user.sid, guid: user.guid, username: user.username, displayName: user.displayName, dn: user.dn, domainSid: user.domainSid, groupSids: user.groupSids },
+        {
+          sid: user.sid,
+          guid: user.guid,
+          username: user.username,
+          displayName: user.displayName,
+          dn: user.dn,
+          domainSid: user.domainSid,
+          groupSids: user.groupSids,
+        },
         c.ip,
       );
       d.audit.append({
@@ -109,7 +132,8 @@ export function coreRoutes(t: RouteTable, d: CoreDeps): void {
     tags: ['session'],
     auth: 'session',
     response: sessionInfo,
-    handler: async (c) => Promise.resolve(info(c.user, d.sessions.csrfToken(c.request.cookies[SESSION_COOKIE] ?? ''), d)),
+    handler: async (c) =>
+      Promise.resolve(info(c.user, d.sessions.csrfToken(c.request.cookies[SESSION_COOKIE] ?? ''), d)),
   });
 
   t.add({
@@ -122,7 +146,14 @@ export function coreRoutes(t: RouteTable, d: CoreDeps): void {
     response: empty,
     handler: async (c) => {
       d.sessions.destroy(c.request.cookies[SESSION_COOKIE]);
-      d.audit.append({ actor: c.user.username, actorSid: c.user.sid, sourceIp: c.ip, action: 'session.logout', result: 'success', requestId: c.requestId });
+      d.audit.append({
+        actor: c.user.username,
+        actorSid: c.user.sid,
+        sourceIp: c.ip,
+        action: 'session.logout',
+        result: 'success',
+        requestId: c.requestId,
+      });
       void c.reply.clearCookie(SESSION_COOKIE, { path: '/', httpOnly: true, secure: true, sameSite: 'strict' });
       return Promise.resolve({});
     },
@@ -148,9 +179,13 @@ export function coreRoutes(t: RouteTable, d: CoreDeps): void {
     auth: { permission: 'core.node.info' },
     response: nodeInfo,
     handler: async (c) => {
-      if (!d.agent) throw new PlatformError('agent.unreachable', { socket: '(not configured)', reason: 'no agent socket' });
+      if (!d.agent)
+        throw new PlatformError('agent.unreachable', { socket: '(not configured)', reason: 'no agent socket' });
       const actor = { name: c.user.username, sid: c.user.sid, via: 'api' as const };
-      const [i, samba] = await Promise.all([d.agent.call('system.info', {}, { actor }), d.agent.call('samba.version', {}, { actor })]);
+      const [i, samba] = await Promise.all([
+        d.agent.call('system.info', {}, { actor }),
+        d.agent.call('samba.version', {}, { actor }),
+      ]);
       return {
         hostname: i.hostname,
         fqdn: i.fqdn,
@@ -178,7 +213,10 @@ export function coreRoutes(t: RouteTable, d: CoreDeps): void {
     handler: async (c) =>
       Promise.resolve({
         entries: d.audit
-          .list({ ...(c.query.limit ? { limit: c.query.limit } : {}), ...(c.query.before ? { beforeTs: c.query.before } : {}) })
+          .list({
+            ...(c.query.limit ? { limit: c.query.limit } : {}),
+            ...(c.query.before ? { beforeTs: c.query.before } : {}),
+          })
           .map(({ before: _b, after: _a, prevHash: _p, hash: _h, ...e }) => e),
       }),
   });
@@ -200,7 +238,8 @@ export function coreRoutes(t: RouteTable, d: CoreDeps): void {
       const agent = d.agent;
       const actor = { name: c.user.username, sid: c.user.sid, via: 'api' as const };
       const j = d.jobs.start('core.node-info', { name: c.user.username, sid: c.user.sid }, async (progress) => {
-        if (!agent) throw new PlatformError('agent.unreachable', { socket: '(not configured)', reason: 'no agent socket' });
+        if (!agent)
+          throw new PlatformError('agent.unreachable', { socket: '(not configured)', reason: 'no agent socket' });
         progress({ step: 'system.info', percent: 10 });
         const i = await agent.call('system.info', {}, { actor });
         progress({ step: 'samba.version', percent: 60 });
@@ -208,7 +247,15 @@ export function coreRoutes(t: RouteTable, d: CoreDeps): void {
         progress({ step: 'done', percent: 100 });
         return { fqdn: i.fqdn, role: i.role, os: i.os.prettyName, samba: s?.raw ?? null };
       });
-      d.audit.append({ actor: c.user.username, actorSid: c.user.sid, sourceIp: c.ip, action: 'job.start', result: 'success', after: { type: j.type, id: j.id }, requestId: c.requestId });
+      d.audit.append({
+        actor: c.user.username,
+        actorSid: c.user.sid,
+        sourceIp: c.ip,
+        action: 'job.start',
+        result: 'success',
+        after: { type: j.type, id: j.id },
+        requestId: c.requestId,
+      });
       return Promise.resolve(j);
     },
   });
@@ -247,7 +294,12 @@ export function coreRoutes(t: RouteTable, d: CoreDeps): void {
       const after = Number(c.request.headers['last-event-id'] ?? 0) || 0;
       const raw = c.reply.raw;
       c.reply.hijack();
-      raw.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive', 'x-accel-buffering': 'no' });
+      raw.writeHead(200, {
+        'content-type': 'text/event-stream',
+        'cache-control': 'no-store',
+        connection: 'keep-alive',
+        'x-accel-buffering': 'no',
+      });
       const send = (ev: { n: number; kind: string; data: unknown }): void => {
         raw.write(`id: ${String(ev.n)}\nevent: ${ev.kind}\ndata: ${JSON.stringify(ev.data)}\n\n`);
         if (ev.kind !== 'progress') raw.end();

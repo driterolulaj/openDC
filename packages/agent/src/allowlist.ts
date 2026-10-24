@@ -39,7 +39,9 @@ export class Allowlist {
     this.#files = new Map(Object.entries(data.files));
     this.#units = new Map(Object.entries(data.units).map(([u, a]) => [u, new Set(a)]));
     // The agent refuses to start if the allowlist names an operation it doesn't implement.
-    const missing = [...this.#sockets.api, ...this.#sockets.watch, ...this.#sockets.cli].filter((op) => !isImplementedOp(op));
+    const missing = [...this.#sockets.api, ...this.#sockets.watch, ...this.#sockets.cli].filter(
+      (op) => !isImplementedOp(op),
+    );
     if (missing.length) {
       throw new PlatformError('agent.unknown-op', { op: [...new Set(missing)].join(', '), version: 1 });
     }
@@ -47,7 +49,8 @@ export class Allowlist {
 
   /** The op if `socket` may call it; otherwise throws agent.op-not-allowed. */
   op(socket: AgentSocket, op: string): ImplementedOp {
-    if (!this.#sockets[socket].has(op) || !isImplementedOp(op)) throw new PlatformError('agent.op-not-allowed', { op, socket });
+    if (!this.#sockets[socket].has(op) || !isImplementedOp(op))
+      throw new PlatformError('agent.op-not-allowed', { op, socket });
     return op;
   }
 
@@ -58,7 +61,8 @@ export class Allowlist {
   }
 
   unit(unit: string, action: UnitAction, socket: AgentSocket, op: string): void {
-    if (!this.#units.get(unit)?.has(action)) throw new PlatformError('agent.op-not-allowed', { op: `${op}(${unit})`, socket });
+    if (!this.#units.get(unit)?.has(action))
+      throw new PlatformError('agent.op-not-allowed', { op: `${op}(${unit})`, socket });
   }
 
   files(): ReadonlyMap<string, ManagedFileEntry> {
@@ -67,5 +71,5 @@ export class Allowlist {
 }
 
 export function loadAllowlist(): Allowlist {
-  return new Allowlist(generated as unknown as AllowlistData);
+  return new Allowlist(generated);
 }

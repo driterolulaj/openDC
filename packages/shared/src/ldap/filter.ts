@@ -28,9 +28,12 @@ function encodeValue(v: Value): string {
   return escapeFilterValue(String(v));
 }
 
-export const eq = (attr: string, value: Value): LdapFilter => make(`(${assertAttributeName(attr)}=${encodeValue(value)})`);
-export const ge = (attr: string, value: Value): LdapFilter => make(`(${assertAttributeName(attr)}>=${encodeValue(value)})`);
-export const le = (attr: string, value: Value): LdapFilter => make(`(${assertAttributeName(attr)}<=${encodeValue(value)})`);
+export const eq = (attr: string, value: Value): LdapFilter =>
+  make(`(${assertAttributeName(attr)}=${encodeValue(value)})`);
+export const ge = (attr: string, value: Value): LdapFilter =>
+  make(`(${assertAttributeName(attr)}>=${encodeValue(value)})`);
+export const le = (attr: string, value: Value): LdapFilter =>
+  make(`(${assertAttributeName(attr)}<=${encodeValue(value)})`);
 export const present = (attr: string): LdapFilter => make(`(${assertAttributeName(attr)}=*)`);
 
 /** Substring match; every part is escaped, so `*` in user input matches a literal asterisk. */

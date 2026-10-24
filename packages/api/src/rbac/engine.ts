@@ -71,9 +71,11 @@ export class RbacEngine {
     this.#roles = new Map(roles.map((r) => [r.id, r]));
     this.#assignments = assignments;
     for (const r of roles) {
-      for (const p of r.permissions) if (p !== '*' && !this.#perms.has(p)) throw new TypeError(`Role ${r.id} grants unknown permission ${p}`);
+      for (const p of r.permissions)
+        if (p !== '*' && !this.#perms.has(p)) throw new TypeError(`Role ${r.id} grants unknown permission ${p}`);
     }
-    for (const a of assignments) if (!this.#roles.has(a.roleId)) throw new TypeError(`Assignment ${a.id} references unknown role ${a.roleId}`);
+    for (const a of assignments)
+      if (!this.#roles.has(a.roleId)) throw new TypeError(`Assignment ${a.id} references unknown role ${a.roleId}`);
   }
 
   meta(permission: string): PermissionMeta {
@@ -154,7 +156,8 @@ function inScope(kind: PermissionMeta['scope'], scopes: readonly Scope[], target
   return scopes.some((s) => {
     if (s.kind === 'domain') return true;
     if (kind === 'ou' && s.kind === 'subtree') return target.dn !== undefined && isWithin(target.dn, s.dn);
-    if (kind === 'node' && s.kind === 'node') return target.nodeGuid !== undefined && target.nodeGuid.toLowerCase() === s.nodeGuid.toLowerCase();
+    if (kind === 'node' && s.kind === 'node')
+      return target.nodeGuid !== undefined && target.nodeGuid.toLowerCase() === s.nodeGuid.toLowerCase();
     return false;
   });
 }

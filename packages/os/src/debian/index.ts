@@ -53,7 +53,16 @@ const BIN_PACKAGES: Record<LogicalBinary, string> = {
 };
 
 const PACKAGES: Record<string, string[]> = {
-  'samba-dc': ['samba', 'samba-ad-dc', 'winbind', 'krb5-user', 'libnss-winbind', 'libpam-winbind', 'ldb-tools', 'smbclient'],
+  'samba-dc': [
+    'samba',
+    'samba-ad-dc',
+    'winbind',
+    'krb5-user',
+    'libnss-winbind',
+    'libpam-winbind',
+    'ldb-tools',
+    'smbclient',
+  ],
   chrony: ['chrony'],
 };
 
@@ -107,7 +116,7 @@ export class DebianFacts implements OsFacts {
       'opendc.registry.rendered': p('var/lib/opendc/registry/rendered.json'),
     };
     const managedRoots = [p('etc/opendc/generated'), p('etc/opendc/registry'), p('var/lib/opendc/registry')];
-    const os = `${this.release.prettyName}`;
+    const os = this.release.prettyName;
     this.paths = {
       etc: p('etc/opendc'),
       secrets: p('etc/opendc/secrets'),
@@ -225,7 +234,10 @@ export class DebianFacts implements OsFacts {
       reasons.push({
         code: 'samba-too-old',
         messageKey: 'os:support.samba-too-old',
-        fixKey: this.release.id === 'debian' && this.release.versionId === '12' ? 'os:support.enable-bookworm-backports' : 'os:support.upgrade-samba',
+        fixKey:
+          this.release.id === 'debian' && this.release.versionId === '12'
+            ? 'os:support.enable-bookworm-backports'
+            : 'os:support.upgrade-samba',
         params: { version: `${String(v.major)}.${String(v.minor)}.${String(v.patch)}`, min },
       });
       return { tier: 'unsupported', sambaMode: 'native', reasons };
@@ -245,11 +257,21 @@ class DebianSystem implements SystemActions {
     const short = hostname();
     let fqdn = short;
     try {
-      fqdn = (await this.#exec(await this.#facts.binaries.resolve('hostname'), ['--fqdn'], { timeoutMs: 5000 })).stdout.trim() || short;
+      fqdn =
+        (
+          await this.#exec(await this.#facts.binaries.resolve('hostname'), ['--fqdn'], { timeoutMs: 5000 })
+        ).stdout.trim() || short;
     } catch {
       // keep the short name
     }
-    return { hostname: short, fqdn, kernel: kernelRelease(), uptimeSec: Math.round(uptime()), memTotal: totalmem(), cpus: cpus().length };
+    return {
+      hostname: short,
+      fqdn,
+      kernel: kernelRelease(),
+      uptimeSec: Math.round(uptime()),
+      memTotal: totalmem(),
+      cpus: cpus().length,
+    };
   }
 }
 
@@ -258,7 +280,11 @@ export function debianActions(opts: DebianOptions): OsActions {
   const run = opts.exec ?? defaultExec;
   return {
     facts,
-    services: new SystemdServiceActions(run, () => facts.binaries.resolve('systemctl'), (u) => facts.unitName(u)),
+    services: new SystemdServiceActions(
+      run,
+      () => facts.binaries.resolve('systemctl'),
+      (u) => facts.unitName(u),
+    ),
     files: new PosixFileActions(facts.paths.managedRoots()),
     system: new DebianSystem(facts, run),
   };

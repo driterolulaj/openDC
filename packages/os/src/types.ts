@@ -125,7 +125,12 @@ export interface FileActions {
    * `<path>.opendc-prev`. The parent's realpath must be inside managedRoots(); the final path component must
    * not be a symlink.
    */
-  writeManaged(path: string, content: string, owner: { uid: number; gid: number } | null, mode: number): Promise<WriteResult>;
+  writeManaged(
+    path: string,
+    content: string,
+    owner: { uid: number; gid: number } | null,
+    mode: number,
+  ): Promise<WriteResult>;
   readManaged(path: string): Promise<{ content: string; sha256: string } | null>;
   restorePrevious(path: string): Promise<{ restored: boolean; sha256: string | null }>;
 }

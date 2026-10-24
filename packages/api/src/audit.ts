@@ -123,7 +123,10 @@ export class AuditLog {
 
   append(input: AuditInput): AuditEntry {
     return this.#db.transaction(() => {
-      const last = this.#db.get<{ seq: number; hash: string }>('SELECT seq, hash FROM audit WHERE origin_node_id = ? ORDER BY seq DESC LIMIT 1', [this.#origin]);
+      const last = this.#db.get<{ seq: number; hash: string }>(
+        'SELECT seq, hash FROM audit WHERE origin_node_id = ? ORDER BY seq DESC LIMIT 1',
+        [this.#origin],
+      );
       const base = {
         originNodeId: this.#origin,
         seq: (last?.seq ?? 0) + 1,
@@ -184,7 +187,10 @@ export class AuditLog {
     }
     params.push(Math.min(Math.max(opts.limit ?? 50, 1), 500));
     return this.#db
-      .all<Row>(`SELECT * FROM audit ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY ts DESC, seq DESC LIMIT ?`, params)
+      .all<Row>(
+        `SELECT * FROM audit ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY ts DESC, seq DESC LIMIT ?`,
+        params,
+      )
       .map(fromRow);
   }
 

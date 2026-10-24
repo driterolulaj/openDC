@@ -70,7 +70,17 @@ test('tagged template escapes values and embeds sub-filters', () => {
 
 test('staticFilter accepts well-formed manifest filters only', () => {
   assert.equal(staticFilter('(objectClass=msDS-App-Configuration)').text, '(objectClass=msDS-App-Configuration)');
-  for (const bad of ['objectClass=x', '(cn=a', '(cn=a))', '(cn=a(b)', '((cn=a))', '(&)', '(cn=a)(cn=b)', '(=x)', '(cn~x)']) {
+  for (const bad of [
+    'objectClass=x',
+    '(cn=a',
+    '(cn=a))',
+    '(cn=a(b)',
+    '((cn=a))',
+    '(&)',
+    '(cn=a)(cn=b)',
+    '(=x)',
+    '(cn~x)',
+  ]) {
     assert.throws(() => staticFilter(bad), TypeError, bad);
   }
 });
@@ -84,7 +94,11 @@ test('parser: every filter type, byte-exact values', () => {
   assert.deepEqual(parseFilter('(cn=Lu\\c4\\8di)'), { type: 'eq', attr: 'cn', value: bytes('Luči') });
   assert.deepEqual(parseFilter('(cn=Luči)'), { type: 'eq', attr: 'cn', value: bytes('Luči') });
   assert.deepEqual(parseFilter('(cn=😀)'), { type: 'eq', attr: 'cn', value: bytes('😀') });
-  assert.deepEqual(parseFilter('(objectGUID=\\ff\\00)'), { type: 'eq', attr: 'objectGUID', value: Uint8Array.from([0xff, 0]) });
+  assert.deepEqual(parseFilter('(objectGUID=\\ff\\00)'), {
+    type: 'eq',
+    attr: 'objectGUID',
+    value: Uint8Array.from([0xff, 0]),
+  });
   assert.deepEqual(parseFilter('(cn=a*b*c)'), {
     type: 'substring',
     attr: 'cn',
@@ -100,7 +114,12 @@ test('parser: every filter type, byte-exact values', () => {
     dnAttributes: false,
     value: bytes('2'),
   });
-  assert.deepEqual(parseFilter('(:dn:2.5.13.5:=x)'), { type: 'ext', rule: '2.5.13.5', dnAttributes: true, value: bytes('x') });
+  assert.deepEqual(parseFilter('(:dn:2.5.13.5:=x)'), {
+    type: 'ext',
+    rule: '2.5.13.5',
+    dnAttributes: true,
+    value: bytes('x'),
+  });
   assert.deepEqual(parseFilter('(cn:dn:=x)'), { type: 'ext', attr: 'cn', dnAttributes: true, value: bytes('x') });
   assert.deepEqual(parseFilter('(!(cn=a))'), { type: 'not', child: { type: 'eq', attr: 'cn', value: bytes('a') } });
   assert.deepEqual(filterTree(and(eq('a', '1'), eq('b', '2'))), {

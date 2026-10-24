@@ -22,9 +22,14 @@ test('parseDn: simple, escaped, hex, multi-valued, spaces', () => {
     [{ type: 'DC', value: 'example' }],
     [{ type: 'DC', value: 'com' }],
   ]);
-  assert.deepEqual(parseDn('CN=Sue\\, Grabbit and Runn,DC=x'), [[{ type: 'CN', value: 'Sue, Grabbit and Runn' }], [{ type: 'DC', value: 'x' }]]);
+  assert.deepEqual(parseDn('CN=Sue\\, Grabbit and Runn,DC=x'), [
+    [{ type: 'CN', value: 'Sue, Grabbit and Runn' }],
+    [{ type: 'DC', value: 'x' }],
+  ]);
   assert.deepEqual(parseDn('CN=Lu\\C4\\8Di\\C4\\87'), [[{ type: 'CN', value: 'Lučić' }]]);
-  assert.deepEqual(parseDn('1.3.6.1.4.1.1466.0=#04024869'), [[{ type: '1.3.6.1.4.1.1466.0', value: '04024869', hex: true }]]);
+  assert.deepEqual(parseDn('1.3.6.1.4.1.1466.0=#04024869'), [
+    [{ type: '1.3.6.1.4.1.1466.0', value: '04024869', hex: true }],
+  ]);
   assert.deepEqual(parseDn('OU=Sales+CN=J. Smith,DC=x'), [
     [
       { type: 'OU', value: 'Sales' },
@@ -42,7 +47,20 @@ test('parseDn: simple, escaped, hex, multi-valued, spaces', () => {
 });
 
 test('parseDn rejects malformed DNs', () => {
-  for (const bad of ['CN', '=x', 'CN=a,', 'CN=a\\', 'C N=a', 'CN=a"b', 'CN=<x>', 'CN=#zz', 'CN=#0', 'CN=\\ff', '1cn=a', 'CN=a,,DC=b']) {
+  for (const bad of [
+    'CN',
+    '=x',
+    'CN=a,',
+    'CN=a\\',
+    'C N=a',
+    'CN=a"b',
+    'CN=<x>',
+    'CN=#zz',
+    'CN=#0',
+    'CN=\\ff',
+    '1cn=a',
+    'CN=a,,DC=b',
+  ]) {
     assert.throws(() => parseDn(bad), DnSyntaxError, bad);
   }
 });

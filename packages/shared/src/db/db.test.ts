@@ -22,7 +22,10 @@ test('a failing migration rolls back and raises db.migration-failed', () => {
   const db = new SqlitePlatformDb(':memory:');
   migrate(db, migrations);
   const bad = { id: 9, name: 'broken', sql: 'CREATE TABLE ok (x); CREATE TABLE t (dup)' };
-  assert.throws(() => migrate(db, [...migrations, bad]), (e: unknown) => e instanceof PlatformError && e.code === 'db.migration-failed');
+  assert.throws(
+    () => migrate(db, [...migrations, bad]),
+    (e: unknown) => e instanceof PlatformError && e.code === 'db.migration-failed',
+  );
   assert.equal(db.get<{ n: number }>("SELECT count(*) AS n FROM sqlite_master WHERE name = 'ok'")?.n, 0);
   db.close();
 });

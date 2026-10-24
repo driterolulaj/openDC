@@ -64,7 +64,10 @@ export async function run(argv: string[], d: CliDeps): Promise<number> {
     }
     if (cmd === 'agent' && sub === 'info') {
       const info = await d.client.call('system.info', {}, { actor: { name: d.user, via: 'cli' } });
-      emit(info, `${info.fqdn} (${info.role})\n${info.os.prettyName}, kernel ${info.kernel}, ${String(info.cpus)} CPU\nagent ${info.agentVersion}`);
+      emit(
+        info,
+        `${info.fqdn} (${info.role})\n${info.os.prettyName}, kernel ${info.kernel}, ${String(info.cpus)} CPU\nagent ${info.agentVersion}`,
+      );
       return 0;
     }
     if (cmd !== 'registry') throw new UsageError(t('unknown-command', { command: cmd }));
@@ -88,7 +91,10 @@ export async function run(argv: string[], d: CliDeps): Promise<number> {
           return 0;
         }
         const lines = [t('explain', { key, value: show(e.value), layer: e.layer })];
-        for (const def of e.defined) lines.push(t('explain-layer', { layer: def.layer, value: show(def.value), ignored: def.valid ? '' : t('ignored') }));
+        for (const def of e.defined)
+          lines.push(
+            t('explain-layer', { layer: def.layer, value: show(def.value), ignored: def.valid ? '' : t('ignored') }),
+          );
         emit(e, lines.join('\n'));
         return 0;
       }
@@ -114,7 +120,9 @@ export async function run(argv: string[], d: CliDeps): Promise<number> {
         });
         const invalid = reg.invalidValues();
         const text = rows.map((r) => `${r.key} = ${show(r.value)}  [${r.layer}]`).join('\n');
-        const bad = invalid.length ? `\n\n${t('invalid-values')}\n${invalid.map((i) => t('invalid-line', { ...i })).join('\n')}` : '';
+        const bad = invalid.length
+          ? `\n\n${t('invalid-values')}\n${invalid.map((i) => t('invalid-line', { ...i })).join('\n')}`
+          : '';
         emit({ keys: rows, invalid }, text + bad);
         return 0;
       }
@@ -123,7 +131,13 @@ export async function run(argv: string[], d: CliDeps): Promise<number> {
         const def = new Registry(d.keys).definition(key);
         const [ns, path] = def.description.split(':');
         emit(
-          { key, description: t(`${ns ?? ''}:${path ?? ''}`), default: def.default, policySettable: def.policySettable, effect: def.effect ?? 'none' },
+          {
+            key,
+            description: t(`${ns ?? ''}:${path ?? ''}`),
+            default: def.default,
+            policySettable: def.policySettable,
+            effect: def.effect ?? 'none',
+          },
           t('describe', {
             key,
             description: t(`${ns ?? ''}:${path ?? ''}`),
@@ -147,7 +161,10 @@ export async function run(argv: string[], d: CliDeps): Promise<number> {
         }
         emit(
           { drift },
-          [t('drift-found', { count: drift.length }), ...drift.map((x) => t('drift-line', { fileId: x.fileId, state: t(`drift-${x.state}`) }))].join('\n'),
+          [
+            t('drift-found', { count: drift.length }),
+            ...drift.map((x) => t('drift-line', { fileId: x.fileId, state: t(`drift-${x.state}`) })),
+          ].join('\n'),
         );
         return 1;
       }
@@ -161,7 +178,10 @@ export async function run(argv: string[], d: CliDeps): Promise<number> {
     }
     const pe = isPlatformError(e) ? e : new PlatformError('internal', { requestId: 'cli' }, { cause: e });
     if (json) d.err(JSON.stringify(pe.toBody(), null, 2));
-    else d.err(t('error', { message: t(`errors:${pe.code}.message`, pe.params), fix: t(`errors:${pe.code}.fix`, pe.params) }));
+    else
+      d.err(
+        t('error', { message: t(`errors:${pe.code}.message`, pe.params), fix: t(`errors:${pe.code}.fix`, pe.params) }),
+      );
     if (!isPlatformError(e) && process.env.OPENDC_DEBUG) d.err(String((e as Error).stack));
     return 1;
   }
@@ -170,5 +190,9 @@ export async function run(argv: string[], d: CliDeps): Promise<number> {
 class UsageError extends Error {}
 
 function commitLine(t: TFunction, r: { rendered: string[]; changed: string[]; handlers: string[] }): string {
-  return t('commit-done', { rendered: r.rendered.length, changed: r.changed.length, handlers: r.handlers.length ? r.handlers.join(', ') : t('none') });
+  return t('commit-done', {
+    rendered: r.rendered.length,
+    changed: r.changed.length,
+    handlers: r.handlers.length ? r.handlers.join(', ') : t('none'),
+  });
 }

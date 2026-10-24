@@ -1,0 +1,71 @@
+{
+  "app": {
+    "name": "OpenDC",
+    "tagline": "Konsole für die Domänenverwaltung",
+    "loading": "Wird geladen …",
+    "language": "Sprache",
+    "lang-en": "English",
+    "lang-de": "Deutsch",
+    "logout": "Abmelden",
+    "signed-in-as": "Angemeldet als {{name}}"
+  },
+  "login": {
+    "title": "Anmelden",
+    "subtitle": "Verwenden Sie Ihr Domänenkonto.",
+    "username": "Benutzername",
+    "username-hint": "z. B. alice, alice@example.com oder EXAMPLE\\alice",
+    "password": "Passwort",
+    "submit": "Anmelden",
+    "failed": "Anmeldung fehlgeschlagen"
+  },
+  "nav": {
+    "home": "Übersicht",
+    "audit": "Audit-Log"
+  },
+  "home": {
+    "title": "Übersicht",
+    "user": "Ihr Konto",
+    "node": "Dieser Knoten",
+    "node-hidden": "Sie dürfen Knoteninformationen nicht ansehen.",
+    "permissions": "Ihre Berechtigungen",
+    "scope-domain": "gesamte Domäne",
+    "scope-subtree": "unterhalb von {{dn}}",
+    "scope-node": "Knoten {{node}}",
+    "tier0": "Tier 0",
+    "fqdn": "Name",
+    "role": "Rolle",
+    "os": "Betriebssystem",
+    "samba": "Samba",
+    "samba-none": "nicht installiert",
+    "uptime": "Laufzeit",
+    "platform": "OpenDC-Version",
+    "run-job": "Knoteninformationen als Auftrag sammeln",
+    "job-status": "Auftrag {{id}}: {{status}}",
+    "placeholder": "Platzhalter für Phase 1: Benutzer, Gruppen und Richtlinien folgen in Phase 2."
+  },
+  "audit": {
+    "title": "Audit-Log",
+    "time": "Zeit",
+    "actor": "Akteur",
+    "action": "Aktion",
+    "result": "Ergebnis",
+    "target": "Ziel",
+    "source": "Quelle",
+    "empty": "Noch keine Einträge."
+  },
+  "role": {
+    "primary-dc": "Primärer Domänencontroller",
+    "dc": "Domänencontroller",
+    "rodc": "Schreibgeschützter Domänencontroller",
+    "member": "Mitgliedsserver",
+    "managed-node": "Verwalteter Knoten"
+  },
+  "error": {
+    "title": "Etwas ist schiefgelaufen",
+    "forbidden": "Sie haben keine Berechtigung für diese Seite.",
+    "fix": "Abhilfe: {{fix}}"
+  },
+  "units": {
+    "days-hours": "{{d}} T {{h}} Std."
+  }
+}

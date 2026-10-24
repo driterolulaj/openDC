@@ -19,7 +19,10 @@ const GUID_BYTES = Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 1
 test('objectGUID uses the mixed-endian AD layout', () => {
   assert.equal(guidFromBytes(GUID_BYTES), '04030201-0605-0807-090a-0b0c0d0e0f10');
   assert.deepEqual(guidToBytes('04030201-0605-0807-090a-0b0c0d0e0f10'), GUID_BYTES);
-  assert.equal(guidFilterValue('04030201-0605-0807-090a-0b0c0d0e0f10'), '\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10');
+  assert.equal(
+    guidFilterValue('04030201-0605-0807-090a-0b0c0d0e0f10'),
+    '\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10',
+  );
   assert.equal(guidBase('04030201-0605-0807-090A-0B0C0D0E0F10'), '<GUID=04030201-0605-0807-090a-0b0c0d0e0f10>');
   assert.throws(() => guidFromBytes(new Uint8Array(15)), TypeError);
   assert.throws(() => guidToBytes('nope'), TypeError);

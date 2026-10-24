@@ -1,0 +1,71 @@
+{
+  "app": {
+    "name": "OpenDC",
+    "tagline": "Domain management console",
+    "loading": "Loading…",
+    "language": "Language",
+    "lang-en": "English",
+    "lang-de": "Deutsch",
+    "logout": "Log out",
+    "signed-in-as": "Signed in as {{name}}"
+  },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Use your domain account.",
+    "username": "User name",
+    "username-hint": "e.g. alice, alice@example.com or EXAMPLE\\alice",
+    "password": "Password",
+    "submit": "Sign in",
+    "failed": "Sign-in failed"
+  },
+  "nav": {
+    "home": "Overview",
+    "audit": "Audit log"
+  },
+  "home": {
+    "title": "Overview",
+    "user": "Your account",
+    "node": "This node",
+    "node-hidden": "You may not view node information.",
+    "permissions": "Your permissions",
+    "scope-domain": "whole domain",
+    "scope-subtree": "below {{dn}}",
+    "scope-node": "node {{node}}",
+    "tier0": "tier 0",
+    "fqdn": "Name",
+    "role": "Role",
+    "os": "Operating system",
+    "samba": "Samba",
+    "samba-none": "not installed",
+    "uptime": "Uptime",
+    "platform": "OpenDC version",
+    "run-job": "Collect node information as a job",
+    "job-status": "Job {{id}}: {{status}}",
+    "placeholder": "Phase 1 placeholder: users, groups and policies arrive in Phase 2."
+  },
+  "audit": {
+    "title": "Audit log",
+    "time": "Time",
+    "actor": "Actor",
+    "action": "Action",
+    "result": "Result",
+    "target": "Target",
+    "source": "Source",
+    "empty": "No entries yet."
+  },
+  "role": {
+    "primary-dc": "Primary domain controller",
+    "dc": "Domain controller",
+    "rodc": "Read-only domain controller",
+    "member": "Member server",
+    "managed-node": "Managed node"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "forbidden": "You don't have permission to view this page.",
+    "fix": "What to do: {{fix}}"
+  },
+  "units": {
+    "days-hours": "{{d}} d {{h}} h"
+  }
+}

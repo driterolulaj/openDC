@@ -15,7 +15,7 @@ const cli = {
     'set-done': '{{key}} set in the {{layer}} layer.',
     'unset-done': '{{key}} removed from the {{layer}} layer.',
     'commit-done': 'Rendered {{rendered}} file(s), changed {{changed}}, handlers: {{handlers}}.',
-    'none': 'none',
+    none: 'none',
     'drift-none': 'No drift: every managed file matches what the registry rendered.',
     'drift-line': '  {{fileId}}: {{state}}',
     'drift-found': 'Drift found in {{count}} managed file(s). Run opendc registry commit to restore them:',
@@ -24,7 +24,8 @@ const cli = {
     'drift-never-rendered': 'never rendered',
     'invalid-values': 'Ignored layer values:',
     'invalid-line': '  {{layer}} {{key}}: {{issues}}',
-    describe: '{{key}}\n  {{description}}\n  default: {{default}}\n  policy settable: {{policy}}\n  effect when changed: {{effect}}',
+    describe:
+      '{{key}}\n  {{description}}\n  default: {{default}}\n  policy settable: {{policy}}\n  effect when changed: {{effect}}',
     yes: 'yes',
     no: 'no',
     error: 'Error: {{message}}\nFix: {{fix}}',
@@ -40,7 +41,7 @@ const cli = {
     'set-done': '{{key}} in der Ebene {{layer}} gesetzt.',
     'unset-done': '{{key}} aus der Ebene {{layer}} entfernt.',
     'commit-done': '{{rendered}} Datei(en) gerendert, {{changed}} geändert, Handler: {{handlers}}.',
-    'none': 'keine',
+    none: 'keine',
     'drift-none': 'Keine Abweichung: Alle verwalteten Dateien entsprechen dem, was die Registry gerendert hat.',
     'drift-line': '  {{fileId}}: {{state}}',
     'drift-found': 'Abweichung in {{count}} verwalteten Datei(en). opendc registry commit stellt sie wieder her:',
@@ -49,7 +50,8 @@ const cli = {
     'drift-never-rendered': 'nie gerendert',
     'invalid-values': 'Ignorierte Ebenenwerte:',
     'invalid-line': '  {{layer}} {{key}}: {{issues}}',
-    describe: '{{key}}\n  {{description}}\n  Standard: {{default}}\n  per Richtlinie setzbar: {{policy}}\n  Wirkung bei Änderung: {{effect}}',
+    describe:
+      '{{key}}\n  {{description}}\n  Standard: {{default}}\n  per Richtlinie setzbar: {{policy}}\n  Wirkung bei Änderung: {{effect}}',
     yes: 'ja',
     no: 'nein',
     error: 'Fehler: {{message}}\nAbhilfe: {{fix}}',
@@ -61,7 +63,10 @@ export function detectLang(env: NodeJS.ProcessEnv = process.env): 'en' | 'de' {
   return v.toLowerCase().startsWith('de') ? 'de' : 'en';
 }
 
-export async function initI18n(moduleResources: Record<'en' | 'de', Record<string, unknown>>, lang = detectLang()): Promise<TFunction> {
+export async function initI18n(
+  moduleResources: Record<'en' | 'de', Record<string, unknown>>,
+  lang = detectLang(),
+): Promise<TFunction> {
   const errors = errorResources();
   return i18next.createInstance().init({
     lng: lang,

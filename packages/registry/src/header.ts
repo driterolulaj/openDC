@@ -22,11 +22,14 @@ export function withHeader(style: CommentStyle, module: string, fileId: string, 
     case 'xml': {
       // Keep an XML declaration first if the body has one.
       const m = /^<\?xml[^>]*\?>\n?/.exec(body);
-      return m ? `${m[0].endsWith('\n') ? m[0] : m[0] + '\n'}<!-- ${text} -->\n${body.slice(m[0].length)}` : `<!-- ${text} -->\n${body}`;
+      return m
+        ? `${m[0].endsWith('\n') ? m[0] : m[0] + '\n'}<!-- ${text} -->\n${body.slice(m[0].length)}`
+        : `<!-- ${text} -->\n${body}`;
     }
     case 'json-field': {
       const parsed: unknown = body.trim() === '' ? {} : JSON.parse(body);
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new TypeError(`${fileId}: json-field files must render a JSON object`);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
+        throw new TypeError(`${fileId}: json-field files must render a JSON object`);
       const { [JSON_HEADER_FIELD]: _old, ...rest } = parsed as Record<string, unknown>;
       return JSON.stringify({ [JSON_HEADER_FIELD]: text, ...rest }, null, 2) + '\n';
     }

@@ -43,9 +43,27 @@ export default {
   managed: {
     files: [
       { fileId: 'core.demo', pathKey: 'opendc.demo', owner: 'root', mode: '0644', comment: 'hash' },
-      { fileId: 'core.registry-local', pathKey: 'opendc.registry.local', owner: 'root', mode: '0644', comment: 'json-field' },
-      { fileId: 'core.registry-forced', pathKey: 'opendc.registry.forced', owner: 'root', mode: '0644', comment: 'json-field' },
-      { fileId: 'core.registry-rendered', pathKey: 'opendc.registry.rendered', owner: 'root', mode: '0644', comment: 'json-field' },
+      {
+        fileId: 'core.registry-local',
+        pathKey: 'opendc.registry.local',
+        owner: 'root',
+        mode: '0644',
+        comment: 'json-field',
+      },
+      {
+        fileId: 'core.registry-forced',
+        pathKey: 'opendc.registry.forced',
+        owner: 'root',
+        mode: '0644',
+        comment: 'json-field',
+      },
+      {
+        fileId: 'core.registry-rendered',
+        pathKey: 'opendc.registry.rendered',
+        owner: 'root',
+        mode: '0644',
+        comment: 'json-field',
+      },
     ],
     units: [
       { unit: 'opendc-api', allowed: ['status', 'restart'] },

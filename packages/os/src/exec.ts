@@ -27,7 +27,8 @@ export type Exec = (binary: string, argv: readonly string[], opts?: ExecOptions)
 
 /** Runs `binary` (absolute path) with `argv`. Rejects with os.command-failed on a non-OK exit. */
 export const exec: Exec = (binary, argv, opts = {}) => {
-  if (!binary.startsWith('/')) return Promise.reject(new TypeError(`exec needs an absolute binary path, got ${binary}`));
+  if (!binary.startsWith('/'))
+    return Promise.reject(new TypeError(`exec needs an absolute binary path, got ${binary}`));
   return new Promise((resolvePromise, reject) => {
     const child = execFile(
       binary,

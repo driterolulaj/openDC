@@ -55,7 +55,8 @@ export function mintConfirmation(
   return `${payload}.${b64(sign(key, payload))}`;
 }
 
-export type ConfirmationCheck = { ok: true } | { ok: false; reason: 'malformed' | 'signature' | 'expired' | 'mismatch' };
+export type ConfirmationCheck =
+  { ok: true } | { ok: false; reason: 'malformed' | 'signature' | 'expired' | 'mismatch' };
 
 export function verifyConfirmation(
   key: Buffer,
@@ -76,7 +77,11 @@ export function verifyConfirmation(
   }
   const now = expected.nowSec ?? Math.floor(Date.now() / 1000);
   if (typeof claims.exp !== 'number' || claims.exp < now) return { ok: false, reason: 'expired' };
-  if (claims.op !== expected.op || claims.actor !== expected.actor || claims.argsHash !== argsHash(key, expected.args)) {
+  if (
+    claims.op !== expected.op ||
+    claims.actor !== expected.actor ||
+    claims.argsHash !== argsHash(key, expected.args)
+  ) {
     return { ok: false, reason: 'mismatch' };
   }
   return { ok: true };

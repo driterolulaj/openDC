@@ -59,25 +59,36 @@ async function main(): Promise<void> {
   let nodeId = hostname();
   if (agent) {
     try {
-      nodeId = (await agent.call('system.info', {}, { actor: { name: 'opendc-api', via: 'api' }, timeoutMs: 5000 })).fqdn;
+      nodeId = (await agent.call('system.info', {}, { actor: { name: 'opendc-api', via: 'api' }, timeoutMs: 5000 }))
+        .fqdn;
     } catch {
       // the agent may start later; the hostname is a stable fallback for the audit origin
     }
   }
 
-  const urls = process.env.OPENDC_LDAP_URLS?.split(',').filter(Boolean) ?? registry.get<string[]>('core.directory.ldapUrls');
+  const urls =
+    process.env.OPENDC_LDAP_URLS?.split(',').filter(Boolean) ?? registry.get<string[]>('core.directory.ldapUrls');
   const caPem = credential('ldap-ca')?.toString('utf8') ?? readOptional(process.env.OPENDC_LDAP_CA);
   const tlsServerName = registry.get<string>('core.directory.tlsServerName');
   const baseDn = registry.get<string>('core.directory.baseDn');
-  const directory = new DirectoryAuth({ urls, caPem, ...(tlsServerName ? { tlsServerName } : {}), ...(baseDn ? { baseDn } : {}) });
+  const directory = new DirectoryAuth({
+    urls,
+    caPem,
+    ...(tlsServerName ? { tlsServerName } : {}),
+    ...(baseDn ? { baseDn } : {}),
+  });
 
   const cert = credential('tls-cert');
   const key = credential('tls-key');
-  if (!dev && (!cert || !key)) throw new Error('No TLS certificate: start through opendc-api.service (LoadCredential=tls-cert/tls-key) or set OPENDC_DEV=1');
+  if (!dev && (!cert || !key))
+    throw new Error(
+      'No TLS certificate: start through opendc-api.service (LoadCredential=tls-cert/tls-key) or set OPENDC_DEV=1',
+    );
   const hmac = credential('api-hmac');
 
   const webDir =
-    process.env.OPENDC_WEB_DIR ?? (facts ? join(facts.paths.lib, 'web') : resolve(fileURLToPath(import.meta.url), '../../../web/dist'));
+    process.env.OPENDC_WEB_DIR ??
+    (facts ? join(facts.paths.lib, 'web') : resolve(fileURLToPath(import.meta.url), '../../../web/dist'));
 
   const api = await buildApi({
     db,

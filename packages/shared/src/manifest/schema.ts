@@ -89,7 +89,13 @@ const uiContribution = z.strictObject({
     )
     .optional(),
   formExtensions: z
-    .array(z.strictObject({ target: z.string().regex(/^[a-z0-9-]+:[A-Za-z0-9-]+$/), entry: entryPath, permission: dotted.optional() }))
+    .array(
+      z.strictObject({
+        target: z.string().regex(/^[a-z0-9-]+:[A-Za-z0-9-]+$/),
+        entry: entryPath,
+        permission: dotted.optional(),
+      }),
+    )
     .optional(),
 });
 
@@ -146,7 +152,13 @@ const managedResources = z.strictObject({
   files: z.array(managedFileDefinition).optional(),
   units: z.array(managedUnitDefinition).optional(),
   packageSets: z
-    .array(z.strictObject({ id: z.string(), logicalPackages: z.array(z.string()).min(1), roles: z.array(roleSelector).min(1) }))
+    .array(
+      z.strictObject({
+        id: z.string(),
+        logicalPackages: z.array(z.string()).min(1),
+        roles: z.array(roleSelector).min(1),
+      }),
+    )
     .optional(),
   firewall: z
     .array(
@@ -176,7 +188,14 @@ const managedResources = z.strictObject({
 const directoryContribution = z.strictObject({
   containers: z.array(z.strictObject({ rdn: z.string(), purpose: i18nKey })).optional(),
   objectKinds: z
-    .array(z.strictObject({ kind: z.string(), container: z.string(), schemaEntry: entryPath, payloadVersion: z.number().int().positive() }))
+    .array(
+      z.strictObject({
+        kind: z.string(),
+        container: z.string(),
+        schemaEntry: entryPath,
+        payloadVersion: z.number().int().positive(),
+      }),
+    )
     .optional(),
   usesClasses: z.array(z.strictObject({ objectClass: z.string(), access: z.enum(['read', 'write']) })).optional(),
   migrations: z.array(z.strictObject({ toVersion: z.number().int().positive(), entry: entryPath })).optional(),

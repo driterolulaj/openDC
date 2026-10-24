@@ -32,9 +32,7 @@ export const ops = {
   'samba.version': {
     v: 1,
     args: empty,
-    result: z
-      .object({ raw: z.string(), major: z.number(), minor: z.number(), patch: z.number() })
-      .nullable(),
+    result: z.object({ raw: z.string(), major: z.number(), minor: z.number(), patch: z.number() }).nullable(),
   },
   'service.status': {
     v: 1,
@@ -75,7 +73,11 @@ export const ops = {
   'registry.commitLock': {
     v: 1,
     args: z.discriminatedUnion('action', [
-      z.strictObject({ action: z.literal('acquire'), holder: z.string().min(1).max(128), ttlSec: z.number().int().min(1).max(600) }),
+      z.strictObject({
+        action: z.literal('acquire'),
+        holder: z.string().min(1).max(128),
+        ttlSec: z.number().int().min(1).max(600),
+      }),
       z.strictObject({ action: z.literal('release'), token: z.string().regex(/^[0-9a-f]{32}$/) }),
     ]),
     result: z.object({

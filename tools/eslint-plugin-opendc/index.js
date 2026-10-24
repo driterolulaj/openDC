@@ -71,8 +71,12 @@ const noShellExec = {
   },
 };
 
-// "(attr=", "(&(", "(|(", "cn=", "OU=" ... directly followed by an interpolation.
-const FILTER_OR_DN_TAIL = /(\((?:[&|!]\()*[A-Za-z][\w-]*(?:;[\w-]+)*(?::[\w.:-]*)?[~<>]?=$)|((?:^|,)\s*[A-Za-z][\w-]*=$)/;
+// "(attr=", "(&(", "(|(", ... directly followed by an interpolation.
+const FILTER_TAIL = /\((?:[&|!]\()*[A-Za-z][\w-]*(?:;[\w-]+)*(?::[\w.:-]*)?[~<>]?=$/;
+// "CN=" at the start of the string, or ",OU=" after an RDN separator, directly followed by an interpolation.
+const DN_TAIL_FIRST = /(?:^|,)\s*[A-Za-z][\w-]*=$/;
+const DN_TAIL_LATER = /,\s*[A-Za-z][\w-]*=$/;
+const FILTER_OR_DN_TAIL = new RegExp(`${FILTER_TAIL.source}|${DN_TAIL_FIRST.source}`);
 const LOOKS_LIKE_FILTER = /^\s*\(.*=/;
 
 /** @type {import('eslint').Rule.RuleModule} */
@@ -95,7 +99,8 @@ const noRawLdap = {
         if (node.parent.type === 'TaggedTemplateExpression') return;
         for (let i = 0; i < node.expressions.length; i++) {
           const before = node.quasis[i].value.cooked ?? '';
-          if (FILTER_OR_DN_TAIL.test(before)) {
+          // Only the first chunk can start a DN; later chunks follow an interpolation, so they need a comma.
+          if (FILTER_TAIL.test(before) || (i === 0 ? DN_TAIL_FIRST : DN_TAIL_LATER).test(before)) {
             context.report({ node: node.expressions[i], messageId: 'interpolated' });
           }
         }

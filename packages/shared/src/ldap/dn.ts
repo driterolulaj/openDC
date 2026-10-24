@@ -58,7 +58,7 @@ export function parseDn(input: string): Rdn[] {
     skipSpaces();
 
     // attribute value
-    let value = '';
+    let value: string;
     let hex = false;
     if (input[i] === '#') {
       const start = ++i;
@@ -149,7 +149,10 @@ export function asDn(text: string): Dn {
 export function normalizeRdns(rdns: readonly Rdn[]): string[] {
   return rdns.map((r) =>
     r
-      .map((a) => `${a.type.toLowerCase()}=${a.hex ? '#' + a.value.toLowerCase() : a.value.normalize('NFC').toLowerCase()}`)
+      .map(
+        (a) =>
+          `${a.type.toLowerCase()}=${a.hex ? '#' + a.value.toLowerCase() : a.value.normalize('NFC').toLowerCase()}`,
+      )
       .sort()
       .join('+'),
   );

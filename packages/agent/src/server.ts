@@ -89,12 +89,28 @@ export class AgentServer {
     try {
       parsed = JSON.parse(line);
     } catch {
-      return this.#fail(null, socket, '-', RPC_INVALID_REQUEST, new PlatformError('agent.protocol', { reason: 'invalid JSON' }), started);
+      return this.#fail(
+        null,
+        socket,
+        '-',
+        RPC_INVALID_REQUEST,
+        new PlatformError('agent.protocol', { reason: 'invalid JSON' }),
+        started,
+      );
     }
     const req = requestSchema.safeParse(parsed);
     if (!req.success) {
       const id = typeof (parsed as { id?: unknown } | null)?.id === 'string' ? (parsed as { id: string }).id : null;
-      return this.#fail(id, socket, '-', RPC_INVALID_REQUEST, new PlatformError('agent.protocol', { reason: req.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ') }), started);
+      return this.#fail(
+        id,
+        socket,
+        '-',
+        RPC_INVALID_REQUEST,
+        new PlatformError('agent.protocol', {
+          reason: req.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; '),
+        }),
+        started,
+      );
     }
     const r: AgentRequest = req.data;
     try {
@@ -130,16 +146,32 @@ export class AgentServer {
     if (params.v !== def.v) throw new PlatformError('agent.unknown-op', { op: method, version: params.v });
     const args = def.args.safeParse(params.args);
     if (!args.success) {
-      throw new PlatformError('agent.invalid-args', { op: method, issues: args.error.issues.map((i) => `${i.path.join('.') || '(args)'}: ${i.message}`).join('; ') });
+      throw new PlatformError('agent.invalid-args', {
+        op: method,
+        issues: args.error.issues.map((i) => `${i.path.join('.') || '(args)'}: ${i.message}`).join('; '),
+      });
     }
     const entry = catalogue[op] as { confirm?: 'typed' };
     if (entry.confirm === 'typed') {
       if (!params.confirmation) throw new PlatformError('agent.confirmation-required', { op });
       const key = this.#deps.confirmKey;
-      const check = key ? verifyConfirmation(key, params.confirmation, { op, args: args.data, actor: params.actor.sid ?? params.actor.name }) : { ok: false as const };
+      const check = key
+        ? verifyConfirmation(key, params.confirmation, {
+            op,
+            args: args.data,
+            actor: params.actor.sid ?? params.actor.name,
+          })
+        : { ok: false as const };
       if (!check.ok) throw new PlatformError('agent.confirmation-invalid', { op, ttlSec: 120 });
     }
-    const ctx: OpContext = { os: this.#deps.os, allowlist: this.#deps.allowlist, socket, requestId: r.id, role: this.#deps.role, locks: this.#locks };
+    const ctx: OpContext = {
+      os: this.#deps.os,
+      allowlist: this.#deps.allowlist,
+      socket,
+      requestId: r.id,
+      role: this.#deps.role,
+      locks: this.#locks,
+    };
     const timeoutMs = timeouts[op] ?? 60_000;
     const impl = implementations[op] as (a: unknown, c: OpContext) => Promise<unknown>;
     let timer: NodeJS.Timeout | undefined;
@@ -158,12 +190,27 @@ export class AgentServer {
     }
   }
 
-  #fail(id: string | null, socket: AgentSocket, op: string, rpcCode: number, e: unknown, started: number, r?: AgentRequest): string {
+  #fail(
+    id: string | null,
+    socket: AgentSocket,
+    op: string,
+    rpcCode: number,
+    e: unknown,
+    started: number,
+    r?: AgentRequest,
+  ): string {
     const body: ErrorBody = isPlatformError(e)
       ? e.toBody()
-      : new PlatformError('agent.op-failed', { op, reason: e instanceof Error ? e.message : String(e), requestId: id ?? '-' }).toBody();
+      : new PlatformError('agent.op-failed', {
+          op,
+          reason: e instanceof Error ? e.message : String(e),
+          requestId: id ?? '-',
+        }).toBody();
     this.#deps.log({
-      level: isPlatformError(e) && (e.code === 'agent.op-not-allowed' || e.code === 'agent.confirmation-invalid') ? 'warn' : 'error',
+      level:
+        isPlatformError(e) && (e.code === 'agent.op-not-allowed' || e.code === 'agent.confirmation-invalid')
+          ? 'warn'
+          : 'error',
       msg: 'op failed',
       requestId: id,
       op,

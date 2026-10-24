@@ -46,7 +46,8 @@ function inheritedSockets(): { name: AgentSocket; fd: number }[] {
   const out: { name: AgentSocket; fd: number }[] = [];
   for (let i = 0; i < count; i++) {
     const parsed = agentSocket.safeParse(names[i]);
-    if (!parsed.success) throw new Error(`Unexpected socket name "${names[i] ?? ''}"; set FileDescriptorName=api|watch|cli`);
+    if (!parsed.success)
+      throw new Error(`Unexpected socket name "${names[i] ?? ''}"; set FileDescriptorName=api|watch|cli`);
     out.push({ name: parsed.data, fd: SD_LISTEN_FDS_START + i });
   }
   return out;
@@ -56,7 +57,10 @@ async function main(): Promise<void> {
   const { values } = parseArgs({ options: { listen: { type: 'string', multiple: true }, role: { type: 'string' } } });
   const allowlist = loadAllowlist();
   const os = await detectActions();
-  const role = values.role && (nodeRoles as readonly string[]).includes(values.role) ? (values.role as NodeRole) : await readRole(`${os.facts.paths.etc}/node.json`);
+  const role =
+    values.role && (nodeRoles as readonly string[]).includes(values.role)
+      ? (values.role as NodeRole)
+      : await readRole(`${os.facts.paths.etc}/node.json`);
   const confirmKey = await readCredential('confirm-hmac');
   const agent = new AgentServer({ os, allowlist, role, confirmKey, log });
 
@@ -72,7 +76,15 @@ async function main(): Promise<void> {
   for (const l of listeners) {
     const server = agent.createServer(l.name);
     server.listen(l.target);
-    log({ level: 'info', msg: 'listening', socket: l.name, role, adapter: os.facts.adapter, release: os.facts.release.prettyName, confirmations: confirmKey ? 'enabled' : 'disabled' });
+    log({
+      level: 'info',
+      msg: 'listening',
+      socket: l.name,
+      role,
+      adapter: os.facts.adapter,
+      release: os.facts.release.prettyName,
+      confirmations: confirmKey ? 'enabled' : 'disabled',
+    });
   }
   for (const sig of ['SIGTERM', 'SIGINT'] as const) {
     process.on(sig, () => {

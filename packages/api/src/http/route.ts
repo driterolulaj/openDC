@@ -30,7 +30,12 @@ export interface RouteContext<B, Q, P> {
   require(permission: string, target?: Target & { label?: string }): void;
 }
 
-export interface RouteSpec<B extends z.ZodType | undefined, Q extends z.ZodType | undefined, P extends z.ZodType | undefined, R extends z.ZodType> {
+export interface RouteSpec<
+  B extends z.ZodType | undefined,
+  Q extends z.ZodType | undefined,
+  P extends z.ZodType | undefined,
+  R extends z.ZodType,
+> {
   method: Method;
   url: string;
   operationId: string;
@@ -66,8 +71,14 @@ export class RouteTable {
   readonly routes: AnyRoute[] = [];
   readonly #registered = new Set<string>();
 
-  add<B extends z.ZodType | undefined, Q extends z.ZodType | undefined, P extends z.ZodType | undefined, R extends z.ZodType>(spec: RouteSpec<B, Q, P, R>): void {
-    if (this.routes.some((r) => r.operationId === spec.operationId)) throw new TypeError(`Duplicate operationId ${spec.operationId}`);
+  add<
+    B extends z.ZodType | undefined,
+    Q extends z.ZodType | undefined,
+    P extends z.ZodType | undefined,
+    R extends z.ZodType,
+  >(spec: RouteSpec<B, Q, P, R>): void {
+    if (this.routes.some((r) => r.operationId === spec.operationId))
+      throw new TypeError(`Duplicate operationId ${spec.operationId}`);
     this.routes.push(spec as AnyRoute);
   }
 
@@ -79,7 +90,8 @@ export class RouteTable {
       for (const m of methods) {
         const key = `${m} ${opts.url}`;
         if (m === 'HEAD' && this.#registered.has(`GET ${opts.url}`)) continue;
-        if (!this.#registered.has(key)) throw new Error(`Route ${key} was registered without an authorization declaration`);
+        if (!this.#registered.has(key))
+          throw new Error(`Route ${key} was registered without an authorization declaration`);
       }
     });
     for (const r of this.routes) {
@@ -88,12 +100,14 @@ export class RouteTable {
         method: r.method,
         url: r.url,
         schema: {
-          ...(r.body ? { body: r.body } : {}),
-          ...(r.query ? { querystring: r.query } : {}),
-          ...(r.params ? { params: r.params } : {}),
+          ...(r.body ? { body: r.body as z.ZodType } : {}),
+          ...(r.query ? { querystring: r.query as z.ZodType } : {}),
+          ...(r.params ? { params: r.params as z.ZodType } : {}),
           ...(r.stream ? {} : { response: { [r.status ?? 200]: r.response } }),
         },
-        ...(r.rateLimit ? { config: { rateLimit: { max: r.rateLimit.max, timeWindow: r.rateLimit.windowSec * 1000 } } } : {}),
+        ...(r.rateLimit
+          ? { config: { rateLimit: { max: r.rateLimit.max, timeWindow: r.rateLimit.windowSec * 1000 } } }
+          : {}),
         handler: async (request, reply) => {
           if (!SAFE.has(request.method)) hooks.checkOrigin(request);
           let session: Session | null = null;
@@ -128,7 +142,8 @@ export class RouteTable {
               const d = hooks.can(s, permission, target);
               if (d.allow) return;
               hooks.denied(request, s, permission, d.reason);
-              if (d.reason === 'tier0') throw new PlatformError('auth.tier0-required', { target: target?.label ?? target?.dn ?? '?' });
+              if (d.reason === 'tier0')
+                throw new PlatformError('auth.tier0-required', { target: target?.label ?? target?.dn ?? '?' });
               throw new PlatformError('auth.forbidden', { permission });
             },
           };

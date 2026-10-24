@@ -16,14 +16,25 @@ const perms: PermissionMeta[] = [
 ];
 const roles: Role[] = [
   { id: 'admin', name: 'Admin', permissions: ['*'], tier0: true, builtin: true },
-  { id: 'helpdesk', name: 'Helpdesk', permissions: ['users.user.write', 'users.user.resetPassword', 'core.console.access'], tier0: false, builtin: false },
+  {
+    id: 'helpdesk',
+    name: 'Helpdesk',
+    permissions: ['users.user.write', 'users.user.resetPassword', 'core.console.access'],
+    tier0: false,
+    builtin: false,
+  },
   // tries to grant a tier-0 permission without being a tier-0 role: must not work
   { id: 'sneaky', name: 'Sneaky', permissions: ['domain.fsmo.seize'], tier0: false, builtin: false },
   { id: 'ops', name: 'Ops', permissions: ['nodes.node.restart'], tier0: false, builtin: false },
 ];
 const assignments: Assignment[] = [
   { id: 'a-admin', roleId: 'admin', principals: [`${DOM}-512`], scopes: [{ kind: 'domain' }] },
-  { id: 'a-help', roleId: 'helpdesk', principals: [`${DOM}-1105`], scopes: [{ kind: 'subtree', dn: 'OU=Staff,DC=example,DC=com' }] },
+  {
+    id: 'a-help',
+    roleId: 'helpdesk',
+    principals: [`${DOM}-1105`],
+    scopes: [{ kind: 'subtree', dn: 'OU=Staff,DC=example,DC=com' }],
+  },
   { id: 'a-sneaky', roleId: 'sneaky', principals: [`${DOM}-1106`], scopes: [{ kind: 'domain' }] },
   { id: 'a-ops', roleId: 'ops', principals: [`${DOM}-1107`], scopes: [{ kind: 'node', nodeGuid: 'AAAA-1' }] },
 ];
@@ -35,9 +46,18 @@ const alice = 'CN=alice,OU=Staff,DC=example,DC=com';
 
 test('helpdesk: allowed in scope, 403 outside it (acceptance Phase 2.3 logic)', () => {
   assert.deepEqual(engine.can(helpdesk, 'users.user.resetPassword', { dn: alice }), { allow: true, via: ['a-help'] });
-  assert.deepEqual(engine.can(helpdesk, 'users.user.resetPassword', { dn: 'CN=bob,OU=Sales,DC=example,DC=com' }), { allow: false, reason: 'out-of-scope' });
-  assert.deepEqual(engine.can(helpdesk, 'users.user.resetPassword', { dn: 'cn=ALICE,ou=staff,dc=Example,dc=com' }).allow, true);
-  assert.equal(engine.can(helpdesk, 'users.user.resetPassword', { dn: 'CN=x,OU=Staff2,DC=example,DC=com' }).allow, false);
+  assert.deepEqual(engine.can(helpdesk, 'users.user.resetPassword', { dn: 'CN=bob,OU=Sales,DC=example,DC=com' }), {
+    allow: false,
+    reason: 'out-of-scope',
+  });
+  assert.deepEqual(
+    engine.can(helpdesk, 'users.user.resetPassword', { dn: 'cn=ALICE,ou=staff,dc=Example,dc=com' }).allow,
+    true,
+  );
+  assert.equal(
+    engine.can(helpdesk, 'users.user.resetPassword', { dn: 'CN=x,OU=Staff2,DC=example,DC=com' }).allow,
+    false,
+  );
   assert.equal(engine.can(helpdesk, 'users.user.resetPassword').allow, true);
 });
 
@@ -50,8 +70,14 @@ test('tier-0 guard: a Domain Admin inside the helpdesk OU stays out of reach', (
 test('implied permissions, wildcard, tier-0 permissions only in tier-0 roles', () => {
   assert.equal(engine.can(helpdesk, 'users.user.read', { dn: alice }).allow, true);
   assert.equal(engine.can(admin, 'domain.fsmo.seize').allow, true);
-  assert.deepEqual(engine.can({ sid: 'S-1-5-21-1-2-3-3000', groupSids: [`${DOM}-1106`] }, 'domain.fsmo.seize'), { allow: false, reason: 'no-permission' });
-  assert.deepEqual(engine.can({ sid: 'S-1-5-21-9', groupSids: [] }, 'core.console.access'), { allow: false, reason: 'no-permission' });
+  assert.deepEqual(engine.can({ sid: 'S-1-5-21-1-2-3-3000', groupSids: [`${DOM}-1106`] }, 'domain.fsmo.seize'), {
+    allow: false,
+    reason: 'no-permission',
+  });
+  assert.deepEqual(engine.can({ sid: 'S-1-5-21-9', groupSids: [] }, 'core.console.access'), {
+    allow: false,
+    reason: 'no-permission',
+  });
   assert.throws(() => engine.can(admin, 'nope.x.y'), TypeError);
 });
 
@@ -78,8 +104,14 @@ test('effective permissions list scopes and tier-0 flags', () => {
 });
 
 test('construction rejects unknown permissions and roles', () => {
-  assert.throws(() => new RbacEngine(perms, [{ id: 'r', name: 'r', permissions: ['x.y.z'], tier0: false, builtin: false }], []), /unknown permission/);
-  assert.throws(() => new RbacEngine(perms, roles, [{ id: 'a', roleId: 'missing', principals: [], scopes: [] }]), /unknown role/);
+  assert.throws(
+    () => new RbacEngine(perms, [{ id: 'r', name: 'r', permissions: ['x.y.z'], tier0: false, builtin: false }], []),
+    /unknown permission/,
+  );
+  assert.throws(
+    () => new RbacEngine(perms, roles, [{ id: 'a', roleId: 'missing', principals: [], scopes: [] }]),
+    /unknown role/,
+  );
 });
 
 test('built-ins: Domain Admins, Enterprise Admins and BUILTIN\\Administrators get Domain Admin', () => {
@@ -88,7 +120,11 @@ test('built-ins: Domain Admins, Enterprise Admins and BUILTIN\\Administrators ge
     assert.equal(e.can({ sid: `${DOM}-1500`, groupSids: [g] }, 'core.console.access').allow, true, g);
   }
   assert.equal(e.can({ sid: `${DOM}-1500`, groupSids: [`${DOM}-513`] }, 'core.console.access').allow, false);
-  assert.equal(e.can({ sid: `${DOM}-1500`, groupSids: ['S-1-5-21-9-9-9-512'] }, 'core.console.access').allow, false, 'another domain');
+  assert.equal(
+    e.can({ sid: `${DOM}-1500`, groupSids: ['S-1-5-21-9-9-9-512'] }, 'core.console.access').allow,
+    false,
+    'another domain',
+  );
 });
 
 test('protected objects', () => {

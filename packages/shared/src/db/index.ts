@@ -95,7 +95,9 @@ export class SqlitePlatformDb implements PlatformDb {
 export function migrate(db: PlatformDb, migrations: readonly Migration[]): number[] {
   const ids = migrations.map((m) => m.id);
   if (ids.some((id, i) => i > 0 && id <= (ids[i - 1] ?? 0))) throw new TypeError('Migration ids must increase');
-  db.exec('CREATE TABLE IF NOT EXISTS schema_migrations (id INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT NOT NULL)');
+  db.exec(
+    'CREATE TABLE IF NOT EXISTS schema_migrations (id INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT NOT NULL)',
+  );
   const done = new Set(db.all<{ id: number }>('SELECT id FROM schema_migrations').map((r) => r.id));
   const applied: number[] = [];
   for (const m of migrations) {
@@ -103,12 +105,20 @@ export function migrate(db: PlatformDb, migrations: readonly Migration[]): numbe
     try {
       db.transaction(() => {
         db.exec(m.sql);
-        db.run('INSERT INTO schema_migrations (id, name, applied_at) VALUES (?, ?, ?)', [m.id, m.name, new Date().toISOString()]);
+        db.run('INSERT INTO schema_migrations (id, name, applied_at) VALUES (?, ?, ?)', [
+          m.id,
+          m.name,
+          new Date().toISOString(),
+        ]);
       });
     } catch (e) {
       throw new PlatformError(
         'db.migration-failed',
-        { migration: `${String(m.id)}-${m.name}`, reason: e instanceof Error ? e.message : String(e), path: db instanceof SqlitePlatformDb ? db.path : '(db)' },
+        {
+          migration: `${String(m.id)}-${m.name}`,
+          reason: e instanceof Error ? e.message : String(e),
+          path: db instanceof SqlitePlatformDb ? db.path : '(db)',
+        },
         { cause: e },
       );
     }

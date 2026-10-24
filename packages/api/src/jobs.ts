@@ -47,14 +47,27 @@ export class JobRunner {
     this.#bus.setMaxListeners(1000);
   }
 
-  start(type: string, actor: { name: string; sid: string | null }, fn: (progress: ProgressFn) => Promise<unknown>): Job {
+  start(
+    type: string,
+    actor: { name: string; sid: string | null },
+    fn: (progress: ProgressFn) => Promise<unknown>,
+  ): Job {
     const id = randomUUID();
     const now = new Date().toISOString();
-    this.#db.run('INSERT INTO jobs (id, type, actor, actor_sid, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)', [id, type, actor.name, actor.sid, 'running', now, now]);
+    this.#db.run(
+      'INSERT INTO jobs (id, type, actor, actor_sid, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [id, type, actor.name, actor.sid, 'running', now, now],
+    );
     let n = 0;
     const emit = (kind: JobEvent['kind'], data: unknown): void => {
       const ev: JobEvent = { n: ++n, ts: new Date().toISOString(), kind, data };
-      this.#db.run('INSERT INTO job_events (job_id, n, ts, kind, data_json) VALUES (?, ?, ?, ?, ?)', [id, ev.n, ev.ts, kind, JSON.stringify(data)]);
+      this.#db.run('INSERT INTO job_events (job_id, n, ts, kind, data_json) VALUES (?, ?, ?, ?, ?)', [
+        id,
+        ev.n,
+        ev.ts,
+        kind,
+        JSON.stringify(data),
+      ]);
       this.#bus.emit(id, ev);
     };
     void (async () => {
@@ -62,11 +75,21 @@ export class JobRunner {
         const result = await fn((p) => {
           emit('progress', p);
         });
-        this.#db.run('UPDATE jobs SET status = ?, updated_at = ?, result_json = ? WHERE id = ?', ['succeeded', new Date().toISOString(), JSON.stringify(result ?? null), id]);
+        this.#db.run('UPDATE jobs SET status = ?, updated_at = ?, result_json = ? WHERE id = ?', [
+          'succeeded',
+          new Date().toISOString(),
+          JSON.stringify(result ?? null),
+          id,
+        ]);
         emit('done', result ?? null);
       } catch (e) {
         const body = (isPlatformError(e) ? e : new PlatformError('internal', { requestId: id }, { cause: e })).toBody();
-        this.#db.run('UPDATE jobs SET status = ?, updated_at = ?, error_json = ? WHERE id = ?', ['failed', new Date().toISOString(), JSON.stringify(body), id]);
+        this.#db.run('UPDATE jobs SET status = ?, updated_at = ?, error_json = ? WHERE id = ?', [
+          'failed',
+          new Date().toISOString(),
+          JSON.stringify(body),
+          id,
+        ]);
         emit('failed', body);
       }
     })();
@@ -91,7 +114,10 @@ export class JobRunner {
 
   events(id: string, afterN = 0): JobEvent[] {
     return this.#db
-      .all<{ n: number; ts: string; kind: JobEvent['kind']; data_json: string }>('SELECT n, ts, kind, data_json FROM job_events WHERE job_id = ? AND n > ? ORDER BY n', [id, afterN])
+      .all<{ n: number; ts: string; kind: JobEvent['kind']; data_json: string }>(
+        'SELECT n, ts, kind, data_json FROM job_events WHERE job_id = ? AND n > ? ORDER BY n',
+        [id, afterN],
+      )
       .map((r) => ({ n: r.n, ts: r.ts, kind: r.kind, data: JSON.parse(r.data_json) as unknown }));
   }
 

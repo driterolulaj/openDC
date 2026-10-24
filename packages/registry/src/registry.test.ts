@@ -13,7 +13,13 @@ const sha = (s: string): string => createHash('sha256').update(s).digest('hex');
 
 const keys: RegistryKeyDefinition[] = [
   { name: 'demo.message', schema: z.string().max(10), default: 'hi', description: 'demo:k', policySettable: true },
-  { name: 'demo.port', schema: z.number().int().min(1).max(65535), default: 80, description: 'demo:k', policySettable: false },
+  {
+    name: 'demo.port',
+    schema: z.number().int().min(1).max(65535),
+    default: 80,
+    description: 'demo:k',
+    policySettable: false,
+  },
   { name: 'other.flag', schema: z.boolean(), default: false, description: 'demo:k', policySettable: true },
 ];
 
@@ -42,7 +48,10 @@ test('layer precedence and explain', () => {
 });
 
 test('invalid layer values never win and are reported', () => {
-  const r = new Registry(keys, { local: { 'demo.message': 'far too long a message', 'demo.port': 443, 'gone.key': 1 }, 'domain-policy': { 'demo.port': 1 } });
+  const r = new Registry(keys, {
+    local: { 'demo.message': 'far too long a message', 'demo.port': 443, 'gone.key': 1 },
+    'domain-policy': { 'demo.port': 1 },
+  });
   assert.equal(r.get('demo.message'), 'hi');
   assert.equal(r.get('demo.port'), 443);
   const bad = r.invalidValues().map((b) => `${b.layer}:${b.key}`);
@@ -77,10 +86,19 @@ test('headers for every comment style', () => {
   assert.equal(withHeader('semicolon', 'dhcp', 'dhcp.kea', 'x'), `; ${h}\nx`);
   assert.equal(withHeader('slash', 'dhcp', 'dhcp.kea', 'x'), `// ${h}\nx`);
   assert.equal(withHeader('xml', 'dhcp', 'dhcp.kea', '<a/>'), `<!-- ${h} -->\n<a/>`);
-  assert.equal(withHeader('xml', 'dhcp', 'dhcp.kea', '<?xml version="1.0"?>\n<a/>'), `<?xml version="1.0"?>\n<!-- ${h} -->\n<a/>`);
-  assert.equal(withHeader('xml', 'dhcp', 'dhcp.kea', '<?xml version="1.0"?><a/>'), `<?xml version="1.0"?>\n<!-- ${h} -->\n<a/>`);
+  assert.equal(
+    withHeader('xml', 'dhcp', 'dhcp.kea', '<?xml version="1.0"?>\n<a/>'),
+    `<?xml version="1.0"?>\n<!-- ${h} -->\n<a/>`,
+  );
+  assert.equal(
+    withHeader('xml', 'dhcp', 'dhcp.kea', '<?xml version="1.0"?><a/>'),
+    `<?xml version="1.0"?>\n<!-- ${h} -->\n<a/>`,
+  );
   assert.equal(withHeader('none', 'dhcp', 'dhcp.kea', 'raw'), 'raw');
-  const json = JSON.parse(withHeader('json-field', 'dhcp', 'dhcp.kea', '{"_generated":"old","Dhcp4":{}}')) as Record<string, unknown>;
+  const json = JSON.parse(withHeader('json-field', 'dhcp', 'dhcp.kea', '{"_generated":"old","Dhcp4":{}}')) as Record<
+    string,
+    unknown
+  >;
   assert.deepEqual(Object.keys(json), ['_generated', 'Dhcp4']);
   assert.equal(json._generated, h);
   assert.deepEqual(JSON.parse(withHeader('json-field', 'm', 'f', '')), { _generated: headerText('m', 'f') });
@@ -99,9 +117,11 @@ function fakeAgent(opts: { failService?: string; failWrite?: string; lockHeldBy?
     },
     write: async (fileId, content, expected) => {
       calls.push(`write ${fileId}`);
-      if (opts.failWrite === fileId) throw new PlatformError('agent.op-failed', { op: 'file.writeManaged', reason: 'disk full', requestId: 'x' });
+      if (opts.failWrite === fileId)
+        throw new PlatformError('agent.op-failed', { op: 'file.writeManaged', reason: 'disk full', requestId: 'x' });
       const cur = files.get(fileId);
-      if ((cur === undefined ? null : sha(cur)) !== expected) throw new PlatformError('agent.stale-file', { fileId, expected: String(expected), actual: 'x' });
+      if ((cur === undefined ? null : sha(cur)) !== expected)
+        throw new PlatformError('agent.stale-file', { fileId, expected: String(expected), actual: 'x' });
       files.set(fileId, content);
       return { changed: cur !== content, sha256: sha(content) };
     },
@@ -127,10 +147,18 @@ function fakeAgent(opts: { failService?: string; failWrite?: string; lockHeldBy?
   return { agent, files, calls };
 }
 
-const tpl = (fileId: string, reads: string[], onChange: TemplateEntry['onChange'] = [], roles: TemplateEntry['roles'] = ['any']): TemplateEntry => ({
+const tpl = (
+  fileId: string,
+  reads: string[],
+  onChange: TemplateEntry['onChange'] = [],
+  roles: TemplateEntry['roles'] = ['any'],
+): TemplateEntry => ({
   module: 'demo',
   fileId,
-  render: (v) => reads.map((k) => `${k.replace('.*', '')} = ${JSON.stringify(v.get(k.endsWith('.*') ? 'demo.message' : k))}`).join('\n') + '\n',
+  render: (v) =>
+    reads
+      .map((k) => `${k.replace('.*', '')} = ${JSON.stringify(v.get(k.endsWith('.*') ? 'demo.message' : k))}`)
+      .join('\n') + '\n',
   reads,
   onChange,
   roles,
@@ -138,7 +166,13 @@ const tpl = (fileId: string, reads: string[], onChange: TemplateEntry['onChange'
 });
 
 function service(agent: RegistryAgent, templates: TemplateEntry[], role: 'dc' | 'member' = 'dc'): RegistryService {
-  return new RegistryService({ agent, keys: new Registry(keys), templates, node: { hostname: 'dc1', fqdn: 'dc1.x', role }, holder: 'test' });
+  return new RegistryService({
+    agent,
+    keys: new Registry(keys),
+    templates,
+    node: { hostname: 'dc1', fqdn: 'dc1.x', role },
+    holder: 'test',
+  });
 }
 
 test('set: validates, writes the layer, renders only affected templates, runs handlers once', async () => {
@@ -152,13 +186,19 @@ test('set: validates, writes the layer, renders only affected templates, runs ha
   assert.deepEqual(r.rendered, ['demo.a', 'demo.b']);
   assert.deepEqual(r.changed, ['demo.a', 'demo.b']);
   assert.deepEqual(r.handlers, ['reload kea']);
-  const layer = JSON.parse(f.files.get(LAYER_FILES.local) ?? '{}') as { _generated: string; values: Record<string, unknown> };
+  const layer = JSON.parse(f.files.get(LAYER_FILES.local) ?? '{}') as {
+    _generated: string;
+    values: Record<string, unknown>;
+  };
   assert.ok(layer._generated.startsWith('Generated by OpenDC'));
   assert.deepEqual(layer.values, { 'demo.message': 'hello' });
   assert.ok(f.files.get('demo.a')?.startsWith('# Generated by OpenDC (module demo, template demo.a)'));
   assert.ok(f.files.get('demo.a')?.includes('demo = "hello"'));
   assert.ok(f.files.has(RENDERED_FILE));
-  assert.deepEqual(f.calls.filter((c) => c.startsWith('lock') || c === 'unlock'), ['lock test', 'unlock']);
+  assert.deepEqual(
+    f.calls.filter((c) => c.startsWith('lock') || c === 'unlock'),
+    ['lock test', 'unlock'],
+  );
 
   // setting the same value again changes nothing on disk
   f.calls.length = 0;
@@ -183,35 +223,68 @@ test('set rejects invalid values and unknown keys without writing', async () => 
   await assert.rejects(svc.set('demo.port', 'eighty'), isCode('registry.invalid-value'));
   await assert.rejects(svc.set('nope.key', 1), isCode('registry.unknown-key'));
   await assert.rejects(svc.set('nope.key', undefined), isCode('registry.unknown-key'));
-  assert.deepEqual(f.calls.filter((c) => c.startsWith('write')), []);
+  assert.deepEqual(
+    f.calls.filter((c) => c.startsWith('write')),
+    [],
+  );
   assert.ok(f.calls.includes('unlock'));
 });
 
 test('commit renders by role; a busy lock fails fast', async () => {
   const f = fakeAgent();
-  const svc = service(f.agent, [tpl('demo.dc', ['demo.*'], [], ['writable-dc']), tpl('demo.member', ['demo.*'], [], ['member'])]);
+  const svc = service(f.agent, [
+    tpl('demo.dc', ['demo.*'], [], ['writable-dc']),
+    tpl('demo.member', ['demo.*'], [], ['member']),
+  ]);
   assert.deepEqual((await svc.commit()).rendered, ['demo.dc']);
-  assert.deepEqual((await service(f.agent, [tpl('demo.member', ['demo.*'], [], ['member'])], 'member').commit()).rendered, ['demo.member']);
-  await assert.rejects(service(fakeAgent({ lockHeldBy: 'watcher' }).agent, []).commit(), (e: unknown) => isCode('registry.locked')(e) && (e as PlatformError).message.includes('watcher'));
+  assert.deepEqual(
+    (await service(f.agent, [tpl('demo.member', ['demo.*'], [], ['member'])], 'member').commit()).rendered,
+    ['demo.member'],
+  );
+  await assert.rejects(
+    service(fakeAgent({ lockHeldBy: 'watcher' }).agent, []).commit(),
+    (e: unknown) => isCode('registry.locked')(e) && (e as PlatformError).message.includes('watcher'),
+  );
 });
 
 test('a failing handler rolls back every written file', async () => {
   const f = fakeAgent({ failService: 'kea' });
-  const svc = service(f.agent, [tpl('demo.a', ['demo.*'], [{ kind: 'service', action: 'reload', unit: 'kea' }]), tpl('demo.b', ['demo.*'])]);
-  await assert.rejects(svc.commit(), (e: unknown) => isCode('registry.commit-failed')(e) && (e as PlatformError).message.includes('reload kea'));
-  assert.deepEqual(f.calls.filter((c) => c.startsWith('restore')), ['restore demo.b', 'restore demo.a']);
+  const svc = service(f.agent, [
+    tpl('demo.a', ['demo.*'], [{ kind: 'service', action: 'reload', unit: 'kea' }]),
+    tpl('demo.b', ['demo.*']),
+  ]);
+  await assert.rejects(
+    svc.commit(),
+    (e: unknown) => isCode('registry.commit-failed')(e) && (e as PlatformError).message.includes('reload kea'),
+  );
+  assert.deepEqual(
+    f.calls.filter((c) => c.startsWith('restore')),
+    ['restore demo.b', 'restore demo.a'],
+  );
   assert.ok(f.calls.includes('unlock'));
 });
 
 test('a failing render or write writes nothing / rolls back', async () => {
   const f = fakeAgent();
   const broken: TemplateEntry = { ...tpl('demo.x', ['demo.*']), render: (v) => String(v.get('other.flag')) };
-  await assert.rejects(service(f.agent, [tpl('demo.a', ['demo.*']), broken]).commit(), (e: unknown) => isCode('registry.commit-failed')(e) && (e as PlatformError).message.includes('render demo.x'));
-  assert.deepEqual(f.calls.filter((c) => c.startsWith('write')), []);
+  await assert.rejects(
+    service(f.agent, [tpl('demo.a', ['demo.*']), broken]).commit(),
+    (e: unknown) => isCode('registry.commit-failed')(e) && (e as PlatformError).message.includes('render demo.x'),
+  );
+  assert.deepEqual(
+    f.calls.filter((c) => c.startsWith('write')),
+    [],
+  );
 
   const w = fakeAgent({ failWrite: 'demo.b' });
-  await assert.rejects(service(w.agent, [tpl('demo.a', ['demo.*']), tpl('demo.b', ['demo.*'])]).commit(), isCode('registry.commit-failed'));
-  assert.deepEqual(w.calls.filter((c) => c.startsWith('restore')), ['restore demo.a']);
+  await assert.rejects(
+    service(w.agent, [tpl('demo.a', ['demo.*']), tpl('demo.b', ['demo.*'])]).commit(),
+    isCode('registry.commit-failed'),
+  );
+  assert.deepEqual(
+    w.calls.filter((c) => c.startsWith('restore')),
+    ['restore demo.a'],
+  );
 });
 
 test('drift detection flags manual edits and missing files', async () => {

@@ -1,7 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { errorCodes, errorResources, httpStatus, interpolate, isErrorCode, PlatformError, renderError } from './errors.ts';
+import {
+  errorCodes,
+  errorResources,
+  httpStatus,
+  interpolate,
+  isErrorCode,
+  PlatformError,
+  renderError,
+} from './errors.ts';
 
 test('every error has en and de texts with the same placeholders', () => {
   const res = errorResources();
@@ -25,7 +33,10 @@ test('PlatformError renders message and fix, round-trips through its wire body',
   assert.equal(back.code, 'ldap.unreachable');
   assert.equal(back.message, e.message);
   assert.equal(PlatformError.fromBody({ ...e.toBody(), code: 'nope' as never }).code, 'internal');
-  assert.equal(renderError('auth.forbidden', { permission: 'core.x' }, 'de').message, 'Für diese Aktion ist die Berechtigung core.x erforderlich.');
+  assert.equal(
+    renderError('auth.forbidden', { permission: 'core.x' }, 'de').message,
+    'Für diese Aktion ist die Berechtigung core.x erforderlich.',
+  );
 });
 
 test('interpolate keeps unknown placeholders and isErrorCode guards', () => {

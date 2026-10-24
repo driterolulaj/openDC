@@ -11,7 +11,9 @@
       "default": "./dist/*.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "dependencies": {
     "@opendc/shared": "0.1.0",
     "zod": "4.6.7"

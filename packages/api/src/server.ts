@@ -75,9 +75,17 @@ export async function buildApi(deps: ApiDeps): Promise<Api> {
   app.setValidatorCompiler(({ schema }) => (data: unknown) => {
     const r = (schema as z.ZodType).safeParse(data);
     if (r.success) return { value: r.data };
-    return { error: new PlatformError('validation.invalid', { issues: r.error.issues.map((i) => `${i.path.join('.') || '(body)'}: ${i.message}`).join('; ') }) };
+    return {
+      error: new PlatformError('validation.invalid', {
+        issues: r.error.issues.map((i) => `${i.path.join('.') || '(body)'}: ${i.message}`).join('; '),
+      }),
+    };
   });
-  app.setSerializerCompiler(({ schema }) => (data: unknown) => JSON.stringify(deps.validateResponses ? (schema as z.ZodType).parse(data) : data));
+  app.setSerializerCompiler(
+    ({ schema }) =>
+      (data: unknown) =>
+        JSON.stringify(deps.validateResponses ? (schema as z.ZodType).parse(data) : data),
+  );
 
   const idleMs = deps.idleMinutes * 60_000;
   const absoluteMs = deps.absoluteHours * 3_600_000;
@@ -88,7 +96,11 @@ export async function buildApi(deps: ApiDeps): Promise<Api> {
   const engineFor = (domainSid: string): RbacEngine => {
     let e = engines.get(domainSid);
     if (!e) {
-      e = new RbacEngine(permissions, [...BUILTIN_ROLES, ...(deps.roles ?? [])], [...builtinAssignments(domainSid), ...(deps.assignments ?? [])]);
+      e = new RbacEngine(
+        permissions,
+        [...BUILTIN_ROLES, ...(deps.roles ?? [])],
+        [...builtinAssignments(domainSid), ...(deps.assignments ?? [])],
+      );
       engines.set(domainSid, e);
     }
     return e;
@@ -102,16 +114,22 @@ export async function buildApi(deps: ApiDeps): Promise<Api> {
   });
   await app.register(rateLimit, {
     global: false,
-    errorResponseBuilder: (_req, ctx) => new PlatformError('auth.rate-limited', { retryAfterSec: Math.ceil(ctx.ttl / 1000) }),
+    errorResponseBuilder: (_req, ctx) =>
+      new PlatformError('auth.rate-limited', { retryAfterSec: Math.ceil(ctx.ttl / 1000) }),
   });
 
   app.setErrorHandler((err, request, reply) => {
     let e: PlatformError;
     if (isPlatformError(err)) e = err;
-    else if ((err as { statusCode?: number }).statusCode === 429) e = new PlatformError('auth.rate-limited', { retryAfterSec: 60 });
-    else if ((err as { code?: string }).code === 'FST_ERR_CTP_INVALID_MEDIA_TYPE' || (err as { statusCode?: number }).statusCode === 415) {
+    else if ((err as { statusCode?: number }).statusCode === 429)
+      e = new PlatformError('auth.rate-limited', { retryAfterSec: 60 });
+    else if (
+      (err as { code?: string }).code === 'FST_ERR_CTP_INVALID_MEDIA_TYPE' ||
+      (err as { statusCode?: number }).statusCode === 415
+    ) {
       e = new PlatformError('validation.invalid', { issues: 'content-type must be application/json' });
-    } else if ((err as { statusCode?: number }).statusCode === 400) e = new PlatformError('validation.invalid', { issues: (err as Error).message });
+    } else if ((err as { statusCode?: number }).statusCode === 400)
+      e = new PlatformError('validation.invalid', { issues: (err as Error).message });
     else {
       request.log.error({ err }, 'unhandled error');
       e = new PlatformError('internal', { requestId: request.id });
@@ -120,11 +138,23 @@ export async function buildApi(deps: ApiDeps): Promise<Api> {
     void reply.code(e.httpStatus).type('application/json').send(JSON.stringify(e.toBody()));
   });
   app.setNotFoundHandler((request, reply) => {
-    void reply.code(404).type('application/json').send(JSON.stringify(new PlatformError('request.not-found', { what: request.url.split('?')[0] ?? '' }).toBody()));
+    void reply
+      .code(404)
+      .type('application/json')
+      .send(JSON.stringify(new PlatformError('request.not-found', { what: request.url.split('?')[0] ?? '' }).toBody()));
   });
 
   const routes = new RouteTable();
-  coreRoutes(routes, { sessions, audit, jobs, directory: deps.directory, agent: deps.agent, engineFor, idleMs, absoluteMs });
+  coreRoutes(routes, {
+    sessions,
+    audit,
+    jobs,
+    directory: deps.directory,
+    agent: deps.agent,
+    engineFor,
+    idleMs,
+    absoluteMs,
+  });
 
   if (deps.webDir) {
     const site = new StaticSite(deps.webDir);
@@ -166,7 +196,7 @@ export async function buildApi(deps: ApiDeps): Promise<Api> {
     checkOrigin: (req) => {
       const origin = req.headers.origin;
       const host = req.headers.host;
-      let ok = false;
+      let ok: boolean;
       try {
         ok = !!origin && !!host && new URL(origin).host === host;
       } catch {
@@ -179,9 +209,18 @@ export async function buildApi(deps: ApiDeps): Promise<Api> {
       const token = req.headers['x-csrf-token'];
       if (!sessions.checkCsrf(id, typeof token === 'string' ? token : undefined)) throw new PlatformError('auth.csrf');
     },
-    can: (s, permission, target) => engineFor(s.domainSid).can({ sid: s.sid, groupSids: s.groupSids }, permission, target),
+    can: (s, permission, target) =>
+      engineFor(s.domainSid).can({ sid: s.sid, groupSids: s.groupSids }, permission, target),
     denied: (req, s, permission, reason) => {
-      audit.append({ actor: s.username, actorSid: s.sid, sourceIp: req.ip, action: `access.${permission}`, result: 'denied', after: { reason, url: req.url }, requestId: req.id });
+      audit.append({
+        actor: s.username,
+        actorSid: s.sid,
+        sourceIp: req.ip,
+        action: `access.${permission}`,
+        result: 'denied',
+        after: { reason, url: req.url },
+        requestId: req.id,
+      });
     },
   });
 

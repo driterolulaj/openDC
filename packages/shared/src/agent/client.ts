@@ -2,7 +2,7 @@
 /** Client for the agent's Unix sockets. One connection per call keeps failure handling simple. */
 import { connect } from 'node:net';
 import { randomUUID } from 'node:crypto';
-import { PlatformError, isErrorCode, type ErrorParams } from '../errors.ts';
+import { PlatformError, isErrorCode } from '../errors.ts';
 import { FrameReader, progressSchema, responseSchema, type Actor, type Progress } from './protocol.ts';
 import { ops, type ImplementedOp, type OpArgs, type OpResult } from './ops.ts';
 import type { AgentSocket } from '../manifest/schema.ts';
@@ -92,7 +92,11 @@ export class AgentClient {
           } else {
             const data = r.error.data;
             done(() => {
-              reject(isErrorCode(data.code) ? new PlatformError(data.code, data.params as ErrorParams) : new PlatformError('internal', { requestId: id }));
+              reject(
+                isErrorCode(data.code)
+                  ? new PlatformError(data.code, data.params)
+                  : new PlatformError('internal', { requestId: id }),
+              );
             });
           }
         },
@@ -108,12 +112,23 @@ export class AgentClient {
       });
       sock.on('error', (err: NodeJS.ErrnoException) => {
         done(() => {
-          reject(new PlatformError('agent.unreachable', { socket: this.socketPath, reason: err.code ?? err.message }, { cause: err }));
+          reject(
+            new PlatformError(
+              'agent.unreachable',
+              { socket: this.socketPath, reason: err.code ?? err.message },
+              { cause: err },
+            ),
+          );
         });
       });
       sock.on('close', () => {
         done(() => {
-          reject(new PlatformError('agent.unreachable', { socket: this.socketPath, reason: 'connection closed before a response' }));
+          reject(
+            new PlatformError('agent.unreachable', {
+              socket: this.socketPath,
+              reason: 'connection closed before a response',
+            }),
+          );
         });
       });
       sock.write(frame);

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { InvalidCredentialsError, type ClientOptions, type Entry } from 'ldapts';
+import { InvalidCredentialsError, type ClientOptions } from 'ldapts';
 import { PlatformError } from '@opendc/shared';
 import { guidToBytes, sidToBytes } from '@opendc/shared/ldap';
 import { DirectoryAuth, normalizeUsername, type LdapClientLike } from './directory.ts';
@@ -21,7 +21,10 @@ function factory(scripts: Record<string, Script>, log: string[]) {
     const s = scripts[host] ?? {};
     const net = (): void => {
       if (s.failConnect) throw Object.assign(new Error(`connect ${s.failConnect}`), { code: s.failConnect });
-      if (s.tlsError) throw Object.assign(new Error('unable to verify the first certificate'), { code: 'UNABLE_TO_VERIFY_LEAF_SIGNATURE' });
+      if (s.tlsError)
+        throw Object.assign(new Error('unable to verify the first certificate'), {
+          code: 'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+        });
     };
     return {
       startTLS: async (tls) => {
@@ -35,8 +38,13 @@ function factory(scripts: Record<string, Script>, log: string[]) {
       },
       search: async (base, opts) => {
         net();
-        if (base === '') return { searchEntries: [{ dn: '', defaultNamingContext: BASE } as Entry] };
-        if (opts?.scope === 'base') return { searchEntries: [{ dn: base, tokenGroups: [Buffer.from(sidToBytes(`${DOM}-512`)), Buffer.from(sidToBytes(`${DOM}-513`))] } as unknown as Entry] };
+        if (base === '') return { searchEntries: [{ dn: '', defaultNamingContext: BASE }] };
+        if (opts?.scope === 'base')
+          return {
+            searchEntries: [
+              { dn: base, tokenGroups: [Buffer.from(sidToBytes(`${DOM}-512`)), Buffer.from(sidToBytes(`${DOM}-513`))] },
+            ],
+          };
         log.push(`search ${String(opts?.filter)}`);
         return {
           searchEntries: [
@@ -47,7 +55,7 @@ function factory(scripts: Record<string, Script>, log: string[]) {
               sAMAccountName: 'Administrator',
               displayName: 'Administrator',
               adminCount: '1',
-            } as unknown as Entry,
+            },
           ],
         };
       },
@@ -75,7 +83,10 @@ test('successful login: UPN bind, user and transitive groups read with the user 
 
 test('ldap:// URLs use StartTLS with the configured server name', async () => {
   const log: string[] = [];
-  const d = new DirectoryAuth({ urls: ['ldap://10.97.10.51'], caPem: null, tlsServerName: 'sdc1.small.opendc.test', baseDn: BASE }, factory({}, log));
+  const d = new DirectoryAuth(
+    { urls: ['ldap://10.97.10.51'], caPem: null, tlsServerName: 'sdc1.small.opendc.test', baseDn: BASE },
+    factory({}, log),
+  );
   await d.authenticate('SMALL\\Administrator', 'pw');
   assert.equal(log[0], 'starttls 10.97.10.51 servername=sdc1.small.opendc.test');
   assert.equal(log[1], 'bind 10.97.10.51 SMALL\\Administrator');
@@ -83,7 +94,10 @@ test('ldap:// URLs use StartTLS with the configured server name', async () => {
 
 test('AD bind sub-codes map to precise errors and never fail over', async () => {
   const cases: [string, string][] = [
-    ['80090308: LdapErr: DSID-0C0903A9, comment: AcceptSecurityContext error, data 52e, v1db1', 'auth.invalid-credentials'],
+    [
+      '80090308: LdapErr: DSID-0C0903A9, comment: AcceptSecurityContext error, data 52e, v1db1',
+      'auth.invalid-credentials',
+    ],
     ['80090308: LdapErr: DSID-0C0903A9, comment: AcceptSecurityContext error, data 775, v1db1', 'auth.account-locked'],
     ['... data 533, v1db1', 'auth.account-disabled'],
     ['... data 773, v1db1', 'auth.password-expired'],
@@ -91,7 +105,10 @@ test('AD bind sub-codes map to precise errors and never fail over', async () => 
   ];
   for (const [msg, c] of cases) {
     const log: string[] = [];
-    const d = new DirectoryAuth({ urls: ['ldaps://dc1', 'ldaps://dc2'], caPem: null, baseDn: BASE }, factory({ dc1: { bindError: msg } }, log));
+    const d = new DirectoryAuth(
+      { urls: ['ldaps://dc1', 'ldaps://dc2'], caPem: null, baseDn: BASE },
+      factory({ dc1: { bindError: msg } }, log),
+    );
     await assert.rejects(d.authenticate('x', 'pw'), code(c), msg);
     assert.ok(!log.some((l) => l.includes('dc2')), 'a wrong password must not be retried on another DC');
   }
@@ -99,14 +116,29 @@ test('AD bind sub-codes map to precise errors and never fail over', async () => 
 
 test('network errors fail over to the next DC; TLS errors are reported as untrusted', async () => {
   const log: string[] = [];
-  const d = new DirectoryAuth({ urls: ['ldaps://dc1', 'ldaps://dc2'], caPem: null, baseDn: BASE }, factory({ dc1: { failConnect: 'ECONNREFUSED' } }, log));
+  const d = new DirectoryAuth(
+    { urls: ['ldaps://dc1', 'ldaps://dc2'], caPem: null, baseDn: BASE },
+    factory({ dc1: { failConnect: 'ECONNREFUSED' } }, log),
+  );
   assert.equal((await d.authenticate('Administrator', 'pw')).dc, 'dc2');
-  const allDown = new DirectoryAuth({ urls: ['ldaps://dc1'], caPem: null, baseDn: BASE }, factory({ dc1: { failConnect: 'ETIMEDOUT' } }, []));
-  await assert.rejects(allDown.authenticate('a', 'b'), (e: unknown) => code('ldap.unreachable')(e) && (e as PlatformError).message.includes('ETIMEDOUT'));
-  const tls = new DirectoryAuth({ urls: ['ldaps://dc1'], caPem: 'x', baseDn: BASE }, factory({ dc1: { tlsError: true } }, []));
+  const allDown = new DirectoryAuth(
+    { urls: ['ldaps://dc1'], caPem: null, baseDn: BASE },
+    factory({ dc1: { failConnect: 'ETIMEDOUT' } }, []),
+  );
+  await assert.rejects(
+    allDown.authenticate('a', 'b'),
+    (e: unknown) => code('ldap.unreachable')(e) && (e as PlatformError).message.includes('ETIMEDOUT'),
+  );
+  const tls = new DirectoryAuth(
+    { urls: ['ldaps://dc1'], caPem: 'x', baseDn: BASE },
+    factory({ dc1: { tlsError: true } }, []),
+  );
   await assert.rejects(tls.authenticate('a', 'b'), code('ldap.tls-untrusted'));
   // without a configured base DN the rootDSE read is the first network call; it must fail over too
-  const viaRootDse = new DirectoryAuth({ urls: ['ldaps://dc1', 'ldaps://dc2'], caPem: null }, factory({ dc1: { failConnect: 'ECONNREFUSED' } }, []));
+  const viaRootDse = new DirectoryAuth(
+    { urls: ['ldaps://dc1', 'ldaps://dc2'], caPem: null },
+    factory({ dc1: { failConnect: 'ECONNREFUSED' } }, []),
+  );
   assert.equal((await viaRootDse.authenticate('Administrator', 'pw')).dc, 'dc2');
 });
 

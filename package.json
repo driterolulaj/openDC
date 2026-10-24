@@ -22,15 +22,16 @@
     "gen": "node --conditions=development packages/shared/src/tools/gen.ts",
     "gen:check": "node --conditions=development packages/shared/src/tools/gen.ts --check",
     "build": "tsc -b && npm run build -w @opendc/web",
-    "typecheck": "tsc -b --noEmit false && npm run typecheck -w @opendc/web",
+    "typecheck": "tsc -b && npm run typecheck -w @opendc/web",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
-    "test": "node --conditions=development --test \"packages/*/src/**/*.test.ts\" \"modules/*/**/*.test.ts\" && npm run test -w @opendc/web",
-    "test:coverage": "node --conditions=development --test --experimental-test-coverage --test-coverage-lines=95 --test-coverage-include=\"packages/shared/src/ldap/**\" --test-coverage-include=\"packages/registry/src/**\" --test-coverage-include=\"packages/agent/src/allowlist*.ts\" --test-coverage-include=\"packages/agent/src/protocol/**\" --test-coverage-include=\"packages/api/src/rbac/**\" --test-coverage-exclude=\"**/*.test.ts\" --test-coverage-exclude=\"**/generated/**\" \"packages/shared/src/ldap/**/*.test.ts\" \"packages/registry/src/**/*.test.ts\" \"packages/agent/src/**/*.test.ts\" \"packages/api/src/rbac/**/*.test.ts\"",
+    "test": "node --conditions=development --disable-warning=ExperimentalWarning --test \"packages/{shared,os,registry,agent,api,watcher,cli}/src/**/*.test.ts\" \"modules/*/**/*.test.ts\" && npm run test -w @opendc/web",
+    "test:coverage": "node --conditions=development --disable-warning=ExperimentalWarning --test --experimental-test-coverage --test-coverage-lines=95 --test-coverage-include=\"packages/shared/src/ldap/**\" --test-coverage-include=\"packages/registry/src/**\" --test-coverage-include=\"packages/agent/src/allowlist*.ts\" --test-coverage-include=\"packages/agent/src/protocol/**\" --test-coverage-include=\"packages/api/src/rbac/**\" --test-coverage-exclude=\"**/*.test.ts\" --test-coverage-exclude=\"**/generated/**\" \"packages/shared/src/ldap/**/*.test.ts\" \"packages/registry/src/**/*.test.ts\" \"packages/agent/src/**/*.test.ts\" \"packages/api/src/rbac/**/*.test.ts\"",
     "openapi": "node --conditions=development packages/api/src/tools/openapi.ts",
     "openapi:check": "node --conditions=development packages/api/src/tools/openapi.ts --check",
     "lab": "node --conditions=development packages/cli/src/tools/lab.ts",
-    "clean": "tsc -b --clean"
+    "clean": "tsc -b --clean",
+    "check": "npm run lint && npm run typecheck && npm run gen:check && npm run openapi:check && npm test && npm run test:coverage"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

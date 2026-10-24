@@ -96,7 +96,8 @@ export class Registry {
         }
         const r = def.schema.safeParse(value);
         if (!r.success) out.push({ key, layer, issues: issuesOf(r.error) });
-        else if (layer === 'domain-policy' && !def.policySettable) out.push({ key, layer, issues: 'not settable by a domain policy' });
+        else if (layer === 'domain-policy' && !def.policySettable)
+          out.push({ key, layer, issues: 'not settable by a domain policy' });
       }
     }
     return out;

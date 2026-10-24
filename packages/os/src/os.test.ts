@@ -13,12 +13,15 @@ import { osI18n } from './i18n.ts';
 import type { Exec } from './exec.ts';
 
 const FIXTURES = {
-  debian12: 'PRETTY_NAME="Debian GNU/Linux 12 (bookworm)"\nNAME="Debian GNU/Linux"\nVERSION_ID="12"\nVERSION_CODENAME=bookworm\nID=debian\n',
+  debian12:
+    'PRETTY_NAME="Debian GNU/Linux 12 (bookworm)"\nNAME="Debian GNU/Linux"\nVERSION_ID="12"\nVERSION_CODENAME=bookworm\nID=debian\n',
   debian13: 'PRETTY_NAME="Debian GNU/Linux 13 (trixie)"\nVERSION_ID="13"\nVERSION_CODENAME=trixie\nID=debian\n',
-  ubuntu2404: 'PRETTY_NAME="Ubuntu 24.04.5 LTS"\nVERSION_ID="24.04"\nID=ubuntu\nID_LIKE=debian\nVERSION_CODENAME=noble\n',
+  ubuntu2404:
+    'PRETTY_NAME="Ubuntu 24.04.5 LTS"\nVERSION_ID="24.04"\nID=ubuntu\nID_LIKE=debian\nVERSION_CODENAME=noble\n',
   ubuntu2604: 'PRETTY_NAME="Ubuntu 26.04 LTS"\nVERSION_ID="26.04"\nID=ubuntu\nID_LIKE=debian\n',
   ubuntu2204: 'PRETTY_NAME="Ubuntu 22.04.4 LTS"\nVERSION_ID="22.04"\nID=ubuntu\nID_LIKE=debian\n',
-  rocky9: 'NAME="Rocky Linux"\nVERSION_ID="9.4"\nID="rocky"\nID_LIKE="rhel centos fedora"\nPRETTY_NAME="Rocky Linux 9.4 (Blue Onyx)"\n',
+  rocky9:
+    'NAME="Rocky Linux"\nVERSION_ID="9.4"\nID="rocky"\nID_LIKE="rhel centos fedora"\nPRETTY_NAME="Rocky Linux 9.4 (Blue Onyx)"\n',
   alpine: 'ID=alpine\nVERSION_ID=3.20.0\nPRETTY_NAME="Alpine Linux v3.20"\n',
   weird: '# comment\n\nNAME=\'Single "Quoted"\'\nID=Custom\nPRETTY_NAME="Esc \\"x\\""\nBROKEN\n=nokey\n',
 };
@@ -46,13 +49,15 @@ test('os-release parsing and adapter selection', () => {
 });
 
 /** Fake exec: answers `samba --version` with the given version line. */
-const sambaExec = (version: string | null): Exec => async (bin, argv) => {
-  if (bin.endsWith('/samba') && argv[0] === '--version') {
-    if (version === null) throw new PlatformError('os.command-failed', { binary: bin, exitCode: 1, stderr: '' });
-    return { stdout: `Version ${version}\n`, stderr: '', exitCode: 0 };
-  }
-  throw new Error(`unexpected exec ${bin} ${argv.join(' ')}`);
-};
+const sambaExec =
+  (version: string | null): Exec =>
+  async (bin, argv) => {
+    if (bin.endsWith('/samba') && argv[0] === '--version') {
+      if (version === null) throw new PlatformError('os.command-failed', { binary: bin, exitCode: 1, stderr: '' });
+      return { stdout: `Version ${version}\n`, stderr: '', exitCode: 0 };
+    }
+    throw new Error(`unexpected exec ${bin} ${argv.join(' ')}`);
+  };
 
 /** Facts whose binary lookup is stubbed so tests don't depend on the host. */
 function facts(fixture: string, samba: string | null, hasSambaBinary = true): DebianFacts {
@@ -67,7 +72,10 @@ function facts(fixture: string, samba: string | null, hasSambaBinary = true): De
 test('binary lookup reports the package to install', async () => {
   const f = facts(FIXTURES.debian13, null, false);
   assert.equal(await f.binaries.resolve('systemctl'), '/usr/sbin/systemctl');
-  await assert.rejects(f.binaries.resolve('samba'), (e: unknown) => e instanceof PlatformError && e.code === 'os.binary-missing' && e.fix.includes('samba-ad-dc'));
+  await assert.rejects(
+    f.binaries.resolve('samba'),
+    (e: unknown) => e instanceof PlatformError && e.code === 'os.binary-missing' && e.fix.includes('samba-ad-dc'),
+  );
   assert.equal(await f.samba.mode(), 'absent');
   assert.equal(await facts(FIXTURES.debian13, '4.22.11').samba.mode(), 'native');
 });
@@ -85,7 +93,11 @@ test('support matrix: Tier-1 releases and the DC Samba minimum (Q10)', async () 
   const old = await facts(FIXTURES.ubuntu2604, '4.18.0').support('rodc');
   assert.equal(old.reasons[0]?.fixKey, 'os:support.upgrade-samba');
   // members don't need Samba at all
-  assert.deepEqual(await facts(FIXTURES.debian12, '4.17.12').support('member'), { tier: 1, sambaMode: 'n/a', reasons: [] });
+  assert.deepEqual(await facts(FIXTURES.debian12, '4.17.12').support('member'), {
+    tier: 1,
+    sambaMode: 'n/a',
+    reasons: [],
+  });
   // Samba not installed yet: allowed, with an informational reason
   const notYet = await facts(FIXTURES.debian13, null, false).support('primary-dc');
   assert.equal(notYet.tier, 1);
@@ -103,7 +115,10 @@ test('every support reason has en and de texts', () => {
 test('paths, units and packages', () => {
   const f = facts(FIXTURES.debian13, '4.22.11');
   assert.ok(f.paths.managedFile('opendc.demo').replaceAll('\\', '/').endsWith('/etc/opendc/generated/demo.conf'));
-  assert.throws(() => f.paths.managedFile('nope'), (e: unknown) => e instanceof PlatformError && e.code === 'os.unknown-path-key');
+  assert.throws(
+    () => f.paths.managedFile('nope'),
+    (e: unknown) => e instanceof PlatformError && e.code === 'os.unknown-path-key',
+  );
   for (const root of f.paths.managedRoots()) assert.ok(!root.includes('secrets'), root);
   assert.equal(f.unitName('samba-ad-dc'), 'samba-ad-dc.service');
   assert.equal(f.unitName('opendc-api'), 'opendc-api.service');
@@ -120,17 +135,25 @@ test('parsers: samba --version and systemctl show', () => {
     raw: 'Version 4.22.11-Debian-4.22.11+dfsg-0+deb13u1',
   });
   assert.equal(parseSambaVersion('garbage'), null);
-  assert.deepEqual(parseSystemctlShow('ActiveState=active\nSubState=running\nUnitFileState=enabled\nActiveEnterTimestamp=Sat 2026-10-24 12:00:00 UTC\n'), {
-    active: 'active',
-    sub: 'running',
-    enabled: true,
-    since: 'Sat 2026-10-24 12:00:00 UTC',
-  });
-  assert.deepEqual(parseSystemctlShow('ActiveState=inactive\nSubState=dead\nUnitFileState=disabled\nActiveEnterTimestamp=n/a\n'), {
-    active: 'inactive',
-    sub: 'dead',
-    enabled: false,
-  });
+  assert.deepEqual(
+    parseSystemctlShow(
+      'ActiveState=active\nSubState=running\nUnitFileState=enabled\nActiveEnterTimestamp=Sat 2026-10-24 12:00:00 UTC\n',
+    ),
+    {
+      active: 'active',
+      sub: 'running',
+      enabled: true,
+      since: 'Sat 2026-10-24 12:00:00 UTC',
+    },
+  );
+  assert.deepEqual(
+    parseSystemctlShow('ActiveState=inactive\nSubState=dead\nUnitFileState=disabled\nActiveEnterTimestamp=n/a\n'),
+    {
+      active: 'inactive',
+      sub: 'dead',
+      enabled: false,
+    },
+  );
   assert.deepEqual(parseSystemctlShow(''), { active: 'unknown', sub: 'unknown', enabled: false });
 });
 

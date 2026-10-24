@@ -7,7 +7,10 @@ import { join } from 'node:path';
 import { generate } from './gen.ts';
 
 /** Writes a throwaway repo root with one module "demo" and returns the generator issues for it. */
-async function issuesFor(manifest: Record<string, unknown>, opts: { de?: object; extraFiles?: Record<string, string> } = {}): Promise<string[]> {
+async function issuesFor(
+  manifest: Record<string, unknown>,
+  opts: { de?: object; extraFiles?: Record<string, string> } = {},
+): Promise<string[]> {
   const root = mkdtempSync(join(tmpdir(), 'opendc-gen-'));
   try {
     const dir = join(root, 'modules', 'demo');
@@ -44,8 +47,14 @@ test('a valid manifest has no issues', async () => {
 
 test('schema violations are reported with their path', async () => {
   const issues = await issuesFor({ ...base, roles: ['root'], extra: true });
-  assert.ok(issues.some((i) => i.includes('roles')), issues.join('\n'));
-  assert.ok(issues.some((i) => i.toLowerCase().includes('unrecognized')), issues.join('\n'));
+  assert.ok(
+    issues.some((i) => i.includes('roles')),
+    issues.join('\n'),
+  );
+  assert.ok(
+    issues.some((i) => i.toLowerCase().includes('unrecognized')),
+    issues.join('\n'),
+  );
 });
 
 test('permission, file and op rules', async () => {
@@ -67,7 +76,11 @@ test('permission, file and op rules', async () => {
     'samba.provision is catalogued (phase 2) but not implemented yet',
     'managed file other.file must start with "demo."',
   ];
-  for (const e of expect) assert.ok(issues.some((i) => i.includes(e)), `${e}\n---\n${issues.join('\n')}`);
+  for (const e of expect)
+    assert.ok(
+      issues.some((i) => i.includes(e)),
+      `${e}\n---\n${issues.join('\n')}`,
+    );
 });
 
 test('templates need a managed file, known keys and managed units', async () => {
@@ -101,7 +114,10 @@ test('templates need a managed file, known keys and managed units', async () => 
     'restarts unit nginx',
     'default does not match its schema',
   ]) {
-    assert.ok(issues.some((i) => i.includes(e)), `${e}\n---\n${issues.join('\n')}`);
+    assert.ok(
+      issues.some((i) => i.includes(e)),
+      `${e}\n---\n${issues.join('\n')}`,
+    );
   }
 });
 
@@ -111,13 +127,29 @@ test('missing entries, bad watcher filters and missing translations', async () =
       ...base,
       api: { entry: './api/missing.ts' },
       watchers: [
-        { id: 'w', base: '{platform}', scope: 'sub', filter: '(objectClass=x', attributes: [], roles: ['any'], entry: './api/missing.ts' },
+        {
+          id: 'w',
+          base: '{platform}',
+          scope: 'sub',
+          filter: '(objectClass=x',
+          attributes: [],
+          roles: ['any'],
+          entry: './api/missing.ts',
+        },
       ],
     },
     { de: { module: { title: 'Demo' }, perm: {} } },
   );
-  for (const e of ['entry ./api/missing.ts does not exist', 'watcher w', 'demo:module.description missing in de', 'demo:perm.x missing in de']) {
-    assert.ok(issues.some((i) => i.includes(e)), `${e}\n---\n${issues.join('\n')}`);
+  for (const e of [
+    'entry ./api/missing.ts does not exist',
+    'watcher w',
+    'demo:module.description missing in de',
+    'demo:perm.x missing in de',
+  ]) {
+    assert.ok(
+      issues.some((i) => i.includes(e)),
+      `${e}\n---\n${issues.join('\n')}`,
+    );
   }
 });
 

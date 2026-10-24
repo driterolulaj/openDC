@@ -12,6 +12,8 @@ import { PlatformError } from '@opendc/shared';
 import type { FileActions, WriteResult } from '../types.ts';
 
 const sha256 = (data: string | Buffer): string => createHash('sha256').update(data).digest('hex');
+// O_NOFOLLOW is undefined on Windows, where only the unit tests run.
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 const O_NOFOLLOW = constants.O_NOFOLLOW ?? 0;
 export const PREV_SUFFIX = '.opendc-prev';
 
@@ -31,7 +33,8 @@ export class PosixFileActions implements FileActions {
   async #check(path: string, createParent: boolean): Promise<string> {
     const abs = resolve(path);
     const root = this.#roots.find((r) => inside(abs, r));
-    if (!root || abs === root) throw new PlatformError('os.path-outside-roots', { path, roots: this.#roots.join(', ') });
+    if (!root || abs === root)
+      throw new PlatformError('os.path-outside-roots', { path, roots: this.#roots.join(', ') });
     const parent = dirname(abs);
     if (createParent) await mkdir(parent, { recursive: true, mode: 0o755 });
     let realParent: string;
@@ -71,7 +74,12 @@ export class PosixFileActions implements FileActions {
     }
   }
 
-  async writeManaged(path: string, content: string, owner: { uid: number; gid: number } | null, mode: number): Promise<WriteResult> {
+  async writeManaged(
+    path: string,
+    content: string,
+    owner: { uid: number; gid: number } | null,
+    mode: number,
+  ): Promise<WriteResult> {
     const target = await this.#check(path, true);
     const next = sha256(content);
     const prev = await this.readManaged(target);
