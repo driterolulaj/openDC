@@ -3,8 +3,7 @@
 **B** = blocks Phase 1. **L** = needed later (phase noted). Each question has a recommendation.
 
 **Status 2026-10-24:** all blocking questions are answered (marked inline). Still open: Q2 (IANA PEN, before any
-schema work), Q7 (front proxy and ACME, before Phase 3), Q9, Q13–Q16, Q19, Q20 (ADR-0004 amendment, before
-Phase 3).
+schema work), Q7 (front proxy and ACME, before Phase 3), Q9, Q14–Q16.
 
 ## A. Naming, legal, identifiers
 
@@ -109,7 +108,7 @@ cluster (ADR-0015 amended); repo moved out of OneDrive to a local, non-synced fo
 
   Which do you have? Nightly CI also needs a self-hosted runner with KVM.
 
-**Q13 (L) — Git hosting and CI.** GitHub Actions is assumed for push CI. Confirm, or tell me what you use
+**Q13 (L) — Git hosting and CI.** *Answered 2026-10-24: GitHub, https://github.com/driterolulaj/openDC (GitHub Actions).* GitHub Actions is assumed for push CI. Confirm, or tell me what you use
 (GitLab/Gitea/...).
 
 ## F. Product details (later phases)
@@ -141,11 +140,11 @@ characters. `opendc-svc-<host>` with a 15-character NetBIOS host name is 26 (the
 
 ## H. Raised at the end of Phase 1 (2026-10-24)
 
-**Q19 (L, before the first public package) — Project contact and domain.** The packages and the
+**Q19 (L, before the first public package) — Project contact and domain.** *Answered 2026-10-24: a mail server becomes part of the platform (ROADMAP Phase 5, mail module); until then contacts are local (`maintainers@localhost`, `security@localhost`; `OPENDC_MAINTAINER` overrides the package field).* The packages and the
 vulnerability-disclosure placeholder use `maintainers@opendc.invalid` / `security@<project domain>`. Which
 domain and addresses should packages, SECURITY.md and the console's "Source code" link (ADR-0023) use?
 
-**Q20 (B for Phase 3) — Approve the ADR-0004 amendment from Spike S2** (`docs/spikes/S2-dirsync.md`):
+**Q20 (B for Phase 3) — Approve the ADR-0004 amendment from Spike S2** *Answered 2026-10-24: approved, written into ADR-0004.* (`docs/spikes/S2-dirsync.md`):
 - the watcher polls DirSync (default 5 s) instead of relying on change notification, which `ldapts` can't
   stream
 - the watch account gets DS-Replication-Get-Changes on the domain head, and nothing broader

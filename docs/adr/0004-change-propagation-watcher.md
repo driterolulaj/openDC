@@ -35,6 +35,18 @@ notification control (`1.2.840.113556.1.4.528`).
 7. The watcher also feeds outbound webhooks (§6.15) and, later, ingestion of Samba's JSON DSDB audit log, so
    changes made outside OpenDC (for example with RSAT) still show up in history.
 
+## Verification (Spike S2, 2026-10-24; amendment approved by the project owner, Q20)
+Details are in `docs/spikes/S2-dirsync.md`.
+- DirSync works through `ldapts` with the in-house `DirSyncControl` (Samba 4.22): cookies survive reconnects,
+  modifications and tombstones are delivered, and `dsServiceName` + `invocationId` are readable for the
+  checkpoint in point 3.
+- **The watch account needs DS-Replication-Get-Changes** (`1131f6aa-9c07-11d1-f79f-00c04fc2dcd2`) on the domain
+  head, and nothing broader (never "…All", which would expose secrets). Phase 2 grants it with a typed agent
+  operation.
+- **Wake-up (amends point 2):** Samba advertises change notification, but `ldapts` can't stream search entries.
+  The watcher therefore polls DirSync, by default every 5 s; a pass without changes costs milliseconds. A
+  streaming wake-up reader (built on `ldapts`' BER classes) stays optional and is decided in Phase 3.
+
 ## Consequences
 - No extra infrastructure (queue or broker), and it keeps working when the network is partitioned (the node
   just falls behind).

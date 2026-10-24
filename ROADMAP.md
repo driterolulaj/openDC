@@ -33,7 +33,7 @@ are updated.
 - [x] **Spike S2:** DirSync control and change notification with `ldapts` against Samba (cookie round-trip,
   deletions, required rights).
   *DirSync works with an in-house control; change notification needs a streaming reader that `ldapts` lacks.
-  `docs/spikes/S2-dirsync.md`; the ADR-0004 amendment there awaits approval.*
+  `docs/spikes/S2-dirsync.md`; written into ADR-0004 (Q20).*
 - [x] npm workspaces monorepo: `shared`, `api`, `agent`, `watcher`, `registry`, `os`, `cli`, `web`; TS project
   references; ESLint (incl. custom rules: no shell exec, no raw LDAP filters, no distro checks outside `os`),
   Prettier. *Plus `modules` and a no-literal-JSX-text rule.*
@@ -54,7 +54,7 @@ are updated.
   *`npm run lab` drives `test/env/proxmox/pve-lab.sh` for `small`, `standard`, `ci` and `spike`; `multisite` and
   the Incus backend are not built yet.*
 - [x] CI: lint, typecheck, unit tests, generated-file freshness and OpenAPI diff on every push; nightly VM job
-  skeleton. *In `.github/workflows/`; they run once the repository has a remote (Q13).*
+  skeleton. *In `.github/workflows/`, running on GitHub (Q13).*
 
 **Acceptance:**
 1. `npm ci && npm run build && npm test` passes on Linux. Pure-logic tests also pass on Windows.
@@ -73,7 +73,7 @@ are updated.
    diagnostic flags a manual edit.
    **Met**, and `opendc registry commit` repairs the drift.
 6. Spikes S1/S2 are documented, and ADR-0003/0004 are confirmed or amended (with approval).
-   **S1 done; S2 documented, the ADR-0004 amendment awaits approval.**
+   **Met:** S1 written into ADR-0003, S2 into ADR-0004.
 
 ---
 
@@ -177,7 +177,17 @@ are updated.
 - [ ] Directory integration: service accounts, LDAP bind/filters, OIDC clients, portal tiles, registry keys,
   backup paths.
 - [ ] First-party test apps: static app, Nextcloud (LDAP), Keycloak (SSO, LDAP federation to Samba, optional
-  SPNEGO), mail stack (Postfix/Dovecot).
+  SPNEGO).
+- [ ] **Mail module (first-class platform service, Q19):** Postfix + Dovecot on member servers (or a DC in small
+  sites) through the OS adapter. It covers:
+  - mailboxes for domain users (from `mail`/`proxyAddresses`), authenticated against the domain (LDAP, Kerberos)
+  - aliases and distribution lists from AD groups
+  - TLS certificates from the internal CA
+  - MX, SPF and DKIM records through the DNS module
+  - local delivery first, with an optional outbound relay
+  - the platform's own mail (password reset, notifications) goes through it by default
+  
+  This needs a new ADR before implementation.
 - [ ] Portal: categories, group-based visibility, branding, console editing.
 - [ ] Self-service: password change with policy feedback, reset by mail token, whitelisted profile edits,
   optional registration with approval.

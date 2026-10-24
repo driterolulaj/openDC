@@ -144,7 +144,8 @@ function nfpmConfig(
       version_schema: 'none',
       section: 'admin',
       priority: 'optional',
-      maintainer: 'OpenDC <maintainers@opendc.invalid>',
+      // Local contact until the project has a public mail domain (Q19); override with OPENDC_MAINTAINER.
+      maintainer: process.env.OPENDC_MAINTAINER ?? 'OpenDC Maintainers <maintainers@localhost>',
       description,
       vendor: 'OpenDC',
       license: 'AGPL-3.0-only',

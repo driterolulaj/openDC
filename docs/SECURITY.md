@@ -158,7 +158,9 @@ Restore documentation stresses that the backup key must be stored off-host.
 5. Container mode needs `CAP_SYS_ADMIN`, so the container isn't a security boundary.
 
 ## 11. Vulnerability disclosure
-Placeholder: `security@<project domain>`. Policy text is due in Phase 8.
+Until the project has a public mail domain (Q19), security reports go to the local address `security@localhost`
+on the OpenDC development host. The OpenDC mail module (Phase 5) will provide the mail server. Policy text is
+due in Phase 8.
 
 ## 12. Status after Phase 1 (2026-10-24)
 

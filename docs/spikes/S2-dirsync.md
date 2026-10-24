@@ -67,7 +67,7 @@ wake-up would need a small streaming reader (see the recommendation below).
   ADR-0004 already prescribes a full resync there, and it gets a test.
 - The size and `moreResults` paging of large initial syncs (50k users) in the load tests.
 
-## Proposed ADR-0004 amendment (needs the project owner's approval; not applied)
+## ADR-0004 amendment (approved by the project owner and applied 2026-10-24, Q20)
 
 > **Verification (Spike S2, 2026-10-24):** DirSync works through `ldapts` with an in-house control (Samba
 > 4.22). The watch account needs DS-Replication-Get-Changes on the domain head (not "…All"). Change
