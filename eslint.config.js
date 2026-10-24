@@ -11,6 +11,8 @@ export default tseslint.config(
       '**/generated/**',
       'packages/web/vite.config.ts',
       '**/*.cjs',
+      'packaging/out/**',
+      'packaging/.cache/**',
       'coverage/**',
       // Phase 0 design drafts; the real code lives in packages/*
       'docs/**',
@@ -57,7 +59,7 @@ export default tseslint.config(
   },
   {
     // build tooling runs tar/nfpm/npm; exec, execSync and shell: true stay banned
-    files: ['packaging/**/*.ts'],
+    files: ['packaging/**/*.ts', 'test/env/**/*.ts'],
     rules: { 'opendc/no-shell-exec': ['error', { allowImport: true }] },
   },
   {

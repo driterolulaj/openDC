@@ -7,3 +7,5 @@ docs/
 *.md
 test/env/proxmox/**/*.sh
 packages/api/openapi.json
+packaging/out/
+packaging/.cache/

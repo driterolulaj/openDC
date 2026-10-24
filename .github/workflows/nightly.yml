@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Nightly VM tests (ADR-0015 §6) on a self-hosted runner inside the Proxmox lab network: build the
+# packages, install them on a fresh `small` lab, run the adapter conformance suite and the acceptance
+# checks. Skeleton for Phase 1; the runner VM and its scoped Proxmox API token are set up in Phase 2.
+name: nightly-lab
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+
+jobs:
+  lab-small:
+    runs-on: [self-hosted, linux, opendc-lab]
+    timeout-minutes: 90
+    env:
+      LAB_GATEWAY: ${{ vars.LAB_GATEWAY }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: npm ci --ignore-scripts --no-audit
+      - run: npm run build && npm run package
+      - name: Fresh small lab
+        run: npm run lab -- rollback small clean
+      - name: Install packages and run acceptance checks
+        run: npm run lab -- acceptance small packaging/out
