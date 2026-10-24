@@ -104,8 +104,9 @@ export class DebianFacts implements OsFacts {
       'opendc.demo': p('etc/opendc/generated/demo.conf'),
       'opendc.registry.local': p('etc/opendc/registry/local.json'),
       'opendc.registry.forced': p('etc/opendc/registry/forced.json'),
+      'opendc.registry.rendered': p('var/lib/opendc/registry/rendered.json'),
     };
-    const managedRoots = [p('etc/opendc/generated'), p('etc/opendc/registry')];
+    const managedRoots = [p('etc/opendc/generated'), p('etc/opendc/registry'), p('var/lib/opendc/registry')];
     const os = `${this.release.prettyName}`;
     this.paths = {
       etc: p('etc/opendc'),

@@ -25,6 +25,7 @@ export const ops = {
       memTotal: z.number(),
       cpus: z.number(),
       os: z.object({ id: z.string(), versionId: z.string(), prettyName: z.string(), adapter: z.string() }),
+      role: z.enum(['primary-dc', 'dc', 'rodc', 'member', 'managed-node']),
       agentVersion: z.string(),
     }),
   },

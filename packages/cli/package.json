@@ -18,9 +18,14 @@
     "dist"
   ],
   "dependencies": {
-    "@opendc/shared": "0.1.0",
-    "@opendc/registry": "0.1.0",
     "@opendc/modules": "0.1.0",
+    "@opendc/registry": "0.1.0",
+    "@opendc/shared": "0.1.0",
+    "i18next": "26.4.2",
     "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@opendc/agent": "0.1.0",
+    "@opendc/os": "0.1.0"
   }
 }

@@ -52,6 +52,13 @@ export const allowlist = {
       "owner": "root",
       "mode": 420,
       "comment": "json-field"
+    },
+    "core.registry-rendered": {
+      "module": "core",
+      "pathKey": "opendc.registry.rendered",
+      "owner": "root",
+      "mode": 420,
+      "comment": "json-field"
     }
   },
   "units": {

@@ -73,7 +73,7 @@ export const implementations: Impls = {
   'system.info': async (_args, ctx) => {
     const i = await ctx.os.system.info();
     const r = ctx.os.facts.release;
-    return { ...i, os: { id: r.id, versionId: r.versionId, prettyName: r.prettyName, adapter: ctx.os.facts.adapter }, agentVersion: platformVersion };
+    return { ...i, os: { id: r.id, versionId: r.versionId, prettyName: r.prettyName, adapter: ctx.os.facts.adapter }, role: ctx.role, agentVersion: platformVersion };
   },
   'samba.version': async (_args, ctx) => {
     const v = await ctx.os.facts.samba.version();
