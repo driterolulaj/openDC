@@ -9,7 +9,7 @@
 #     /etc/myucs-lab/ (+ the myucs-lab-nat.service unit)
 #
 # Usage: pve-lab.sh net-up | net-down | templates [--refresh] | up <topology> | domain <topology>
-#        | down <topology> | snapshot <topology> <name> | rollback <topology> <name> | status
+#        | down <topology> | snapshot <topology> <name> | rollback <topology> <name> | status | credentials
 #        | ssh <vm-name> [cmd...] | run <vm-name> <script> [VAR=value...]
 set -euo pipefail
 
@@ -132,10 +132,16 @@ EOF
   echo "net.ipv4.ip_forward = 1  # MyUCS lab gateway (pve-lab.sh)" >/etc/sysctl.d/90-myucs-lab.conf
   sysctl -q -p /etc/sysctl.d/90-myucs-lab.conf
   mkdir -p /etc/myucs-lab
+  local dnat="" fwd hport fip fport
+  for fwd in $LAB_PORT_FORWARDS; do
+    IFS=: read -r hport fip fport <<<"$fwd"
+    dnat+="    iifname \"$LAB_UPLINK\" fib daddr type local tcp dport $hport dnat ip to $fip:$fport"$'\n'
+  done
   cat >/etc/myucs-lab/nat.nft <<EOF
 # Managed by MyUCS test/env/proxmox/pve-lab.sh
 # The lab reaches the internet only. Private, CGNAT and link-local destinations are dropped so lab DNS/DHCP
 # services can never talk to the site LAN, and the gateway node accepts nothing from the lab but ping.
+# The only inbound path is the explicit port forwards in the prerouting chain (LAB_PORT_FORWARDS).
 table inet myucs_lab
 flush table inet myucs_lab
 table inet myucs_lab {
@@ -151,6 +157,7 @@ table inet myucs_lab {
   }
   chain forward {
     type filter hook forward priority filter; policy accept;
+    ct status dnat accept
     ip saddr $LAB_CIDR ip daddr $LAB_CIDR accept
     iifname "$LAB_VNET" ip daddr @blocked4 drop
     iifname "$LAB_VNET" meta nfproto ipv6 drop
@@ -158,6 +165,9 @@ table inet myucs_lab {
     oifname "$LAB_VNET" ct state established,related accept
     oifname "$LAB_VNET" drop
   }
+  chain prerouting {
+    type nat hook prerouting priority dstnat;
+$dnat  }
   chain postrouting {
     type nat hook postrouting priority srcnat;
     ip saddr $LAB_CIDR oifname "$LAB_UPLINK" masquerade
@@ -185,7 +195,7 @@ EOF
   systemctl restart myucs-lab-nat.service
   ifreload -a
   ip -br addr show "$LAB_VNET" | grep -q "$LAB_GW/" || die "gateway address missing on $LAB_VNET after ifreload"
-  log "network ready: $LAB_VNET $LAB_CIDR via $LAB_GW"
+  log "network ready: $LAB_VNET $LAB_CIDR via $LAB_GW; port forwards: ${LAB_PORT_FORWARDS:-none}"
 }
 
 cmd_net_down() {
@@ -266,6 +276,11 @@ cmd_up() {
       sudo DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=600 -qq install -y qemu-guest-agent chrony >/dev/null &&
       sudo systemctl start qemu-guest-agent' ||
       die "$name: base package install failed"
+    # Console (Proxmox xterm.js) and SSH password login for the lab user. SSH into the lab is only possible
+    # through the gateway node (ssh -J root@<gateway> myucs@<ip>), so password auth stays inside the lab.
+    lab_secret "vm-$LAB_CIUSER" | ssh "${SSH_OPTS[@]}" "$LAB_CIUSER@$ip" "sed 's/^/$LAB_CIUSER:/' | sudo chpasswd &&
+      echo 'PasswordAuthentication yes' | sudo tee /etc/ssh/sshd_config.d/10-myucs-lab.conf >/dev/null &&
+      sudo systemctl try-reload-or-restart ssh" || die "$name: setting the $LAB_CIUSER password failed"
   done < <(topology_rows "$topo")
   log "topology $topo is up"
   cmd_status
@@ -299,8 +314,8 @@ cmd_rollback() {
   done
 }
 
-admin_password() { # <topology>  -> generated once, kept only on the gateway node
-  local f="$STATE_DIR/secrets/$1-administrator"
+lab_secret() { # <name>  -> generated once, kept only on the gateway node
+  local f="$STATE_DIR/secrets/$1"
   if [[ ! -s "$f" ]]; then
     mkdir -p "$STATE_DIR/secrets" && chmod 700 "$STATE_DIR/secrets"
     (umask 077; printf 'Lab-%s-9x\n' "$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 20)" >"$f")
@@ -319,13 +334,24 @@ cmd_domain() { # <topology>: provision the dc-primary, then join every dc
     while read -r name ip; do
       log "$name: samba-dc $action"
       scp -q "${SSH_OPTS[@]}" "$LAB_DIR/roles/samba-dc.sh" "$LAB_CIUSER@$ip:/tmp/myucs-samba-dc.sh" </dev/null
-      admin_password "$topo" | ssh "${SSH_OPTS[@]}" "$LAB_CIUSER@$ip" \
+      lab_secret "$topo-administrator" | ssh "${SSH_OPTS[@]}" "$LAB_CIUSER@$ip" \
         "sudo env ACTION=$action REALM=$realm NETBIOS=$netbios SELF_IP=$ip PRIMARY_IP=$primary_ip" \
         "FORWARDER=$LAB_FORWARDER BASE_SCHEMA=${BASE_SCHEMA:-} bash /tmp/myucs-samba-dc.sh" ||
         die "$name: samba-dc $action failed"
     done < <(topology_rows "$topo" | awk -v r="$role" '$8 == r { print $1, $4 }')
   done
   log "domain $realm is up (Administrator password: $STATE_DIR/secrets/$topo-administrator)"
+}
+
+cmd_credentials() { # print every lab login (for the operator at the gateway node's console)
+  local f
+  printf 'VM login (console + ssh -J root@%s): %s / %s\n' "$(hostname)" "$LAB_CIUSER" "$(lab_secret "vm-$LAB_CIUSER")"
+  for f in "$STATE_DIR"/secrets/*-administrator; do
+    [[ -e "$f" ]] || continue
+    f="${f##*/}"
+    printf 'Domain %s: %s\\Administrator / %s\n' "$(echo "${f%-administrator}.$LAB_DOMAIN_SUFFIX" | tr '[:lower:]' '[:upper:]')" \
+      "$(echo "${f%-administrator}" | tr '[:lower:]' '[:upper:]' | cut -c1-15)" "$(head -n1 "$STATE_DIR/secrets/$f")"
+  done
 }
 
 cmd_status() {
@@ -363,7 +389,8 @@ case "${1:-}" in
   snapshot) cmd_snapshot "${2:?topology}" "${3:?snapshot name}" ;;
   rollback) cmd_rollback "${2:?topology}" "${3:?snapshot name}" ;;
   status) cmd_status ;;
+  credentials) cmd_credentials ;;
   ssh) shift; cmd_ssh "$@" ;;
   run) shift; cmd_run "$@" ;;
-  *) sed -n '2,14p' "${BASH_SOURCE[0]}"; exit 2 ;;
+  *) sed -n '/^# Usage:/,/^set /p' "${BASH_SOURCE[0]}" | sed '$d'; exit 2 ;;
 esac

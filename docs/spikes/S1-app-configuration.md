@@ -79,7 +79,7 @@ findings change details of the design (see "Proposed ADR-0003 amendment" below).
 - Upgrading an existing 2008_R2-schema domain with `samba-tool domain schemaupgrade` and then enabling
   extended attributes.
 
-## Proposed ADR-0003 amendment (needs the project owner's approval; not applied)
+## ADR-0003 amendment (approved by the project owner and applied 2026-10-24)
 
 > **Verification (Spike S1, 2026-10-24):** confirmed on Samba 4.17.12, 4.19.5, 4.22.6 and 4.22.11 with base
 > schemas 2008_R2 through 2019. All carrier attributes are multi-valued. `msDS-Settings` and `msDS-ByteArray`

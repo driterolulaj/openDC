@@ -1,6 +1,6 @@
 # ADR-0003: Platform objects live in the directory, no schema extension for the MVP
 
-Status: Proposed · Date: 2026-10-06
+Status: Proposed · Date: 2026-10-06 · Amended 2026-10-24 with the Spike S1 results (approved by the project owner)
 
 ## Context
 Policies, DHCP scopes, share and printer definitions, app registrations, portal configuration, RBAC roles
@@ -15,7 +15,7 @@ client organisations' security teams reject them outright.
    provides `msDS-Settings` (multi-valued string), `msDS-ObjectReference` (linked DN), `msDS-Integer`,
    `msDS-DateTime` and `msDS-ByteArray`. The payload is versioned JSON in `msDS-Settings`
    (`{"schemaVersion":1,...}`).
-   - **Verification gate (Phase 1 spike):** confirm that this class and its attributes exist and are writable
+   - **Verification gate (Phase 1 spike, passed 2026-10-24, see Verification below):** confirm that this class and its attributes exist and are writable
      on every supported Samba version and base schema (`2008_R2`, `2012_R2`, `2016`), and measure size limits.
      If the spike fails, the fallback is `container` + `serviceConnectionPoint`
      (`serviceBindingInformation`, `keywords`), which has been in the schema since Windows 2000.
@@ -37,6 +37,20 @@ client organisations' security teams reject them outright.
 6. A schema extension is designed **only** if we need more than 20 extended fields, multi-valued or indexed
    custom fields, or something with no generic carrier. The reserved design is in
    `docs/design/directory-object-model.md` §5. **It is not applied without the project owner's explicit approval.**
+
+## Verification (Spike S1, 2026-10-24)
+The gate in point 2 passed. Details are in `docs/spikes/S1-app-configuration.md`.
+- Confirmed on Samba 4.17.12, 4.19.5, 4.22.6 and 4.22.11 with base schemas 2008_R2 through 2019. The
+  fallback carrier is not needed.
+- All carrier attributes are multi-valued. `msDS-Settings` and `msDS-ByteArray` have `rangeUpper` 1,000,000
+  per value, and Samba enforces it (LDAP 21).
+- Payloads are capped at 1,000,000 characters including the `myucs:v1:` prefix. The directory layer rejects
+  larger ones with a `PlatformError`, and the soft limit is 256 KiB.
+- Readers tolerate more than one `msDS-Settings` value: the highest `rev` wins and a diagnostic is raised.
+- CAS conflicts (point 5) surface as LDAP 16 `noSuchAttribute`, which the API maps to HTTP 409.
+- Natural-key objects (`CN=Settings`, `CN=Modules`, `CN=Branding`, leader claims) are created once and then
+  only modified, never deleted and re-created, because re-adding a DN before the deletion has replicated fails.
+- Extended attributes (point 4) require base schema 2012 or later. New domains default to 2019.
 
 ## Consequences
 - Platform configuration replicates, is backed up by `samba-tool domain backup` and works on any DC.

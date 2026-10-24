@@ -92,7 +92,8 @@ The alternative is to drop Debian 12 as a DC platform and keep it for members on
 
 ## E. Development environment
 
-**Q11 (B) — Where the VM lab runs, and where the repo lives.**
+**Q11 (B) — Where the VM lab runs, and where the repo lives.** *Lab answered 2026-10-24: a 2-node Proxmox VE
+cluster (ADR-0015 amended). Still open: moving the repo out of OneDrive.*
 - This machine is **Windows 11**, and the project sits in a **OneDrive-synced folder**. `node_modules` and `.git`
   inside OneDrive cause sync storms and file locking. I recommend moving the repo to a non-synced path, ideally
   inside WSL2 (e.g. `~/src/myucs`).

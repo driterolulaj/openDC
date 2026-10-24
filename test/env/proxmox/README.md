@@ -37,6 +37,15 @@ value lives in [`lab.env`](lab.env) and can be overridden with environment varia
 To get the files onto the node, copy this directory to `/root/myucs-lab/src`, for example with
 `scp -r test/env/proxmox root@<node>:/root/myucs-lab/src`.
 
+## Access from the site LAN
+
+| What | How |
+|---|---|
+| Logins | `./pve-lab.sh credentials` on the gateway node prints the VM user (`myucs`, with sudo) and every lab domain's Administrator password |
+| VM console | Proxmox web UI → VM → Console (xterm.js; the VMs use a serial console) |
+| SSH | `ssh -J root@<gateway node> myucs@<lab ip>`. Lab IPs aren't routed from the LAN, so the gateway node is the only way in. |
+| Web console (from Phase 1) | `https://<gateway node>:8441` → dc1:443, `:8442` → dc2:443. Set by `LAB_PORT_FORWARDS`; re-run `net-up` after changing it. These forwards are the only inbound path into the lab. |
+
 ## Topologies
 
 | File | VMs | Purpose |

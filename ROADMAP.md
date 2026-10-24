@@ -25,12 +25,12 @@ are updated.
 ---
 
 ## Phase 1: Foundation
-- [ ] **Spike S1 (first task):** in a lab DC on Samba from Debian 12 (backports per Q10), Debian 13 and
+- [x] **Spike S1 (first task):** in a lab DC on Samba from Debian 12 (backports per Q10), Debian 13 and
   Ubuntu 24.04, verify `msDS-App-Configuration` + `msDS-Settings` (create, size limit, replication between 2
   DCs) and `msDS-cloudExtensionAttribute*` for base schemas 2008_R2, 2012_R2 and 2016. Write the results into
   ADR-0003.
-  *2026-10-24: run in the Proxmox lab, gate passes. Results in `docs/spikes/S1-app-configuration.md`; the
-  ADR-0003 amendment text there awaits approval.*
+  *2026-10-24: run in the Proxmox lab, gate passes. Results in `docs/spikes/S1-app-configuration.md`, written
+  into ADR-0003.*
 - [ ] **Spike S2:** DirSync control and change notification with `ldapts` against Samba (cookie round-trip,
   deletions, required rights).
 - [ ] npm workspaces monorepo: `shared`, `api`, `agent`, `watcher`, `registry`, `os`, `cli`, `web`; TS project
@@ -48,7 +48,7 @@ are updated.
   matrix; conformance test suite.
 - [ ] Packaging: nfpm configs (`.deb`, `.rpm` skeleton), bundled Node runtime, hardened systemd units, tarball +
   `install.sh`.
-- [ ] Test lab: `npm run lab -- up small|standard|multisite` (Incus primary).
+- [ ] Test lab: `npm run lab -- up small|standard|multisite` (Proxmox VE primary, Incus secondary; ADR-0015).
   *2026-10-24: Proxmox backend `test/env/proxmox/pve-lab.sh` running `small`/`standard` (no `multisite` yet,
   no npm wrapper yet).*
 - [ ] CI: lint, typecheck, unit tests, generated-file freshness and OpenAPI diff on every push; nightly VM job
