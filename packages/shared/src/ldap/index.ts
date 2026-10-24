@@ -4,3 +4,4 @@ export * from './filter.ts';
 export * from './dn.ts';
 export * from './ids.ts';
 export * from './ldapts.ts';
+export * from './controls.ts';
