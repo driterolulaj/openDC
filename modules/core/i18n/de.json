@@ -1,0 +1,25 @@
+{
+  "module": {
+    "title": "Kern",
+    "description": "Konsolenzugang, Knotenkonfiguration und Audit-Log."
+  },
+  "perm": {
+    "console-access": "Konsole verwenden",
+    "registry-read": "Knotenkonfiguration lesen",
+    "registry-write": "Knotenkonfiguration ändern",
+    "audit-read": "Audit-Log lesen",
+    "jobs-read": "Aufträge verfolgen",
+    "node-info": "Knoteninformationen anzeigen"
+  },
+  "keys": {
+    "demo-message": "Text, der in die verwaltete Demo-Datei geschrieben wird.",
+    "demo-enabled": "Ob die verwaltete Demo-Datei Inhalt hat.",
+    "api-listen-host": "Adresse, auf der Konsole/API lauscht.",
+    "api-listen-port": "TCP-Port, auf dem Konsole/API lauscht.",
+    "directory-ldap-urls": "Domänencontroller für die Anbindung, in bevorzugter Reihenfolge (ldaps:// oder ldap:// mit StartTLS).",
+    "directory-base-dn": "Basis-DN der Domäne. Leer bedeutet: aus dem rootDSE des DCs lesen.",
+    "directory-tls-server-name": "Name, der im DC-Zertifikat geprüft wird. Leer bedeutet: der Host aus der URL.",
+    "session-idle": "Minuten Inaktivität, nach denen eine Konsolensitzung endet.",
+    "session-absolute": "Stunden nach der Anmeldung, nach denen eine Konsolensitzung in jedem Fall endet."
+  }
+}

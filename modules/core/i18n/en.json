@@ -1,0 +1,25 @@
+{
+  "module": {
+    "title": "Core",
+    "description": "Console access, node configuration and the audit log."
+  },
+  "perm": {
+    "console-access": "Use the console",
+    "registry-read": "Read node configuration",
+    "registry-write": "Change node configuration",
+    "audit-read": "Read the audit log",
+    "jobs-read": "Follow jobs",
+    "node-info": "View node information"
+  },
+  "keys": {
+    "demo-message": "Text written into the demo managed file.",
+    "demo-enabled": "Whether the demo managed file has content.",
+    "api-listen-host": "Address the console/API listens on.",
+    "api-listen-port": "TCP port the console/API listens on.",
+    "directory-ldap-urls": "Domain controllers to bind to, in order of preference (ldaps:// or ldap:// with StartTLS).",
+    "directory-base-dn": "Domain base DN. Empty means: read it from the rootDSE of the DC.",
+    "directory-tls-server-name": "Name to verify in the DC certificate. Empty means: the host from the URL.",
+    "session-idle": "Minutes of inactivity before a console session ends.",
+    "session-absolute": "Hours after login when a console session ends regardless of activity."
+  }
+}
