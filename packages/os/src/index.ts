@@ -8,7 +8,7 @@ import type { OsActions, OsFacts, OsRelease } from './types.ts';
 export * from './types.ts';
 export { parseOsRelease, adapterFor, readOsRelease } from './release.ts';
 export { exec, SAFE_PATH, type Exec, type ExecResult } from './exec.ts';
-export { MIN_DC_SAMBA, parseSambaVersion } from './debian/index.ts';
+export { MIN_DC_SAMBA, parseSambaVersion, DebianFacts } from './debian/index.ts';
 export { PosixFileActions, PREV_SUFFIX } from './posix/files.ts';
 export { parseSystemctlShow } from './posix/systemd.ts';
 
