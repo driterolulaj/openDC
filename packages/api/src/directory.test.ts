@@ -89,7 +89,8 @@ test('ldap:// URLs use StartTLS with the configured server name', async () => {
   );
   await d.authenticate('SMALL\\Administrator', 'pw');
   assert.equal(log[0], 'starttls 10.97.10.51 servername=sdc1.small.opendc.test');
-  assert.equal(log[1], 'bind 10.97.10.51 SMALL\\Administrator');
+  // Samba's simple bind doesn't take DOMAIN\user, so it is sent as a UPN
+  assert.equal(log[1], 'bind 10.97.10.51 Administrator@small.opendc.test');
 });
 
 test('AD bind sub-codes map to precise errors and never fail over', async () => {

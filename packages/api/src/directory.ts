@@ -121,7 +121,10 @@ export class DirectoryAuth {
         if (u.protocol === 'ldap:') await client.startTLS(this.#tls(host));
         const baseDn = this.#cfg.baseDn || (await this.#defaultNamingContext(client));
         const domain = domainFromDn(baseDn);
-        const bindName = user.includes('@') || user.includes('\\') ? user : `${user}@${domain}`;
+        // Samba's simple bind accepts a DN or a UPN, not the down-level "DOMAIN\user" form, so that form is
+        // bound as user@<DNS domain> (one forest, one domain: the mapping is exact).
+        const sam = user.includes('\\') ? user.slice(user.indexOf('\\') + 1) : user;
+        const bindName = sam.includes('@') ? sam : `${sam}@${domain}`;
         try {
           await client.bind(bindName, password);
         } catch (e) {
