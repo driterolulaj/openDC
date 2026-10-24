@@ -85,7 +85,7 @@ verification guards against, and we avoid a native GSSAPI addon.
 end of life in April 2028. I recommend building on 24 now and deciding at the start of Phase 7 whether 1.0 ships
 on the next LTS line so it covers the published support window.
 
-**Q10 (B) — Minimum Samba version for the DC role.** *Answered 2026-10-24: oldest upstream-maintained Samba; Debian 12 DCs require bookworm-backports.* Debian 12 ships Samba 4.17, which is no longer supported
+**Q10 (B) — Minimum Samba version for the DC role.** *Answered 2026-10-24: Debian 12 DCs require bookworm-backports. Implemented as `MIN_DC_SAMBA = 4.19` in packages/os: the oldest Samba shipped in a security-supported Tier-1 release (Ubuntu 24.04), because a literal "oldest maintained upstream" (about 4.23 today) would exclude Debian 13 and Ubuntu 24.04. Revisit at each release.* Debian 12 ships Samba 4.17, which is no longer supported
 upstream (Debian still backports security fixes), and newer versions are in `bookworm-backports`. Proposal:
 - set the minimum to the oldest Samba still maintained upstream at each OpenDC release
 - on Debian 12, require backports for the DC role
