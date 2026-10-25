@@ -172,3 +172,18 @@ password. **Implemented (pending your approval):**
 Alternatives: (a) narrow the delegation to OpenDC-managed OUs only (then default users in `CN=Users`
 can't be managed), (b) leave the API guard as the only barrier (contradicts ADR-0012's consequences
 section). If you approve, I'll add a short amendment to ADR-0012.
+
+**Q22 (C, Phase 3) — POSIX IDs for objects created outside OpenDC.** ADR-0018 writes `idBase + RID` when
+OpenDC creates a user or group. Accounts created with RSAT, `samba-tool` or a migration have no `uidNumber`,
+and Linux members with `ldap_id_mapping = False` don't see them at all (seen in the lab: a `samba-tool` user is
+missing from `getent` on client1; console users resolve). Options: (a) the watcher (Phase 3) fills in missing
+values for new users and groups, using the same rule, and logs each one in the audit; (b) a "Fill in POSIX IDs"
+bulk action only; (c) leave as is and document it. Recommendation: (a) plus (b) for existing objects.
+
+**Q23 (B, before Phase 2 ends) — Network apply-with-rollback in the setup wizard.** The roadmap lists it;
+it isn't built. Pre-flight requires a static address and tells the admin to set one (all lab hosts and most
+servers already have one). Options: (a) build it now: the wizard writes the netplan/ifupdown/NetworkManager
+config, applies it, and rolls back unless the browser confirms through the new address within 120 s;
+(b) move it to Phase 6 (appliance/ISO), where OpenDC owns the network configuration anyway.
+Recommendation: (b); it touches three network stacks and is the riskiest step of setup for little gain on
+hosts that already run.

@@ -79,36 +79,48 @@ are updated.
 
 ## Phase 2: Domain core
 - [ ] Setup wizard (web + `opendc setup` CLI): role selection, hostname/FQDN, realm/NetBIOS, network (apply
-  with rollback), time, admin password; setup token.
-- [ ] Pre-flight checks: DNS, time drift, ports, hostname validity (NetBIOS ≤ 15), disk, xattr/ACL,
+  with rollback), time, admin password; setup token. *Done except network apply-with-rollback: pre-flight
+  requires a static address and tells the admin to configure one.*
+- [x] Pre-flight checks: DNS, time drift, ports, hostname validity (NetBIOS ≤ 15), disk, xattr/ACL,
   SELinux/AppArmor, port 53 conflict.
-- [ ] Provision primary DC (`samba.provision`, RFC2307, 2012_R2/2016 schema choice); join additional DC
+- [x] Provision primary DC (`samba.provision`, RFC2307, 2012_R2/2016 schema choice); join additional DC
   (`samba.join`, writable); service accounts and delegations (ADR-0012); internal DNS and chrony with ntpsigned.
-- [ ] FSMO view/transfer/seize (typed confirmation); functional level display/raise.
-- [ ] Users (full attributes, status, expiry, unlock, reset, photo, Unix attributes, RID-based IDs), user
+- [x] FSMO view/transfer/seize (typed confirmation); functional level display/raise.
+- [x] Users (full attributes, status, expiry, unlock, reset, photo, Unix attributes, RID-based IDs), user
   templates, groups (nested, types), computers, OUs/containers, contacts.
-- [ ] Password policies: domain default + PSOs (direct to users/groups). OU-linked password policies arrive with
+- [x] Password policies: domain default + PSOs (direct to users/groups). OU-linked password policies arrive with
   Phase 3 policies.
-- [ ] Search with saved filters, bulk edit/move/delete/enable/disable, CSV import/export with dry-run diff.
-- [ ] Object history view from the audit log.
-- [ ] RBAC UI: roles, assignments, built-in Domain Admin / Helpdesk / Read-only Auditor.
-- [ ] TOTP second factor; API tokens.
-- [ ] CLI covering all Phase 2 API (generated from the OpenAPI operation list).
-- [ ] i18n en/de complete for Phase 2 screens.
+- [x] Search with saved filters, bulk edit/move/delete/enable/disable, CSV import/export with dry-run diff.
+- [x] Object history view from the audit log.
+- [x] RBAC UI: roles, assignments, built-in Domain Admin / Helpdesk / Read-only Auditor.
+- [x] TOTP second factor; API tokens.
+- [x] CLI covering all Phase 2 API (generated from the OpenAPI operation list).
+- [x] i18n en/de complete for Phase 2 screens.
 
 **Acceptance:**
 1. In the `standard` lab: a fresh Debian 13 host is provisioned as the primary DC from the wizard in ≤ 15 minutes,
    and a second DC (Ubuntu 24.04) joins. `samba-tool drs showrepl` is clean.
+   **Met:** dc1 (Debian 13) provisioned and dc2 (Ubuntu 24.04) joined from the web wizard by the owner;
+   showrepl ALL GOOD both ways. Scripted: wizard to a new domain in 36 s (Playwright), CLI join in 22 s.
 2. A user created on dc1 through the console appears on dc2 within the replication interval, and the console on
    dc2 can edit it. Stopping dc1 still allows full user management on dc2.
+   **Met:** visible on dc2 after 5 s, dc2 edit on dc1 after 5 s; with dc1 stopped: login (TOTP), create, edit,
+   reset, list on dc2; dc1 caught up on restart.
 3. A Helpdesk user scoped to `OU=Staff` can reset a password in `OU=Staff`, gets 403 outside it, and gets 403 for a
    Domain Admin account placed inside `OU=Staff` (tier-0 guard).
+   **Met:** 200 / 403 / 403.
 4. A Linux client in the lab joins with realmd/sssd and logs in as a console-created user with the RID-based UID.
+   **Met:** client1 (Ubuntu 24.04, `roles/linux-client.sh`): RID 1111 -> uid 101111, gid 100513, SSH password
+   login with home directory.
 5. A CSV import of 1,000 users shows a correct dry-run diff, applies, and is undoable through a bulk delete of
    the import batch.
+   **Met:** dry run 0.3 s, apply 37 s (one-time password download), undo 10 s.
 6. Playwright: setup wizard, user lifecycle (create, edit, disable, reset, delete) green. axe reports no
    serious/critical violations on Phase 2 pages.
+   **Met:** `setup.spec.ts` and `users.spec.ts` (incl. TOTP enrolment and the code prompt) green, axe clean.
 7. FSMO seizure requires typing the role names, and the audit log shows actor, before and after.
+   **Met:** wrong phrase refused (`agent.confirmation-required`); all 7 roles seized in 2 s; audit entry with actor,
+   before and after; the old holder sees the new one after restart; SDProp follows the PDC role.
 
 ---
 
