@@ -106,3 +106,17 @@ test('SDProp: protected DACL from AdminSDHolder, and the match is order-insensit
   assert.ok(!daclMatches(stored.replace('D:PAI', 'D:AI'), dacl), 'not protected');
   assert.ok(!daclMatches(stored.replace(';;;AU)', ';;;AU)(A;;GA;;;S-1-5-21-1-2-3-1103)'), dacl), 'extra ACE');
 });
+
+test('smb.conf dns forwarder: replaced in [global], added when missing, removed when empty', async () => {
+  const { withDnsForwarder } = await import('./provision.ts');
+  const conf = '[global]\n\tdns forwarder = 127.0.0.53\n\trealm = X\n\n[sysvol]\n\tpath = /x\n';
+  assert.equal(
+    withDnsForwarder(conf, ['8.8.8.8', '1.1.1.1']),
+    '[global]\n\tdns forwarder = 8.8.8.8 1.1.1.1\n\trealm = X\n\n[sysvol]\n\tpath = /x\n',
+  );
+  assert.equal(
+    withDnsForwarder('[global]\n\trealm = X\n[sysvol]\n', ['9.9.9.9']),
+    '[global]\n\trealm = X\n\tdns forwarder = 9.9.9.9\n[sysvol]\n',
+  );
+  assert.equal(withDnsForwarder(conf, []), '[global]\n\trealm = X\n\n[sysvol]\n\tpath = /x\n');
+});

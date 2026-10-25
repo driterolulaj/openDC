@@ -53,6 +53,32 @@ async function step<T>(name: string, fn: () => Promise<T>): Promise<T> {
   }
 }
 
+/** smb.conf text with `dns forwarder` in [global] set to `forwarders` (removed when empty). */
+export function withDnsForwarder(text: string, forwarders: string[]): string {
+  const line = forwarders.length ? '\t' + 'dns forwarder = ' + forwarders.join(' ') : null;
+  const out: string[] = [];
+  let inGlobal = false;
+  let done = false;
+  for (const l of text.split('\n')) {
+    const section = /^\s*\[(.+)\]\s*$/.exec(l);
+    if (section) {
+      if (inGlobal && !done && line) out.push(line);
+      inGlobal = section[1]?.trim().toLowerCase() === 'global';
+      done = false;
+      out.push(l);
+      continue;
+    }
+    if (inGlobal && /^\s*dns\s+forwarder\s*=/i.test(l)) {
+      if (line && !done) out.push(line);
+      done = true;
+      continue;
+    }
+    out.push(l);
+  }
+  if (inGlobal && !done && line) out.push(line);
+  return out.join('\n');
+}
+
 /** Network address of `ip` within its interface prefix, as CIDR (default `ntpAllow`). */
 export function networkOf(ip: string, prefix: number): string {
   const n = ip.split('.').reduce((a, o) => (a << 8) + Number(o), 0) >>> 0;
@@ -137,17 +163,21 @@ class Setup {
       await rename(conf, `${conf}.opendc-prev`);
   }
 
+  /** Sets `dns forwarder` in smb.conf's [global] section (resumed runs, and loopback values from provision). */
+  async setForwarders(forwarders: string[]): Promise<void> {
+    const conf = this.samba.paths.smbConf;
+    const text = await readFile(conf, 'utf8').catch(() => null);
+    if (text === null) return;
+    const next = withDnsForwarder(text, forwarders);
+    if (next !== text) await writeSystemFile(conf, next, 0o644);
+  }
+
   async startDc(selfIp: string, domain: string, extraNameservers: string[]): Promise<void> {
     const { os, progress } = this.d;
     progress('krb5', 66);
     await step('krb5', () => copyFile(`${this.samba.paths.privateDir}/krb5.conf`, '/etc/krb5.conf'));
-    progress('start', 70);
-    await step('start', async () => {
-      await os.services.unmask('samba-ad-dc');
-      await os.services.enable('samba-ad-dc', false);
-      await os.services.startAndWait('samba-ad-dc', 180_000);
-    });
-    progress('resolver-self', 74);
+    // before Samba starts: a stub resolver on 127.0.0.53:53 would keep its DNS from binding 0.0.0.0:53
+    progress('resolver-self', 68);
     await step('resolver-self', () =>
       os.host.configureResolver({
         nameservers: [selfIp, ...extraNameservers],
@@ -155,6 +185,14 @@ class Setup {
         freePort53: true,
       }),
     );
+    progress('start', 70);
+    await step('start', async () => {
+      await os.services.unmask('samba-ad-dc');
+      await os.services.enable('samba-ad-dc', false);
+      // a resumed run restarts it, so changed configuration and freed ports take effect
+      if ((await os.services.status('samba-ad-dc')).active === 'active') await os.services.restart('samba-ad-dc');
+      await os.services.startAndWait('samba-ad-dc', 180_000);
+    });
     progress('dns', 76);
     await step('dns', () => waitForSrv(domain, selfIp, 180_000));
   }
@@ -269,7 +307,9 @@ export async function provision(a: Provision, d: SetupDeps): Promise<ProvisionRe
   const s = new Setup(d);
   await s.guardNotDone(a.domain);
   const realm = a.domain.toUpperCase();
-  await s.base(a, a.dnsForwarders);
+  // no forwarders given: the host's real upstream resolvers (Samba would otherwise copy a 127.0.0.53 stub)
+  const forwarders = a.dnsForwarders.length ? a.dnsForwarders : await d.os.host.upstreamNameservers();
+  await s.base(a, forwarders);
   if (!(await s.samba.provisioned())) {
     d.progress('provision', 45);
     await step('provision', async () => {
@@ -289,7 +329,7 @@ export async function provision(a: Provision, d: SetupDeps): Promise<ProvisionRe
         `--base-schema=${a.baseSchema}`,
         `--function-level=${a.functionalLevel}`,
       ];
-      if (a.dnsForwarders.length) argv.push(`--option=dns forwarder = ${a.dnsForwarders.join(' ')}`);
+      if (forwarders.length) argv.push(`--option=dns forwarder = ${forwarders.join(' ')}`);
       if (a.functionalLevel === '2016') argv.push('--option=ad dc functional level = 2016');
       // no --adminpass: Samba picks a random one; the real password is set below through stdin
       await s.samba.tool(argv, { timeoutMs: 900_000 });
@@ -300,6 +340,7 @@ export async function provision(a: Provision, d: SetupDeps): Promise<ProvisionRe
       throw new PlatformError('setup.already-provisioned', { domain: dn });
     }
   }
+  await step('forwarders', () => s.setForwarders(forwarders));
   d.progress('admin-password', 64);
   await step('admin-password', async () => {
     const domainDn = dnFromDomain(a.domain);
@@ -326,6 +367,7 @@ export async function join(a: Join, d: SetupDeps): Promise<ProvisionResult> {
     if (!ip) throw new Error(`${a.dcHost} has no IPv4 address`);
     return ip;
   });
+  const forwarders = a.dnsForwarders.length ? a.dnsForwarders : await d.os.host.upstreamNameservers();
   // the existing DC is the only DNS server that knows the domain
   await s.base(a, [dcIp]);
   if (!(await s.samba.provisioned())) {
@@ -351,12 +393,13 @@ export async function join(a: Join, d: SetupDeps): Promise<ProvisionResult> {
         `--site=${a.siteName}`,
         '--option=idmap_ldb:use rfc2307 = yes',
       ];
-      if (a.dnsForwarders.length) argv.push(`--option=dns forwarder = ${a.dnsForwarders.join(' ')}`);
+      if (forwarders.length) argv.push(`--option=dns forwarder = ${forwarders.join(' ')}`);
       if (level === '2016') argv.push('--option=ad dc functional level = 2016');
       // the password goes through the environment (Samba's credential parser reads PASSWD), not argv
       await s.samba.tool(argv, { timeoutMs: 1_800_000, env: { PASSWD: a.password } });
     });
   }
+  await step('forwarders', () => s.setForwarders(forwarders));
   await s.startDc(a.hostIp, a.domain, [dcIp]);
   await s.timeServer(a);
   return s.finish({ role: 'dc', domain: a.domain, fqdn: a.fqdn, idBase: null });

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /** Implementations of the Phase 1 operations. Each one does exactly what its catalogue entry says. */
 import { randomBytes } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import { PlatformError, platformVersion } from '@opendc/shared';
 import type { ImplementedOp, OpParsedArgs, OpResult } from '@opendc/shared/agent';
 import type { AgentSocket, NodeRole } from '@opendc/shared/manifest';
@@ -138,11 +137,11 @@ export const implementations: Impls = {
     return { unit: args.unit };
   },
   'setup.status': async (_args, ctx) => {
-    const [state, info, addrs, resolv] = await Promise.all([
+    const [state, info, addrs, nameservers] = await Promise.all([
       ctx.node.read(),
       ctx.os.system.info(),
       ctx.os.host.addresses().catch(() => []),
-      readFile('/etc/resolv.conf', 'utf8').catch(() => ''),
+      ctx.os.host.upstreamNameservers().catch(() => []),
     ]);
     const tokenPresent = (await ctx.token.read()) !== null;
     return {
@@ -156,7 +155,7 @@ export const implementations: Impls = {
       addresses: addrs
         .filter((a) => a.family === 'inet')
         .map(({ iface, address, prefix, dynamic }) => ({ iface, address, prefix, dynamic })),
-      nameservers: [...resolv.matchAll(/^\s*nameserver\s+(\S+)/gm)].map((m) => m[1] ?? '').filter(Boolean),
+      nameservers,
     };
   },
   'setup.preflight': async (args, ctx) => preflight(args, ctx.os, new SambaLocal(ctx.os).samDb),

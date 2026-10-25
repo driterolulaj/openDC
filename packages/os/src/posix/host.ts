@@ -142,6 +142,11 @@ export function parseChronyTracking(csv: string): TimeSync {
   };
 }
 
+/** nameserver lines of a resolv.conf */
+export function parseNameservers(text: string): string[] {
+  return [...text.matchAll(/^\s*nameserver\s+(\S+)/gm)].map((m) => m[1] ?? '').filter(Boolean);
+}
+
 /** gid of a group from /etc/group (Node has no getgrnam). */
 export async function groupId(groupFile: string, name: string): Promise<number | null> {
   const text = await readFile(groupFile, 'utf8').catch(() => '');
@@ -226,6 +231,17 @@ export class PosixHostActions implements HostActions {
     if (o.searchDomains.length) lines.push(`search ${o.searchDomains.join(' ')}`);
     for (const ns of o.nameservers) lines.push(`nameserver ${ns}`);
     await writeSystemFile(this.#p('/etc/resolv.conf'), lines.join('\n') + '\n', 0o644, { replaceSymlink: true });
+  }
+
+  async upstreamNameservers(): Promise<string[]> {
+    // systemd-resolved keeps the upstream list here; /etc/resolv.conf then only names its 127.0.0.53 stub
+    const files = ['/run/systemd/resolve/resolv.conf', '/etc/resolv.conf'];
+    for (const f of files) {
+      const text = await readFile(this.#p(f), 'utf8').catch(() => '');
+      const ns = parseNameservers(text).filter((n) => !/^(127\.|::1$|0\.0\.0\.0$)/.test(n));
+      if (ns.length) return ns;
+    }
+    return [];
   }
 
   async addresses(): Promise<InterfaceAddress[]> {

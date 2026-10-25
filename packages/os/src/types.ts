@@ -195,6 +195,11 @@ export interface HostActions {
   /** Writes the stub resolver configuration; `freePort53` also stops a local stub resolver on port 53. */
   configureResolver(o: { nameservers: string[]; searchDomains: string[]; freePort53: boolean }): Promise<void>;
   addresses(): Promise<InterfaceAddress[]>;
+  /**
+   * The real upstream DNS servers of this host (behind a local stub resolver such as systemd-resolved),
+   * never loopback addresses.
+   */
+  upstreamNameservers(): Promise<string[]>;
   listening(): Promise<ListeningSocket[]>;
   filesystem(path: string): Promise<{ type: string; freeBytes: number }>;
   timeSync(): Promise<TimeSync>;

@@ -18,6 +18,8 @@ export default defineConfig({
   use: {
     baseURL: process.env.OPENDC_URL ?? 'https://127.0.0.1:8443/',
     ignoreHTTPSErrors: true,
+    // a missing element fails the step instead of waiting for the whole test timeout
+    actionTimeout: 30_000,
     locale: 'en-US',
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
