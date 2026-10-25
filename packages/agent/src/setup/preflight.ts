@@ -104,7 +104,20 @@ export function sntpOffset(host: string, timeoutMs = 3000): Promise<number | nul
   });
 }
 
-export async function preflight(a: Args, os: OsActions, samDb: string): Promise<PreflightResult> {
+/** Samba AD DC processes, which ss reports by task name: "samba", "dns[master]", "kdc(2)", "ldap[master]", ... */
+export function isSambaProcess(name: string | null): boolean {
+  const base = (name ?? '').replace(/[[(].*$/, '');
+  return (
+    SAMBA_PROCESSES.has(base) ||
+    /^(dns|kdc|ldap|cldap|kpasswd|rpc|dcesrv|nbt|drepl|wrepl|ntp_signd|s3fs|winbindd|smbd|nmbd)/.test(base)
+  );
+}
+
+/**
+ * `resume`: an earlier setup of this host stopped half-way (domain database present, setup token still
+ * there). Then an existing database and Samba's own listening ports are expected and only reported.
+ */
+export async function preflight(a: Args, os: OsActions, samDb: string, resume = false): Promise<PreflightResult> {
   const checks: PreflightCheck[] = [];
   const add = (id: PreflightCheckId, status: Status, params: Record<string, string | number> = {}): void => {
     checks.push({ id, status, params });
@@ -126,7 +139,7 @@ export async function preflight(a: Args, os: OsActions, samDb: string): Promise<
     () => true,
     () => false,
   );
-  add('not-provisioned', provisioned ? 'fail' : 'pass', { path: samDb });
+  add('not-provisioned', !provisioned ? 'pass' : resume ? 'warn' : 'fail', { path: samDb });
 
   // names
   const [host = '', ...rest] = a.fqdn.toLowerCase().split('.');
@@ -152,13 +165,13 @@ export async function preflight(a: Args, os: OsActions, samDb: string): Promise<
   add('ip-assigned', mine ? 'pass' : 'fail', { ip: a.hostIp, found: addrs.map((x) => x.address).join(', ') });
   if (mine) add('ip-static', mine.dynamic ? 'warn' : 'pass', { ip: a.hostIp, iface: mine.iface });
   const listening = await os.host.listening().catch(() => []);
-  const on53 = listening.filter((l) => l.port === 53 && !SAMBA_PROCESSES.has(l.process ?? ''));
+  const on53 = listening.filter((l) => l.port === 53 && !isSambaProcess(l.process));
   const stubOnly = on53.length > 0 && on53.every((l) => (l.process ?? '').startsWith('systemd-resolve'));
   add('port-53', on53.length === 0 ? 'pass' : stubOnly ? 'warn' : 'fail', {
     processes: [...new Set(on53.map((l) => l.process ?? '?'))].join(', '),
   });
   const busy = listening.filter(
-    (l) => DC_PORTS.some((p) => p.proto === l.proto && p.port === l.port) && !SAMBA_PROCESSES.has(l.process ?? ''),
+    (l) => DC_PORTS.some((p) => p.proto === l.proto && p.port === l.port) && !isSambaProcess(l.process),
   );
   add('ports', busy.length ? 'fail' : 'pass', {
     ports: busy.map((l) => `${l.proto}/${String(l.port)} (${l.process ?? '?'})`).join(', '),

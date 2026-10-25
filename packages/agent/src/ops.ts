@@ -158,7 +158,13 @@ export const implementations: Impls = {
       nameservers,
     };
   },
-  'setup.preflight': async (args, ctx) => preflight(args, ctx.os, new SambaLocal(ctx.os).samDb),
+  'setup.preflight': async (args, ctx) =>
+    preflight(
+      args,
+      ctx.os,
+      new SambaLocal(ctx.os).samDb,
+      (await ctx.token.read()) !== null && (await ctx.node.read()) === null,
+    ),
   'samba.provision': async (args, ctx) =>
     provision(args, {
       os: ctx.os,

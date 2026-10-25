@@ -120,3 +120,10 @@ test('smb.conf dns forwarder: replaced in [global], added when missing, removed 
   );
   assert.equal(withDnsForwarder(conf, []), '[global]\n\trealm = X\n\n[sysvol]\n\tpath = /x\n');
 });
+
+test('pre-flight recognises Samba AD task names as Samba (resume of an unfinished setup)', async () => {
+  const { isSambaProcess } = await import('../setup/preflight.ts');
+  for (const p of ['samba', 'dns[master]', 'kdc(3)', 'ldap[master]', 'smbd', 'winbindd'])
+    assert.ok(isSambaProcess(p), p);
+  for (const p of ['systemd-resolve', 'named', 'slapd', null]) assert.ok(!isSambaProcess(p), String(p));
+});

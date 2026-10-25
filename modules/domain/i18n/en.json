@@ -48,9 +48,9 @@
       },
       "not-provisioned": {
         "pass": "No existing Samba domain database.",
-        "warn": "",
+        "warn": "An unfinished setup left a domain database ({{path}}); running setup again resumes it.",
         "fail": "A Samba domain database already exists ({{path}}).",
-        "fix": "Use a fresh host, or remove the old Samba installation completely."
+        "fix": "If it belongs to another domain or setup, use a fresh host or remove the Samba installation completely."
       },
       "hostname": {
         "pass": "Host name {{host}} is valid.",

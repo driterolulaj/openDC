@@ -48,9 +48,9 @@
       },
       "not-provisioned": {
         "pass": "Keine vorhandene Samba-Domänendatenbank.",
-        "warn": "",
+        "warn": "Ein abgebrochenes Setup hat eine Domänendatenbank hinterlassen ({{path}}); ein erneuter Start setzt es fort.",
         "fail": "Es gibt bereits eine Samba-Domänendatenbank ({{path}}).",
-        "fix": "Verwenden Sie einen frischen Host oder entfernen Sie die alte Samba-Installation vollständig."
+        "fix": "Gehört sie zu einer anderen Domäne oder einem anderen Setup, verwenden Sie einen frischen Host oder entfernen Sie die Samba-Installation vollständig."
       },
       "hostname": {
         "pass": "Hostname {{host}} ist gültig.",
