@@ -17,6 +17,20 @@ export const operations = [
     "auth": "session"
   },
   {
+    "operationId": "approveIssuer",
+    "method": "POST",
+    "path": "/api/v1/pki/requests/:nodeGuid/approve",
+    "tag": "pki",
+    "summary": "Sign a DC's issuing CA with the root key (on the DC that holds it; type the DC's host name)",
+    "pathParams": [
+      "nodeGuid"
+    ],
+    "queryParams": [],
+    "body": true,
+    "stream": false,
+    "auth": "session"
+  },
+  {
     "operationId": "beginTotp",
     "method": "POST",
     "path": "/api/v1/session/totp/begin",
@@ -503,6 +517,18 @@ export const operations = [
     "auth": "session"
   },
   {
+    "operationId": "getPki",
+    "method": "GET",
+    "path": "/api/v1/pki",
+    "tag": "pki",
+    "summary": "Root and issuing CAs, pending issuer requests, issued certificates",
+    "pathParams": [],
+    "queryParams": [],
+    "body": false,
+    "stream": false,
+    "auth": "pki.read"
+  },
+  {
     "operationId": "getPolicy",
     "method": "GET",
     "path": "/api/v1/policies/:id",
@@ -928,6 +954,20 @@ export const operations = [
     ],
     "queryParams": [],
     "body": false,
+    "stream": false,
+    "auth": "session"
+  },
+  {
+    "operationId": "revokeCertificate",
+    "method": "POST",
+    "path": "/api/v1/pki/certificates/:serial/revoke",
+    "tag": "pki",
+    "summary": "Revoke a certificate (type its serial to confirm); the issuing DC publishes a new CRL",
+    "pathParams": [
+      "serial"
+    ],
+    "queryParams": [],
+    "body": true,
     "stream": false,
     "auth": "session"
   },

@@ -11,10 +11,11 @@
  */
 import { randomBytes } from 'node:crypto';
 import { constants } from 'node:fs';
-import { access, chmod, copyFile, mkdir, open, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, chmod, mkdir, open, readFile, rm, writeFile } from 'node:fs/promises';
 import { networkInterfaces } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { exec, type OsActions } from '@opendc/os';
+import { ldapCaBundle } from './samba/pki.ts';
 import { SetupToken } from './setup/token.ts';
 import { NodeStateFile } from './state.ts';
 
@@ -99,13 +100,17 @@ export async function initSecrets(
 
   const ldapCa = join(dir, 'ldap-ca.pem');
   const sambaCa = join(os.facts.samba.paths().tlsDir, 'ca.pem');
-  if (await exists(sambaCa)) {
+  const opendcCas = join(os.facts.paths.etc, 'pki', 'ca-bundle.pem');
+  if ((await exists(sambaCa)) || (await exists(opendcCas))) {
+    // the OpenDC CAs (once the PKI exists) and Samba's own CA: an upgrade must never drop the OpenDC part
     const current = await readFile(ldapCa, 'utf8').catch(() => null);
-    const wanted = await readFile(sambaCa, 'utf8');
+    const wanted = ldapCaBundle(
+      await readFile(opendcCas, 'utf8').catch(() => null),
+      await readFile(sambaCa, 'utf8').catch(() => null),
+    );
     if (current !== wanted) {
-      await rm(ldapCa, { force: true });
-      await copyFile(sambaCa, ldapCa);
-      log('installed the local Samba CA for LDAPS verification', { source: sambaCa });
+      await writeFile(ldapCa, wanted, { mode: 0o600 });
+      log('installed the CA bundle for LDAPS verification');
     }
   } else if (!(await exists(ldapCa))) {
     // Not a DC (or Samba not provisioned yet): an empty bundle means "system CAs" to the API.
@@ -113,8 +118,9 @@ export async function initSecrets(
   }
 
   // LoadCredential= fails on a missing file, so the API's credentials exist (empty) before setup
-  for (const name of ['ldap-svc', 'ldap-watch']) {
+  for (const name of ['ldap-svc', 'ldap-watch', 'pki/node.key', 'pki/node.pem']) {
     const p = join(dir, name);
+    await mkdir(dirname(p), { recursive: true, mode: 0o700 });
     if (!(await exists(p))) await writeFile(p, '', { mode: 0o600 });
   }
 

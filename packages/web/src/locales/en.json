@@ -30,7 +30,8 @@
     "passwordPolicies": "Password policies",
     "account": "Account",
     "policies": "Policies",
-    "dns": "DNS"
+    "dns": "DNS",
+    "certificates": "Certificates"
   },
   "home": {
     "title": "Overview",
@@ -541,5 +542,34 @@
     "forwarders-hint": "Up to four DNS servers for Internet names, separated by spaces.",
     "scavenging": "Scavenge stale dynamic records (zones with aging turned on)",
     "save-restart": "Save and restart Samba"
+  },
+  "pki": {
+    "title": "Certificates",
+    "root": "Root CA",
+    "valid": "Valid {{from}} to {{to}}",
+    "holder": "Key on {{host}}",
+    "no-root": "The internal CA isn't set up yet. It is created with the first domain controller; on an existing domain run \"sudo opendc ca init\" on one DC.",
+    "request": "{{host}} asks for its issuing CA",
+    "request-hint": "Requested on {{at}}. Approve on the domain controller that holds the root key.",
+    "approve": "Approve",
+    "approve-title": "Approve the issuing CA of {{host}}",
+    "approve-body": "The root CA signs this domain controller's issuing CA; it can then issue certificates for itself. Type the host name to confirm.",
+    "issuers": "Issuing CAs",
+    "dc": "Domain controller",
+    "valid-to": "Valid until",
+    "crl": "Revocation list",
+    "crl-state": "No. {{n}}, {{revoked}} revoked, next update {{next}}",
+    "certificates": "Issued certificates",
+    "subject": "Subject",
+    "profile": "Use",
+    "serial": "Serial",
+    "revoked": "revoked {{at}}",
+    "revoke": "Revoke",
+    "revoke-title": "Revoke a certificate",
+    "revoke-body": "The certificate is listed on its issuer's revocation list; peers refuse it within a minute. Type the serial number to confirm.",
+    "p-node": "Node",
+    "p-web": "Console",
+    "p-ldaps": "LDAPS",
+    "fingerprint": "SHA-256 {{value}}"
   }
 }

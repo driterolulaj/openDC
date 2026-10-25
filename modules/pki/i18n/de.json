@@ -1,0 +1,10 @@
+{
+  "module": {
+    "title": "Zertifikate",
+    "description": "Interne Zertifizierungsstelle: CAs, Knoten-, Konsolen- und LDAPS-Zertifikate, Sperrung."
+  },
+  "perm": {
+    "read": "Zertifizierungsstellen und Zertifikate anzeigen",
+    "manage": "Ausstellende CAs genehmigen und Zertifikate sperren"
+  }
+}

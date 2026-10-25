@@ -12,6 +12,7 @@ import { runSdPropIfPdc } from './samba/sdprop.ts';
 import { fillPosixIds } from './samba/posix.ts';
 import { PlatformBootstrap } from './samba/platform.ts';
 import * as dnsOps from './samba/dns.ts';
+import { Pki } from './samba/pki.ts';
 import { eq } from '@opendc/shared/ldap';
 import { reconcilePasswordPolicies } from './samba/policy-password.ts';
 import { modifyProtected } from './samba/protected.ts';
@@ -58,6 +59,9 @@ export const timeouts: Partial<Record<ImplementedOp, number>> = {
   'samba.level.raise': 600_000,
   'samba.passwordPolicy.set': 300_000,
   'policy.password.reconcile': 600_000,
+  'ca.init': 300_000,
+  'pki.maintain': 300_000,
+  'cert.revoke': 120_000,
   'directory.posixIds.fill': 300_000,
 };
 
@@ -220,6 +224,13 @@ export const implementations: Impls = {
   'dns.zone.setAging': async (args, ctx) => dnsOps.zoneSetAging(new SambaLocal(ctx.os), args),
   'dns.server.show': async (_args, ctx) => dnsOps.serverShow(new SambaLocal(ctx.os)),
   'dns.server.configure': async (args, ctx) => dnsOps.serverConfigure(ctx.os, new SambaLocal(ctx.os), args),
+  'ca.init': async (_args, ctx) => new Pki(ctx.os, new SambaLocal(ctx.os)).initRoot(),
+  'ca.issuer.create': async (args, ctx) => new Pki(ctx.os, new SambaLocal(ctx.os)).approveIssuer(args.nodeGuid),
+  'pki.maintain': async (args, ctx) =>
+    new Pki(ctx.os, new SambaLocal(ctx.os)).maintain(
+      args.renewFraction !== undefined ? { renewFraction: args.renewFraction } : {},
+    ),
+  'cert.revoke': async (args, ctx) => new Pki(ctx.os, new SambaLocal(ctx.os)).revoke(args.serial, args.reason),
   'platform.watchAccess.ensure': async (_args, ctx) => {
     const samba = new SambaLocal(ctx.os);
     if (!(await samba.provisioned())) throw new PlatformError('samba.not-provisioned');

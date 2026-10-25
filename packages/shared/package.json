@@ -54,6 +54,11 @@
       "types": "./src/dns/index.ts",
       "development": "./src/dns/index.ts",
       "default": "./dist/dns/index.js"
+    },
+    "./pki": {
+      "types": "./src/pki/index.ts",
+      "development": "./src/pki/index.ts",
+      "default": "./dist/pki/index.js"
     }
   },
   "files": [

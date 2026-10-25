@@ -186,7 +186,8 @@
       "secrets": "Dienst-Anmeldedaten werden gespeichert",
       "config": "Knotenkonfiguration wird geschrieben",
       "certificate": "Konsolenzertifikat wird erneuert",
-      "done": "Fertig"
+      "done": "Fertig",
+      "pki": "Interne Zertifizierungsstelle einrichten"
     }
   }
 }

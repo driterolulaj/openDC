@@ -125,6 +125,8 @@ export const catalogue = {
   'ca.issuer.importSigned': { sockets: [A, C], risk: 'tier0', phase: 4 },
   'ca.root.export': { sockets: [C], risk: 'tier0', confirm: 'typed', phase: 4 },
   'ca.root.offline': { sockets: [C], risk: 'tier0', confirm: 'typed', phase: 4 },
+  // this node's issuing CA (request / install), certificates (issue / renew) and CRL in one idempotent run
+  'pki.maintain': { sockets: [W, C], risk: 'write', phase: 3 },
   'cert.issue': { sockets: [A, W], risk: 'write', phase: 3 },
   'cert.revoke': { sockets: [A], risk: 'write', confirm: 'typed', phase: 3 },
   'cert.install': { sockets: [W], risk: 'write', phase: 3 },

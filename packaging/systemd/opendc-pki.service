@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Internal PKI maintenance on a DC (ADR-0007): issuing CA, certificate renewal at 2/3 of their life, CRL refresh.
+[Unit]
+Description=OpenDC PKI maintenance
+After=samba-ad-dc.service
+ConditionPathExists=/etc/opendc/node.json
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/opendc/node/bin/node --disable-warning=ExperimentalWarning /usr/lib/opendc/app/node_modules/@opendc/agent/dist/main.js --pki-maintain
+UMask=0077
+NoNewPrivileges=yes
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictRealtime=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK

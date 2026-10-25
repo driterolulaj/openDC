@@ -30,7 +30,8 @@
     "passwordPolicies": "Passwortrichtlinien",
     "account": "Konto",
     "policies": "Richtlinien",
-    "dns": "DNS"
+    "dns": "DNS",
+    "certificates": "Zertifikate"
   },
   "home": {
     "title": "Übersicht",
@@ -541,5 +542,34 @@
     "forwarders-hint": "Bis zu vier DNS-Server für Internetnamen, durch Leerzeichen getrennt.",
     "scavenging": "Veraltete dynamische Einträge bereinigen (Zonen mit eingeschalteter Alterung)",
     "save-restart": "Speichern und Samba neu starten"
+  },
+  "pki": {
+    "title": "Zertifikate",
+    "root": "Stamm-CA",
+    "valid": "Gültig von {{from}} bis {{to}}",
+    "holder": "Schlüssel auf {{host}}",
+    "no-root": "Die interne CA ist noch nicht eingerichtet. Sie entsteht mit dem ersten Domänencontroller; in einer bestehenden Domäne führen Sie auf einem DC \"sudo opendc ca init\" aus.",
+    "request": "{{host}} fordert seine ausstellende CA an",
+    "request-hint": "Angefordert am {{at}}. Genehmigen Sie auf dem Domänencontroller mit dem Stammschlüssel.",
+    "approve": "Genehmigen",
+    "approve-title": "Ausstellende CA von {{host}} genehmigen",
+    "approve-body": "Die Stamm-CA signiert die ausstellende CA dieses Domänencontrollers; er kann dann Zertifikate für sich ausstellen. Geben Sie zur Bestätigung den Hostnamen ein.",
+    "issuers": "Ausstellende CAs",
+    "dc": "Domänencontroller",
+    "valid-to": "Gültig bis",
+    "crl": "Sperrliste",
+    "crl-state": "Nr. {{n}}, {{revoked}} gesperrt, nächste Aktualisierung {{next}}",
+    "certificates": "Ausgestellte Zertifikate",
+    "subject": "Antragsteller",
+    "profile": "Verwendung",
+    "serial": "Seriennummer",
+    "revoked": "gesperrt {{at}}",
+    "revoke": "Sperren",
+    "revoke-title": "Zertifikat sperren",
+    "revoke-body": "Das Zertifikat kommt auf die Sperrliste seiner CA; Gegenstellen lehnen es innerhalb einer Minute ab. Geben Sie zur Bestätigung die Seriennummer ein.",
+    "p-node": "Knoten",
+    "p-web": "Konsole",
+    "p-ldaps": "LDAPS",
+    "fingerprint": "SHA-256 {{value}}"
   }
 }

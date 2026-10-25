@@ -4,6 +4,8 @@
 export const allowlist = {
   "sockets": {
     "api": [
+      "ca.issuer.create",
+      "cert.revoke",
       "directory.posixIds.fill",
       "dns.record.add",
       "dns.record.delete",
@@ -39,6 +41,7 @@ export const allowlist = {
       "file.readManaged",
       "file.restorePrevious",
       "file.writeManaged",
+      "pki.maintain",
       "platform.watchAccess.ensure",
       "policy.password.reconcile",
       "registry.commitLock",
@@ -49,6 +52,8 @@ export const allowlist = {
       "time.tracking"
     ],
     "cli": [
+      "ca.init",
+      "ca.issuer.create",
       "directory.posixIds.fill",
       "dns.server.configure",
       "dns.server.show",
@@ -56,6 +61,7 @@ export const allowlist = {
       "file.readManaged",
       "file.restorePrevious",
       "file.writeManaged",
+      "pki.maintain",
       "platform.watchAccess.ensure",
       "policy.password.reconcile",
       "registry.commitLock",
@@ -82,6 +88,7 @@ export const allowlist = {
     ]
   },
   "setup": [
+    "ca.init",
     "samba.join",
     "samba.provision",
     "setup.preflight"

@@ -7,12 +7,14 @@ import dns_dns_en from '../../../../modules/dns/i18n/en.json';
 import dns_dns_de from '../../../../modules/dns/i18n/de.json';
 import domain_domain_en from '../../../../modules/domain/i18n/en.json';
 import domain_domain_de from '../../../../modules/domain/i18n/de.json';
+import pki_pki_en from '../../../../modules/pki/i18n/en.json';
+import pki_pki_de from '../../../../modules/pki/i18n/de.json';
 import policies_policies_en from '../../../../modules/policies/i18n/en.json';
 import policies_policies_de from '../../../../modules/policies/i18n/de.json';
 
 export const moduleI18n = {
-  en: { "core": core_core_en, "dns": dns_dns_en, "domain": domain_domain_en, "policies": policies_policies_en },
-  de: { "core": core_core_de, "dns": dns_dns_de, "domain": domain_domain_de, "policies": policies_policies_de },
+  en: { "core": core_core_en, "dns": dns_dns_en, "domain": domain_domain_en, "pki": pki_pki_en, "policies": policies_policies_en },
+  de: { "core": core_core_de, "dns": dns_dns_de, "domain": domain_domain_de, "pki": pki_pki_de, "policies": policies_policies_de },
 };
 
 export interface GeneratedRoute {

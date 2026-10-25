@@ -450,3 +450,14 @@ test('registry policies may only set policy-settable keys with valid values', as
   assert.throws(() => validateRegistrySettings({ 'core.api.listenPort': 9443 }), /can't be set by a domain policy/);
   assert.throws(() => validateRegistrySettings({ 'core.session.requireTotpForTier0': 'yes' }), /invalid value/);
 });
+
+test('node RPC: the peer node is the urn:opendc:node GUID in its certificate', async () => {
+  const { peerNodeGuid } = await import('./node-rpc.ts');
+  assert.equal(
+    peerNodeGuid('DNS:dc2.example.test, URI:urn:opendc:node:6F9619FF-8B86-4011-B42D-00C04FC964FF'),
+    '6f9619ff-8b86-4011-b42d-00c04fc964ff',
+  );
+  assert.equal(peerNodeGuid('DNS:dc2.example.test'), null);
+  assert.equal(peerNodeGuid(undefined), null);
+  assert.equal(peerNodeGuid('URI:urn:opendc:node:not-a-guid'), null);
+});

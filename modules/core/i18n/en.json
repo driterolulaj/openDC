@@ -22,6 +22,7 @@
     "session-idle": "Minutes of inactivity before a console session ends.",
     "session-absolute": "Hours after login when a console session ends regardless of activity.",
     "session-require-totp": "Users with a tier-0 role must set up an authenticator app (second factor).",
-    "watcher-poll-seconds": "How often the watcher asks its domain controller for directory changes (seconds)."
+    "watcher-poll-seconds": "How often the watcher asks its domain controller for directory changes (seconds).",
+    "node-rpc-port": "Port of the node RPC listener (mutual TLS between OpenDC nodes)."
   }
 }

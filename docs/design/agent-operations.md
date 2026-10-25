@@ -166,10 +166,11 @@ Uses Kea's Unix control socket directly, which works across Kea 2.x and 3.x with
 | Op | Args | Sock | Risk | Phase |
 |---|---|---|---|---|
 | `ca.init` | `subject, keyType: ec-p256|rsa-3072, days` | C (+setup token) | T0 | 3 |
-| `ca.issuer.create` | `forNodeGuid` (root key must be online) | AC | T0 ✔c | 3 / 4 |
+| `ca.issuer.create` | `nodeGuid`: signs that DC's pending issuer request with the root key (root holder only; admin approval in the console) | AC | T0 ✔c | 3 |
 | `ca.issuer.csr / ca.issuer.importSigned` | offline root flow | AC | T0 | 4 |
 | `ca.root.export` | `targetId, passphraseSecretId` | C | T0 ✔c | 4 |
 | `ca.root.offline` | removes the root key after verifying an export exists | C | T0 ✔c | 4 |
+| `pki.maintain` | `renewFraction?` — this DC: pin the root, request or install its issuing CA, issue/renew node, web and LDAPS certificates (2/3 of life), regenerate its CRL; idempotent (timer + watcher) | W, C | W | 3 |
 | `cert.issue` | `profile ∈ {node, service, web, ldaps, kea-ha, app}, csrPem or keyId, sans[] (validated against profile rules)` | AW | W | 3 |
 | `cert.revoke` | `serial, reason` | A | W ✔c | 3 |
 | `cert.install` | `certId, fileId(s)` | W | W | 3 |

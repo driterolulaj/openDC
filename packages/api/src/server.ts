@@ -13,6 +13,7 @@ import { AuditLog } from './audit.ts';
 import { watcherRoutes } from './routes/watcher.ts';
 import { policyRoutes } from './routes/policies.ts';
 import { dnsRoutes } from './routes/dns.ts';
+import { pkiRoutes } from './routes/pki.ts';
 import type { AuthenticatedUser } from './directory.ts';
 import { JobRunner } from './jobs.ts';
 import { SESSION_COOKIE, SessionStore, type Session } from './sessions.ts';
@@ -250,6 +251,15 @@ export async function buildApi(deps: ApiDeps): Promise<Api> {
   bulkRoutes(routes, { directory, db: deps.db, jobs, audit, engineFor, templates, agent: deps.agent });
   watcherRoutes(routes, { statusPath: deps.watcherStatusPath ?? null });
   policyRoutes(routes, { directory, audit });
+  pkiRoutes(routes, {
+    directory,
+    agent: () => {
+      if (!deps.agent) throw new PlatformError('agent.unreachable', { socket: 'api', reason: 'no agent socket' });
+      return deps.agent;
+    },
+    audit,
+    confirmKey: deps.csrfKey,
+  });
   dnsRoutes(routes, {
     directory,
     agent: () => {

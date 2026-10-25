@@ -89,6 +89,25 @@ export async function run(argv: string[], d: CliDeps): Promise<number> {
       );
       return 0;
     }
+    if (cmd === 'ca' && (sub === 'init' || sub === 'maintain')) {
+      // the internal PKI (ADR-0007): create the root CA on this DC / run this DC's maintenance now
+      const actor = { actor: { name: d.user, via: 'cli' as const }, timeoutMs: 300_000 };
+      const leafs = (ls: { profile: string; serial: string; notAfter: string; renewed: boolean }[]): string[] =>
+        ls.map((l) => `${l.profile}: ${l.serial} until ${l.notAfter}${l.renewed ? ' (renewed)' : ''}`);
+      if (sub === 'init') {
+        const r = await d.client.call('ca.init', {}, actor);
+        emit(r, [`root CA ${r.fingerprint}`, `issuing CA ${r.issuer}`, ...leafs(r.leafs)].join('\n'));
+      } else {
+        // --renew-fraction 0 renews everything now (testing the renewal path); default: 2/3 of the lifetime
+        const i = argv.indexOf('--renew-fraction');
+        const fraction = i >= 0 ? Number(argv[i + 1]) : undefined;
+        if (fraction !== undefined && !(fraction >= 0 && fraction <= 1))
+          throw new UsageError('--renew-fraction takes a number from 0 to 1');
+        const r = await d.client.call('pki.maintain', fraction === undefined ? {} : { renewFraction: fraction }, actor);
+        emit(r, [`${r.state}${r.issuer ? ` (${r.issuer})` : ''}`, ...leafs(r.leafs)].join('\n'));
+      }
+      return 0;
+    }
     if (cmd !== 'registry') throw new UsageError(t('unknown-command', { command: cmd }));
 
     const info = await d.client.call('system.info', {}, { actor: { name: d.user, via: 'cli' } });

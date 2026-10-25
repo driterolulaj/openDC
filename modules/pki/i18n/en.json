@@ -1,0 +1,10 @@
+{
+  "module": {
+    "title": "Certificates",
+    "description": "Internal certificate authority: CAs, node, console and LDAPS certificates, revocation."
+  },
+  "perm": {
+    "read": "View certificate authorities and certificates",
+    "manage": "Approve issuing CAs and revoke certificates"
+  }
+}

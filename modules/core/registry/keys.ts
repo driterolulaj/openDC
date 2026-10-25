@@ -81,6 +81,14 @@ export const keys: RegistryKeyDefinition[] = [
     policySettable: true,
   },
   {
+    name: 'core.nodeRpc.port',
+    schema: port,
+    default: 8444,
+    description: 'core:keys.node-rpc-port',
+    policySettable: false,
+    effect: 'restart',
+  },
+  {
     name: 'core.watcher.pollSeconds',
     schema: z.number().int().min(1).max(300),
     default: 5,

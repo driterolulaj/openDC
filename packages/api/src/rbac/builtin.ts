@@ -28,6 +28,7 @@ export const BUILTIN_ROLES: readonly Role[] = [
       'domain.rbac.read',
       'policies.policy.read',
       'dns.zones.read',
+      'pki.read',
     ],
     tier0: false,
     builtin: true,

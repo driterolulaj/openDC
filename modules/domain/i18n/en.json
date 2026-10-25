@@ -186,7 +186,8 @@
       "secrets": "Storing service credentials",
       "config": "Writing the node configuration",
       "certificate": "Renewing the console certificate",
-      "done": "Done"
+      "done": "Done",
+      "pki": "Setting up the internal certificate authority"
     }
   }
 }

@@ -283,6 +283,22 @@ export const permissions = [
     ]
   },
   {
+    "module": "pki",
+    "name": "pki.manage",
+    "title": "pki:perm.manage",
+    "scope": "global",
+    "tier0": true,
+    "implies": [
+      "pki.read"
+    ]
+  },
+  {
+    "module": "pki",
+    "name": "pki.read",
+    "title": "pki:perm.read",
+    "scope": "global"
+  },
+  {
     "module": "policies",
     "name": "policies.policy.manage",
     "title": "policies:perm.manage",

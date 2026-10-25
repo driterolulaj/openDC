@@ -15680,6 +15680,414 @@
         }
       }
     },
+    "/api/v1/pki": {
+      "get": {
+        "operationId": "getPki",
+        "summary": "Root and issuing CAs, pending issuer requests, issued certificates",
+        "tags": [
+          "pki"
+        ],
+        "x-opendc-auth": {
+          "permission": "pki.read"
+        },
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "root": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "subject": {
+                              "type": "string"
+                            },
+                            "notBefore": {
+                              "type": "string"
+                            },
+                            "notAfter": {
+                              "type": "string"
+                            },
+                            "fingerprint": {
+                              "type": "string"
+                            },
+                            "holder": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "subject",
+                            "notBefore",
+                            "notAfter",
+                            "fingerprint",
+                            "holder"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "issuers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "subject": {
+                            "type": "string"
+                          },
+                          "notBefore": {
+                            "type": "string"
+                          },
+                          "notAfter": {
+                            "type": "string"
+                          },
+                          "fingerprint": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "host": {
+                            "type": "string"
+                          },
+                          "crlNumber": {
+                            "type": "number"
+                          },
+                          "crlNextUpdate": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "revoked": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "subject",
+                          "notBefore",
+                          "notAfter",
+                          "fingerprint",
+                          "id",
+                          "host",
+                          "crlNumber",
+                          "crlNextUpdate",
+                          "revoked"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "requests": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "nodeGuid": {
+                            "type": "string"
+                          },
+                          "host": {
+                            "type": "string"
+                          },
+                          "requestedAt": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "nodeGuid",
+                          "host",
+                          "requestedAt",
+                          "state"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "certificates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "serial": {
+                            "type": "string"
+                          },
+                          "issuerId": {
+                            "type": "string"
+                          },
+                          "profile": {
+                            "type": "string",
+                            "enum": [
+                              "root",
+                              "issuer",
+                              "node",
+                              "web",
+                              "ldaps"
+                            ]
+                          },
+                          "subject": {
+                            "type": "string"
+                          },
+                          "sans": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "nodeGuid": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^[0-9a-f-]{36}$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "notBefore": {
+                            "type": "string"
+                          },
+                          "notAfter": {
+                            "type": "string"
+                          },
+                          "revoked": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "at": {
+                                    "type": "string"
+                                  },
+                                  "reason": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "at",
+                                  "reason"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "serial",
+                          "issuerId",
+                          "profile",
+                          "subject",
+                          "sans",
+                          "nodeGuid",
+                          "notBefore",
+                          "notAfter",
+                          "revoked"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "root",
+                    "issuers",
+                    "requests",
+                    "certificates"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pki/certificates/{serial}/revoke": {
+      "post": {
+        "operationId": "revokeCertificate",
+        "summary": "Revoke a certificate (type its serial to confirm); the issuing DC publishes a new CRL",
+        "tags": [
+          "pki"
+        ],
+        "x-opendc-auth": "session",
+        "parameters": [
+          {
+            "name": "serial",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9A-Fa-f]{2,64}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "default": "unspecified",
+                    "type": "string",
+                    "enum": [
+                      "unspecified",
+                      "keyCompromise",
+                      "superseded",
+                      "cessationOfOperation"
+                    ]
+                  },
+                  "confirm": {
+                    "type": "string",
+                    "maxLength": 64
+                  }
+                },
+                "required": [
+                  "confirm"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "serial": {
+                      "type": "string"
+                    },
+                    "issuerId": {
+                      "type": "string"
+                    },
+                    "crlUpdated": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "serial",
+                    "issuerId",
+                    "crlUpdated"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pki/requests/{nodeGuid}/approve": {
+      "post": {
+        "operationId": "approveIssuer",
+        "summary": "Sign a DC's issuing CA with the root key (on the DC that holds it; type the DC's host name)",
+        "tags": [
+          "pki"
+        ],
+        "x-opendc-auth": "session",
+        "parameters": [
+          {
+            "name": "nodeGuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "confirm": {
+                    "type": "string",
+                    "maxLength": 64
+                  }
+                },
+                "required": [
+                  "confirm"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "issuer": {
+                      "type": "string"
+                    },
+                    "host": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "issuer",
+                    "host"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/policies": {
       "get": {
         "operationId": "listPolicies",

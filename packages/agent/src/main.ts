@@ -14,6 +14,7 @@ import { AgentServer, type LogLine } from './server.ts';
 import { initSecrets } from './init-secrets.ts';
 import { SambaLocal } from './samba/local.ts';
 import { runSdPropIfPdc } from './samba/sdprop.ts';
+import { Pki } from './samba/pki.ts';
 import { SetupToken } from './setup/token.ts';
 import { NodeStateFile, SecretFiles } from './state.ts';
 
@@ -55,6 +56,7 @@ async function main(): Promise<void> {
       role: { type: 'string' },
       'init-secrets': { type: 'boolean' },
       sdprop: { type: 'boolean' },
+      'pki-maintain': { type: 'boolean' },
     },
   });
   if (values.sdprop) {
@@ -62,6 +64,15 @@ async function main(): Promise<void> {
     const os = await detectActions();
     const r = await runSdPropIfPdc(new SambaLocal(os), (await os.system.info()).hostname);
     log({ level: 'info', msg: 'sdprop', ...r });
+    return;
+  }
+  if (values['pki-maintain']) {
+    // opendc-pki.timer: renew this node's certificates, install its issuing CA, refresh its CRL (ADR-0007)
+    const os = await detectActions();
+    const samba = new SambaLocal(os);
+    if (!(await samba.provisioned())) return;
+    const r = await new Pki(os, samba).maintain();
+    log({ level: 'info', msg: 'pki maintenance', ...r });
     return;
   }
   if (values['init-secrets']) {

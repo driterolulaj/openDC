@@ -6,6 +6,13 @@
  */
 import { z } from 'zod';
 import { dnsFqdn, recordData, recordName } from '../dns/index.ts';
+
+const pkiLeaf = z.object({
+  profile: z.enum(['node', 'web', 'ldaps']),
+  serial: z.string(),
+  notAfter: z.string(),
+  renewed: z.boolean(),
+});
 import {
   joinArgs,
   preflightArgs,
@@ -212,6 +219,35 @@ export const ops = {
       scavenging: z.boolean().optional(),
     }),
     result: z.object({ forwarders: z.array(z.string()), scavenging: z.boolean(), restarted: z.boolean() }),
+  },
+  'ca.init': {
+    v: 1,
+    args: empty,
+    result: z.object({ fingerprint: z.string(), issuer: z.string(), leafs: z.array(pkiLeaf) }),
+  },
+  'ca.issuer.create': {
+    v: 1,
+    args: z.strictObject({ nodeGuid: z.uuid() }),
+    result: z.object({ issuer: z.string(), host: z.string() }),
+  },
+  'pki.maintain': {
+    v: 1,
+    /** renew when this fraction of the lifetime has passed (default 2/3; lower values force renewal in tests) */
+    args: z.strictObject({ renewFraction: z.number().min(0).max(1).optional() }),
+    result: z.object({
+      state: z.enum(['no-root', 'awaiting-approval', 'ready']),
+      issuer: z.string().nullable(),
+      leafs: z.array(pkiLeaf),
+      crl: z.boolean(),
+    }),
+  },
+  'cert.revoke': {
+    v: 1,
+    args: z.strictObject({
+      serial: z.string().regex(/^[0-9A-Fa-f]{2,64}$/),
+      reason: z.enum(['unspecified', 'keyCompromise', 'superseded', 'cessationOfOperation']),
+    }),
+    result: z.object({ serial: z.string(), issuerId: z.string(), crlUpdated: z.boolean() }),
   },
   'platform.watchAccess.ensure': { v: 1, args: empty, result: z.object({ changed: z.array(z.string()) }) },
   'directory.posixIds.fill': {

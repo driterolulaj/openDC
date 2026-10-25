@@ -20,6 +20,7 @@ import { modifyRecord, unicodePwd, first } from './ldif.ts';
 import { SambaLocal } from './local.ts';
 import { PlatformBootstrap } from './platform.ts';
 import { withDnsForwarder } from './smbconf.ts';
+import { Pki } from './pki.ts';
 import { runSdPropIfPdc } from './sdprop.ts';
 import type { NodeStateFile, SecretFiles } from '../state.ts';
 import { servicePassword } from '../state.ts';
@@ -257,6 +258,13 @@ class Setup {
       this.d.onRole(o.role);
     });
     await step('certificate', () => this.d.afterSetup());
+    // internal PKI (ADR-0007): the first DC creates the root CA; another DC requests its issuing CA
+    progress('pki', 98);
+    await step('pki', async () => {
+      const pki = new Pki(os, this.samba);
+      if (o.role === 'primary-dc') await pki.initRoot();
+      else await pki.maintain();
+    });
     progress('done', 100);
     await this.d.token.destroy();
     return {

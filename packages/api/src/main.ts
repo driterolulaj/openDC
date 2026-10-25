@@ -9,6 +9,7 @@
  */
 import { randomBytes } from 'node:crypto';
 import { mkdirSync, readFileSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { hostname } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,6 +21,9 @@ import { registryKeys } from '@opendc/modules/generated/registry';
 import { detectFacts } from '@opendc/os';
 import { apiMigrations } from './db.ts';
 import { ingestInbox } from './audit-inbox.ts';
+import { startNodeRpc } from './node-rpc.ts';
+import { PlatformObjects } from './directory/platform-objects.ts';
+import { pkiIssuer } from '@opendc/shared/pki';
 import { DirectoryAuth } from './directory.ts';
 import { ServiceLdap, type ServiceCredential } from './directory/ldap.ts';
 import { DirectoryService } from './directory/service.ts';
@@ -169,6 +173,48 @@ async function main(): Promise<void> {
   const port = Number(process.env.OPENDC_PORT ?? registry.get<number>('core.api.listenPort'));
   await api.app.listen({ host, port });
   api.app.log.info({ version: platformVersion, nodeId, ldap: urls, agent: agentSocket, tls: !dev }, 'opendc-api ready');
+
+  // node RPC (mTLS between nodes, ADR-0007 §4): only once this node has its certificate
+  const nodeKey = credential('node-key');
+  const nodeCert = credential('node-cert');
+  if (facts && nodeKey?.length && nodeCert?.length) {
+    const caFile = join(facts.paths.etc, 'pki', 'ca-bundle.pem');
+    const issuers = new PlatformObjects({
+      dir: () => {
+        if (!dir.service) throw new PlatformError('directory.not-configured');
+        return dir.service;
+      },
+      path: ['PKI', 'Issuers'],
+      kind: 'pki.issuer',
+      schemaVersion: 1,
+      data: pkiIssuer,
+      name: (i) => i.id,
+    });
+    try {
+      await startNodeRpc(
+        {
+          key: nodeKey,
+          cert: nodeCert,
+          ca: () => readFile(caFile, 'utf8'),
+          crls: async () =>
+            (await issuers.list().catch(() => [])).flatMap((i) => (i.data.crlPem ? [i.data.crlPem] : [])),
+          node: async (guid) => {
+            if (!dir.service) return null;
+            const e = await dir.service.entryByGuid(guid, ['objectClass', 'userAccountControl', 'dNSHostName']);
+            const classes = (Array.isArray(e.objectClass) ? e.objectClass : [e.objectClass]).map(String);
+            if (!classes.includes('computer')) return null;
+            return { name: String(e.dNSHostName ?? guid), enabled: (Number(e.userAccountControl) & 2) === 0 };
+          },
+          self: nodeId,
+          log: (level, msg, extra) => api.app.log[level](extra ?? {}, msg),
+        },
+        { host, port: registry.get<number>('core.nodeRpc.port') },
+      );
+      api.app.log.info({ port: registry.get<number>('core.nodeRpc.port') }, 'node RPC listening');
+    } catch (e) {
+      api.app.log.warn({ err: e }, 'node RPC not started');
+    }
+  }
 
   for (const sig of ['SIGTERM', 'SIGINT'] as const) {
     process.on(sig, () => {
