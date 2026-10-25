@@ -104,7 +104,7 @@
     "netbios": "NetBIOS-Domänenname",
     "netbios-hint": "Bis zu 15 Zeichen; erscheint als DOMÄNE\\benutzer.",
     "dc-host": "Bestehender Domänencontroller",
-    "dc-host-hint": "IP-Adresse oder FQDN eines laufenden DCs der Domäne.",
+    "dc-host-hint": "IP-Adresse eines laufenden DCs der Domäne (ein Name nur, wenn dieser Host ihn bereits auflösen kann).",
     "forwarders": "DNS-Weiterleitungen",
     "forwarders-hint": "Upstream-DNS-Server für Internetnamen (durch Kommas getrennt).",
     "ntp": "Zeitserver",

@@ -130,6 +130,12 @@
         "fail": "",
         "fix": "Enter reachable DNS servers (e.g. your router or provider) as forwarders."
       },
+      "dc-resolve": {
+        "pass": "{{dc}} resolves to {{ip}}.",
+        "warn": "",
+        "fail": "{{dc}} doesn't resolve on this host (the DNS servers it uses don't know the domain yet).",
+        "fix": "Enter the IP address of the domain controller instead of its name."
+      },
       "dc-reachable": {
         "pass": "Domain controller {{dc}} is reachable.",
         "warn": "",

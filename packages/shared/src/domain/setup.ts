@@ -104,6 +104,7 @@ export const preflightCheckIds = [
   'mac',
   'time',
   'dns-forwarder',
+  'dc-resolve',
   'dc-reachable',
   'dc-dns',
   'dc-time',

@@ -130,6 +130,12 @@
         "fail": "",
         "fix": "Tragen Sie erreichbare DNS-Server (z. B. Router oder Provider) als Weiterleitungen ein."
       },
+      "dc-resolve": {
+        "pass": "{{dc}} wird zu {{ip}} aufgelöst.",
+        "warn": "",
+        "fail": "{{dc}} lässt sich auf diesem Host nicht auflösen (seine DNS-Server kennen die Domäne noch nicht).",
+        "fix": "Geben Sie die IP-Adresse des Domänencontrollers statt seines Namens ein."
+      },
       "dc-reachable": {
         "pass": "Domänencontroller {{dc}} ist erreichbar.",
         "warn": "",

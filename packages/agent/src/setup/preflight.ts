@@ -209,28 +209,41 @@ export async function preflight(a: Args, os: OsActions, samDb: string, resume = 
     }
   }
 
-  // the existing DC (join)
+  // the existing DC (join); a name is resolved the way the join step resolves it (forwarders, else the
+  // system resolver), and the remaining checks then ask that address
   if (a.role === 'dc') {
     const dc = a.dcHost ?? '';
-    const reach = await Promise.all([tcpReachable(dc, 389), tcpReachable(dc, 88), tcpReachable(dc, 445)]);
-    add('dc-reachable', reach.every(Boolean) ? 'pass' : 'fail', {
-      dc,
-      ports: ['389', '88', '445'].filter((_, i) => !reach[i]).join(', '),
-    });
-    const r = new Resolver({ timeout: 3000, tries: 1 });
-    const isIp = /^\d+\.\d+\.\d+\.\d+$/.test(dc);
-    if (isIp) r.setServers([dc]);
-    const srv = await r.resolveSrv(`_ldap._tcp.${domain}`).then(
-      (x) => x.length,
-      () => 0,
-    );
-    add('dc-dns', srv > 0 ? 'pass' : 'fail', { dc, domain });
-    const offset = await sntpOffset(dc);
-    add(
-      'dc-time',
-      offset === null ? 'warn' : Math.abs(offset) > 240 ? 'fail' : Math.abs(offset) > 30 ? 'warn' : 'pass',
-      { dc, offset: offset === null ? '-' : Math.round(offset * 10) / 10 },
-    );
+    let ip: string | null = dc;
+    if (!/^\d+\.\d+\.\d+\.\d+$/.test(dc)) {
+      const r = new Resolver({ timeout: 3000, tries: 1 });
+      if (a.dnsForwarders.length) r.setServers(a.dnsForwarders);
+      ip = await r.resolve4(dc).then(
+        (x) => x[0] ?? null,
+        () => null,
+      );
+      add('dc-resolve', ip ? 'pass' : 'fail', { dc, ip: ip ?? '-' });
+    }
+    if (ip) {
+      const reach = await Promise.all([tcpReachable(ip, 389), tcpReachable(ip, 88), tcpReachable(ip, 445)]);
+      add('dc-reachable', reach.every(Boolean) ? 'pass' : 'fail', {
+        dc,
+        ports: ['389', '88', '445'].filter((_, i) => !reach[i]).join(', '),
+      });
+      // after the join this host asks the DC for the domain, so ask it now
+      const r = new Resolver({ timeout: 3000, tries: 1 });
+      r.setServers([ip]);
+      const srv = await r.resolveSrv(`_ldap._tcp.${domain}`).then(
+        (x) => x.length,
+        () => 0,
+      );
+      add('dc-dns', srv > 0 ? 'pass' : 'fail', { dc, domain });
+      const offset = await sntpOffset(ip);
+      add(
+        'dc-time',
+        offset === null ? 'warn' : Math.abs(offset) > 240 ? 'fail' : Math.abs(offset) > 30 ? 'warn' : 'pass',
+        { dc, offset: offset === null ? '-' : Math.round(offset * 10) / 10 },
+      );
+    }
   }
 
   return { checks, ok: !checks.some((c) => c.status === 'fail') };

@@ -104,7 +104,7 @@
     "netbios": "NetBIOS domain name",
     "netbios-hint": "Up to 15 characters; shown as DOMAIN\\user.",
     "dc-host": "Existing domain controller",
-    "dc-host-hint": "IP address or FQDN of a running DC of the domain.",
+    "dc-host-hint": "IP address of a running DC of the domain (a name only if this host can already resolve it).",
     "forwarders": "DNS forwarders",
     "forwarders-hint": "Upstream DNS servers for Internet names (comma-separated).",
     "ntp": "Time servers",
