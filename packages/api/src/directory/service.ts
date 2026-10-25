@@ -391,10 +391,14 @@ export class DirectoryService {
   }
 
   /**
-   * Lists objects. `bases` are the subtrees the caller may read (null = the whole domain); results outside
-   * them are never returned.
+   * Searches objects matching a list query. `bases` are the subtrees the caller may read (null = the whole
+   * domain); results outside them are never returned.
    */
-  async list(q: z.output<typeof listQuery>, bases: string[] | null): Promise<ListResponse> {
+  async search(
+    q: Pick<z.output<typeof listQuery>, 'base' | 'scope' | 'types' | 'q' | 'status'>,
+    bases: string[] | null,
+    attributes: string[] = [...LIST_ATTRS, 'accountExpires'],
+  ): Promise<{ entries: Entry[]; truncated: boolean }> {
     const base = await this.containerDn(q.base);
     const types = (q.types ?? 'user,group,computer,contact,ou').split(',').filter(Boolean);
     const typeFilters: LdapFilter[] = [];
@@ -404,7 +408,7 @@ export class DirectoryService {
     if (types.includes('contact')) typeFilters.push(eq('objectClass', 'contact'));
     if (types.includes('ou')) typeFilters.push(eq('objectClass', 'organizationalUnit'));
     if (types.includes('container')) typeFilters.push(eq('objectClass', 'container'));
-    if (!typeFilters.length) return { items: [], total: 0, truncated: false };
+    if (!typeFilters.length) return { entries: [], truncated: false };
     const parts: LdapFilter[] = [or(...typeFilters)];
     if (q.q) {
       const t = q.q.trim();
@@ -440,7 +444,7 @@ export class DirectoryService {
         .search(b, {
           scope: q.scope === 'one' && b === base ? 'one' : 'sub',
           filter,
-          attributes: [...LIST_ATTRS, 'accountExpires'],
+          attributes: [...new Set([...attributes, 'accountExpires'])],
           sizeLimit: MAX_LIST + 1,
         })
         .catch((e: unknown) => {
@@ -458,6 +462,12 @@ export class DirectoryService {
         return iso !== null && Date.parse(iso) < now;
       });
     }
+    return { entries: rows, truncated };
+  }
+
+  /** One page of list items (sorted), see search(). */
+  async list(q: z.output<typeof listQuery>, bases: string[] | null): Promise<ListResponse> {
+    const { entries: rows, truncated } = await this.search(q, bases);
     const items = rows.map((e) => listItemOf(e, this.protectedSet));
     const key = (i: (typeof items)[number]): string =>
       q.sort === 'sam' ? (i.sam ?? i.name) : q.sort === 'whenChanged' ? (i.whenChanged ?? '') : i.name;

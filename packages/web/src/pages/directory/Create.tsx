@@ -14,10 +14,10 @@ import {
   Stack,
   TextInput,
 } from '@mantine/core';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
-import { createdResponse, type ListItem } from '@opendc/shared/api';
+import { createdResponse, userTemplates, type ListItem } from '@opendc/shared/api';
 import { api } from '../../api.ts';
 import { ErrorView } from '../../ErrorView.tsx';
 import { ObjectPicker, SecretOnce } from '../../components/directory.tsx';
@@ -52,6 +52,12 @@ export function CreateUser({ opened, onClose, parent }: Props) {
   const [mustChange, setMustChange] = useState(true);
   const [enabled, setEnabled] = useState(true);
   const [groups, setGroups] = useState<ListItem[]>([]);
+  const [templateId, setTemplateId] = useState<string | null>(null);
+  const tpls = useQuery({
+    queryKey: ['templates'],
+    queryFn: () => api('/directory/templates', { schema: userTemplates }),
+    enabled: opened,
+  });
   const [secret, setSecret] = useState<{ guid: string; pw: string } | null>(null);
   const create = useCreate('/directory/users', (guid, generated) => {
     if (generated) setSecret({ guid, pw: generated });
@@ -82,7 +88,9 @@ export function CreateUser({ opened, onClose, parent }: Props) {
             create.mutate(
               clean({
                 ...f,
-                ...(parent ? { parent } : {}),
+                // a template brings its own OU unless one is selected in the tree
+                ...(parent && !templateId ? { parent } : {}),
+                ...(templateId ? { templateId } : {}),
                 password: password || undefined,
                 mustChangePassword: mustChange,
                 enabled,
@@ -93,6 +101,15 @@ export function CreateUser({ opened, onClose, parent }: Props) {
         >
           <Stack>
             {create.error ? <ErrorView error={create.error} /> : null}
+            {tpls.data?.templates.length ? (
+              <Select
+                label={t('dir.f-template')}
+                clearable
+                data={tpls.data.templates.map((x) => ({ value: x.id, label: x.name }))}
+                value={templateId}
+                onChange={setTemplateId}
+              />
+            ) : null}
             <SimpleGrid cols={{ base: 1, sm: 2 }}>
               <TextInput
                 label={t('dir.f-givenName')}

@@ -23,6 +23,8 @@ import { directoryRoutes } from './routes/directory.ts';
 import { domainRoutes } from './routes/domain.ts';
 import { rbacRoutes } from './routes/rbac.ts';
 import { RbacStore } from './rbac/store.ts';
+import { bulkRoutes } from './routes/bulk.ts';
+import { UserTemplates } from './directory/templates.ts';
 import type { DirectoryService } from './directory/service.ts';
 
 export interface ApiDeps {
@@ -215,8 +217,10 @@ export async function buildApi(deps: ApiDeps): Promise<Api> {
       }),
   });
 
+  const templates = new UserTemplates(directory);
   directoryRoutes(routes, {
     directory,
+    templates,
     audit,
     agent: deps.agent,
     confirmKey: deps.csrfKey,
@@ -225,6 +229,7 @@ export async function buildApi(deps: ApiDeps): Promise<Api> {
 
   domainRoutes(routes, { agent: deps.agent, audit, confirmKey: deps.csrfKey });
   rbacRoutes(routes, { store: () => rbac as RbacStore, directory, audit });
+  bulkRoutes(routes, { directory, db: deps.db, jobs, audit, engineFor, templates });
 
   if (deps.webDir) {
     const site = new StaticSite(deps.webDir);

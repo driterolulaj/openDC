@@ -68,4 +68,21 @@ export const apiMigrations: Migration[] = [
       );
     `,
   },
+  {
+    id: 2,
+    name: 'import-batches',
+    sql: `
+      -- CSV imports (Phase 2): which objects an import created, so it can be undone. No passwords.
+      CREATE TABLE import_batches (
+        id            TEXT PRIMARY KEY,
+        actor         TEXT NOT NULL,
+        actor_sid     TEXT,
+        created_at    TEXT NOT NULL,
+        created_json  TEXT NOT NULL,
+        updated_count INTEGER NOT NULL,
+        failed_count  INTEGER NOT NULL,
+        undone_at     TEXT
+      );
+    `,
+  },
 ];

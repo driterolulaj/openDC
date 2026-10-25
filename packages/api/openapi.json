@@ -194,6 +194,258 @@
         }
       }
     },
+    "/api/v1/directory/bulk": {
+      "post": {
+        "operationId": "startBulkOperation",
+        "summary": "Enable, disable, delete, move, set attributes or change group membership of many objects (job)",
+        "tags": [
+          "directory"
+        ],
+        "x-opendc-auth": {
+          "permission": "core.console.access"
+        },
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "guids": {
+                    "minItems": 1,
+                    "maxItems": 10000,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  },
+                  "action": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "const": "enable"
+                          }
+                        },
+                        "required": [
+                          "kind"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "const": "disable"
+                          }
+                        },
+                        "required": [
+                          "kind"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "const": "delete"
+                          }
+                        },
+                        "required": [
+                          "kind"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "const": "move"
+                          },
+                          "parent": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "parent"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "const": "set"
+                          },
+                          "values": {
+                            "type": "object",
+                            "properties": {
+                              "description": {
+                                "type": "string",
+                                "maxLength": 1024
+                              },
+                              "department": {
+                                "type": "string",
+                                "maxLength": 64
+                              },
+                              "company": {
+                                "type": "string",
+                                "maxLength": 64
+                              },
+                              "title": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "office": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "accountExpires": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "values"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "const": "addToGroup"
+                          },
+                          "group": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "group"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "const": "removeFromGroup"
+                          },
+                          "group": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "group"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "guids",
+                  "action"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "actor": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "running",
+                        "succeeded",
+                        "failed"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "result": {},
+                    "error": {}
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "actor",
+                    "status",
+                    "createdAt",
+                    "updatedAt",
+                    "result",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/directory/computers/{guid}": {
       "patch": {
         "operationId": "updateComputer",
@@ -2663,6 +2915,106 @@
         }
       }
     },
+    "/api/v1/directory/export": {
+      "get": {
+        "operationId": "exportUsersCsv",
+        "summary": "Users matching a search as CSV (only what the caller may read)",
+        "tags": [
+          "directory"
+        ],
+        "x-opendc-auth": {
+          "permission": "domain.users.read"
+        },
+        "parameters": [
+          {
+            "name": "base",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "sub",
+              "type": "string",
+              "enum": [
+                "one",
+                "sub"
+              ]
+            }
+          },
+          {
+            "name": "types",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z,]+$"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "enabled",
+                "disabled",
+                "locked",
+                "expired"
+              ]
+            }
+          },
+          {
+            "name": "columns",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z,]+$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Server-sent events",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/directory/groups": {
       "post": {
         "operationId": "createGroup",
@@ -4129,6 +4481,514 @@
                     "truncated"
                   ],
                   "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/directory/import": {
+      "post": {
+        "operationId": "startImport",
+        "summary": "Run a CSV user import (re-planned on the server); undo by deleting the batch",
+        "tags": [
+          "directory"
+        ],
+        "x-opendc-auth": {
+          "permission": "domain.users.read"
+        },
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "csv": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 5000000
+                  },
+                  "parent": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "templateId": {
+                    "type": "string",
+                    "maxLength": 64
+                  },
+                  "mode": {
+                    "default": "create",
+                    "type": "string",
+                    "enum": [
+                      "create",
+                      "update",
+                      "upsert"
+                    ]
+                  }
+                },
+                "required": [
+                  "csv"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "actor": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "running",
+                        "succeeded",
+                        "failed"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "result": {},
+                    "error": {}
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "actor",
+                    "status",
+                    "createdAt",
+                    "updatedAt",
+                    "result",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/directory/import/preview": {
+      "post": {
+        "operationId": "previewImport",
+        "summary": "Dry run of a CSV user import: what would be created or changed, per row",
+        "tags": [
+          "directory"
+        ],
+        "x-opendc-auth": {
+          "permission": "domain.users.read"
+        },
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "csv": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 5000000
+                  },
+                  "parent": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "templateId": {
+                    "type": "string",
+                    "maxLength": 64
+                  },
+                  "mode": {
+                    "default": "create",
+                    "type": "string",
+                    "enum": [
+                      "create",
+                      "update",
+                      "upsert"
+                    ]
+                  }
+                },
+                "required": [
+                  "csv"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "line": {
+                            "type": "number"
+                          },
+                          "sam": {
+                            "type": "string"
+                          },
+                          "action": {
+                            "type": "string",
+                            "enum": [
+                              "create",
+                              "update",
+                              "unchanged",
+                              "error"
+                            ]
+                          },
+                          "changes": {
+                            "type": "object",
+                            "propertyNames": {
+                              "type": "string"
+                            },
+                            "additionalProperties": {
+                              "type": "object",
+                              "properties": {
+                                "from": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "to": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "from",
+                                "to"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "error": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "line",
+                          "sam",
+                          "action",
+                          "changes",
+                          "error"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "counts": {
+                      "type": "object",
+                      "properties": {
+                        "create": {
+                          "type": "number"
+                        },
+                        "update": {
+                          "type": "number"
+                        },
+                        "unchanged": {
+                          "type": "number"
+                        },
+                        "error": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "create",
+                        "update",
+                        "unchanged",
+                        "error"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "columns": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "ignored": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "rows",
+                    "counts",
+                    "columns",
+                    "ignored"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/directory/imports": {
+      "get": {
+        "operationId": "listImports",
+        "summary": "Recent imports (for undo and password download)",
+        "tags": [
+          "directory"
+        ],
+        "x-opendc-auth": {
+          "permission": "domain.users.read"
+        },
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "batches": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "actor": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "created": {
+                            "type": "number"
+                          },
+                          "updated": {
+                            "type": "number"
+                          },
+                          "failed": {
+                            "type": "number"
+                          },
+                          "passwordsAvailable": {
+                            "type": "boolean"
+                          },
+                          "undone": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "actor",
+                          "createdAt",
+                          "created",
+                          "updated",
+                          "failed",
+                          "passwordsAvailable",
+                          "undone"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "batches"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/directory/imports/{id}": {
+      "delete": {
+        "operationId": "undoImport",
+        "summary": "Undo an import: delete the accounts it created (bulk delete job)",
+        "tags": [
+          "directory"
+        ],
+        "x-opendc-auth": {
+          "permission": "domain.users.delete"
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]{1,64}$"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "actor": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "running",
+                        "succeeded",
+                        "failed"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "result": {},
+                    "error": {}
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "actor",
+                    "status",
+                    "createdAt",
+                    "updatedAt",
+                    "result",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/directory/imports/{id}/passwords": {
+      "get": {
+        "operationId": "downloadImportPasswords",
+        "summary": "The generated passwords of an import, as CSV, once and only for its author",
+        "tags": [
+          "directory"
+        ],
+        "x-opendc-auth": {
+          "permission": "domain.users.read"
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]{1,64}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Server-sent events",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
                 }
               }
             }
@@ -7044,6 +7904,817 @@
                       "additionalProperties": false
                     }
                   ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/directory/searches": {
+      "get": {
+        "operationId": "listSavedSearches",
+        "summary": "Saved searches: your own and the shared ones",
+        "tags": [
+          "directory"
+        ],
+        "x-opendc-auth": {
+          "permission": "core.console.access"
+        },
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "searches": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "query": {
+                            "type": "object",
+                            "properties": {
+                              "base": {
+                                "type": "string",
+                                "format": "uuid",
+                                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                              },
+                              "scope": {
+                                "default": "sub",
+                                "type": "string",
+                                "enum": [
+                                  "one",
+                                  "sub"
+                                ]
+                              },
+                              "types": {
+                                "type": "string",
+                                "pattern": "^[a-z,]+$"
+                              },
+                              "q": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "enabled",
+                                  "disabled",
+                                  "locked",
+                                  "expired"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "scope"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "shared": {
+                            "type": "boolean"
+                          },
+                          "owner": {
+                            "type": "string"
+                          },
+                          "mine": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "query",
+                          "shared",
+                          "owner",
+                          "mine"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "searches"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createSavedSearch",
+        "summary": "Save a search (shared: needs domain.search.share)",
+        "tags": [
+          "directory"
+        ],
+        "x-opendc-auth": {
+          "permission": "core.console.access"
+        },
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "query": {
+                    "type": "object",
+                    "properties": {
+                      "base": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "scope": {
+                        "default": "sub",
+                        "type": "string",
+                        "enum": [
+                          "one",
+                          "sub"
+                        ]
+                      },
+                      "types": {
+                        "type": "string",
+                        "pattern": "^[a-z,]+$"
+                      },
+                      "q": {
+                        "type": "string",
+                        "maxLength": 128
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "enabled",
+                          "disabled",
+                          "locked",
+                          "expired"
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "shared": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "name",
+                  "query"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/directory/searches/{id}": {
+      "delete": {
+        "operationId": "deleteSavedSearch",
+        "summary": "Delete one of your saved searches (shared ones: domain.search.share)",
+        "tags": [
+          "directory"
+        ],
+        "x-opendc-auth": {
+          "permission": "core.console.access"
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]{1,64}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/directory/templates": {
+      "get": {
+        "operationId": "listUserTemplates",
+        "summary": "User templates",
+        "tags": [
+          "directory"
+        ],
+        "x-opendc-auth": {
+          "permission": "domain.users.read"
+        },
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "templates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "parent": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "parentDn": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "defaults": {
+                            "type": "object",
+                            "properties": {
+                              "title": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "department": {
+                                "type": "string",
+                                "maxLength": 64
+                              },
+                              "company": {
+                                "type": "string",
+                                "maxLength": 64
+                              },
+                              "office": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "description": {
+                                "type": "string",
+                                "maxLength": 1024
+                              },
+                              "mail": {
+                                "type": "string",
+                                "maxLength": 256
+                              },
+                              "userPrincipalName": {
+                                "type": "string",
+                                "maxLength": 256
+                              },
+                              "homeDirectory": {
+                                "type": "string",
+                                "maxLength": 256
+                              },
+                              "homeDrive": {
+                                "type": "string",
+                                "maxLength": 2
+                              },
+                              "profilePath": {
+                                "type": "string",
+                                "maxLength": 256
+                              },
+                              "scriptPath": {
+                                "type": "string",
+                                "maxLength": 256
+                              },
+                              "loginShell": {
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "unixHomeDirectory": {
+                                "type": "string",
+                                "maxLength": 256
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "groups": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "guid": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "guid",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "mustChangePassword": {
+                            "type": "boolean"
+                          },
+                          "enabled": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "description",
+                          "parent",
+                          "parentDn",
+                          "defaults",
+                          "groups",
+                          "mustChangePassword",
+                          "enabled"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "templates"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createUserTemplate",
+        "summary": "Create a user template",
+        "tags": [
+          "directory"
+        ],
+        "x-opendc-auth": {
+          "permission": "domain.templates.manage"
+        },
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "description": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 512
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "parent": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "defaults": {
+                    "default": {},
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string",
+                        "maxLength": 128
+                      },
+                      "department": {
+                        "type": "string",
+                        "maxLength": 64
+                      },
+                      "company": {
+                        "type": "string",
+                        "maxLength": 64
+                      },
+                      "office": {
+                        "type": "string",
+                        "maxLength": 128
+                      },
+                      "description": {
+                        "type": "string",
+                        "maxLength": 1024
+                      },
+                      "mail": {
+                        "type": "string",
+                        "maxLength": 256
+                      },
+                      "userPrincipalName": {
+                        "type": "string",
+                        "maxLength": 256
+                      },
+                      "homeDirectory": {
+                        "type": "string",
+                        "maxLength": 256
+                      },
+                      "homeDrive": {
+                        "type": "string",
+                        "maxLength": 2
+                      },
+                      "profilePath": {
+                        "type": "string",
+                        "maxLength": 256
+                      },
+                      "scriptPath": {
+                        "type": "string",
+                        "maxLength": 256
+                      },
+                      "loginShell": {
+                        "type": "string",
+                        "maxLength": 128
+                      },
+                      "unixHomeDirectory": {
+                        "type": "string",
+                        "maxLength": 256
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "groups": {
+                    "default": [],
+                    "maxItems": 100,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  },
+                  "mustChangePassword": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "enabled": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/directory/templates/{id}": {
+      "delete": {
+        "operationId": "deleteUserTemplate",
+        "summary": "Delete a user template",
+        "tags": [
+          "directory"
+        ],
+        "x-opendc-auth": {
+          "permission": "domain.templates.manage"
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]{1,64}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateUserTemplate",
+        "summary": "Replace a user template",
+        "tags": [
+          "directory"
+        ],
+        "x-opendc-auth": {
+          "permission": "domain.templates.manage"
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]{1,64}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "description": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 512
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "parent": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "defaults": {
+                    "default": {},
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string",
+                        "maxLength": 128
+                      },
+                      "department": {
+                        "type": "string",
+                        "maxLength": 64
+                      },
+                      "company": {
+                        "type": "string",
+                        "maxLength": 64
+                      },
+                      "office": {
+                        "type": "string",
+                        "maxLength": 128
+                      },
+                      "description": {
+                        "type": "string",
+                        "maxLength": 1024
+                      },
+                      "mail": {
+                        "type": "string",
+                        "maxLength": 256
+                      },
+                      "userPrincipalName": {
+                        "type": "string",
+                        "maxLength": 256
+                      },
+                      "homeDirectory": {
+                        "type": "string",
+                        "maxLength": 256
+                      },
+                      "homeDrive": {
+                        "type": "string",
+                        "maxLength": 2
+                      },
+                      "profilePath": {
+                        "type": "string",
+                        "maxLength": 256
+                      },
+                      "scriptPath": {
+                        "type": "string",
+                        "maxLength": 256
+                      },
+                      "loginShell": {
+                        "type": "string",
+                        "maxLength": 128
+                      },
+                      "unixHomeDirectory": {
+                        "type": "string",
+                        "maxLength": 256
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "groups": {
+                    "default": [],
+                    "maxItems": 100,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  },
+                  "mustChangePassword": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "enabled": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
                 }
               }
             }

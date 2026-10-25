@@ -22,6 +22,8 @@ const Audit = lazy(() => import('./pages/Audit.tsx'));
 const Setup = lazy(() => import('./pages/Setup.tsx'));
 const Directory = lazy(() => import('./pages/directory/Directory.tsx'));
 const ObjectView = lazy(() => import('./pages/directory/ObjectView.tsx'));
+const Import = lazy(() => import('./pages/directory/Import.tsx'));
+const Templates = lazy(() => import('./pages/directory/Templates.tsx'));
 const Domain = lazy(() => import('./pages/Domain.tsx'));
 const Rbac = lazy(() => import('./pages/Rbac.tsx'));
 const PasswordPolicies = lazy(() => import('./pages/PasswordPolicies.tsx'));
@@ -45,6 +47,8 @@ const router = createBrowserRouter(
         { index: true, element: <Home /> },
         { path: 'audit', element: <Audit /> },
         { path: 'directory', element: <Directory /> },
+        { path: 'directory/import', element: <Import /> },
+        { path: 'directory/templates', element: <Templates /> },
         { path: 'directory/:guid', element: <ObjectView /> },
         { path: 'domain', element: <Domain /> },
         { path: 'rbac', element: <Rbac /> },

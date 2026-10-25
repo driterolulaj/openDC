@@ -49,6 +49,7 @@ import type { Session } from '../sessions.ts';
 import { DirectoryService, generatePassword } from '../directory/service.ts';
 import { guidOf, int, rdnValue, str, typeOf, UAC } from '../directory/model.ts';
 import type { Mod } from '../directory/ldap.ts';
+import type { UserTemplates } from '../directory/templates.ts';
 
 export interface DirectoryDeps {
   directory: () => DirectoryService;
@@ -56,6 +57,7 @@ export interface DirectoryDeps {
   agent: Pick<AgentClient, 'call'> | null;
   confirmKey: Buffer;
   engineFor(domainSid: string): RbacEngine;
+  templates: UserTemplates;
 }
 
 type Ctx = RouteContext<unknown, unknown, unknown>;
@@ -402,9 +404,24 @@ export function directoryRoutes(t: RouteTable, d: DirectoryDeps): void {
     status: 201,
     handler: async (c) => {
       const dir = d.directory();
-      const parent = await dir.containerDn(c.body.parent, childDn(dir.domainDn, 'CN', 'Users'));
+      // a template supplies defaults (placeholders expanded), its OU and groups; the request's values win
+      const tpl = c.body.templateId ? await d.templates.resolve(c.body.templateId) : null;
+      const body = tpl
+        ? {
+            ...c.body,
+            ...Object.fromEntries(
+              Object.entries(d.templates.expandFor(tpl.t, c.body)).filter(
+                ([k]) => (c.body as Record<string, unknown>)[k] === undefined,
+              ),
+            ),
+          }
+        : c.body;
+      const parent = await dir.containerDn(
+        c.body.parent ?? tpl?.parent ?? undefined,
+        childDn(dir.domainDn, 'CN', 'Users'),
+      );
       c.require('domain.users.create', { dn: parent });
-      const groups = [];
+      const groups = [...(tpl?.t.groups ?? [])];
       for (const g of c.body.groups) {
         const ge = await dir.entryByGuid(g, undefined, true);
         if (typeOf(ge) !== 'group')
@@ -417,7 +434,7 @@ export function directoryRoutes(t: RouteTable, d: DirectoryDeps): void {
         groups.push(ge.dn);
       }
       const generated = c.body.password ? null : generatePassword();
-      const r = await dir.createUser(parent, c.body, c.body.password ?? generated ?? '');
+      const r = await dir.createUser(parent, userCreate.parse(body), c.body.password ?? generated ?? '');
       for (const g of groups) await dir.changeMembers(g, [r.dn], []);
       const { password: _p, ...logged } = c.body;
       audit(c, 'directory.user.create', r, undefined, { ...logged, dn: r.dn });
