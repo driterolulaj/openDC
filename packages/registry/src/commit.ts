@@ -51,6 +51,8 @@ export const LAYER_FILES: Record<WritableLayer, string> = {
   forced: 'core.registry-forced',
 };
 export const RENDERED_FILE = 'core.registry-rendered';
+/** The domain-policy layer: written by the watcher from the registry policies that apply to this node. */
+export const POLICY_FILE = 'core.registry-policy';
 
 const layerFileSchema = z.object({ schemaVersion: z.literal(1), values: z.record(z.string(), z.unknown()) });
 const renderedSchema = z.object({
@@ -97,14 +99,15 @@ export class RegistryService {
     this.#o = o;
   }
 
-  /** Reads the writable layers through the agent and returns a registry with them applied. */
-  async load(policy: LayerValues['domain-policy'] = {}): Promise<Registry> {
-    const [local, forced] = await Promise.all([
+  /** Reads the layers through the agent and returns a registry with them applied. */
+  async load(policy?: LayerValues['domain-policy']): Promise<Registry> {
+    const [local, forced, stored] = await Promise.all([
       this.#o.agent.read(LAYER_FILES.local),
       this.#o.agent.read(LAYER_FILES.forced),
+      policy ? Promise.resolve(null) : this.#o.agent.read(POLICY_FILE),
     ]);
     return this.#o.keys
-      .withLayer('domain-policy', policy)
+      .withLayer('domain-policy', policy ?? parseLayer(POLICY_FILE, stored?.content ?? null))
       .withLayer('local', parseLayer(LAYER_FILES.local, local.content))
       .withLayer('forced', parseLayer(LAYER_FILES.forced, forced.content));
   }
@@ -146,6 +149,28 @@ export class RegistryService {
       );
       await this.#o.agent.write(fileId, content, current.sha256);
       const after = before.withLayer(layer, values);
+      return this.#commit(after, after.diff(before));
+    });
+  }
+
+  /**
+   * Replaces the domain-policy layer (the registry policies that apply to this node) and re-renders the
+   * templates whose keys changed. Writes nothing when the layer is unchanged.
+   */
+  async setPolicyLayer(values: Record<string, unknown>): Promise<CommitReport | null> {
+    return this.#withLock(async () => {
+      const current = await this.#o.agent.read(POLICY_FILE);
+      const before = await this.load();
+      const sorted = sortObject(values);
+      if (JSON.stringify(sortObject(before.layer('domain-policy'))) === JSON.stringify(sorted)) return null;
+      const content = withHeader(
+        'json-field',
+        'core',
+        POLICY_FILE,
+        JSON.stringify({ schemaVersion: 1, values: sorted }),
+      );
+      await this.#o.agent.write(POLICY_FILE, content, current.sha256);
+      const after = before.withLayer('domain-policy', sorted);
       return this.#commit(after, after.diff(before));
     });
   }

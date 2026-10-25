@@ -58,6 +58,14 @@ export default {
         comment: 'json-field',
       },
       {
+        // the domain-policy layer, written by the watcher (registry policies for this node)
+        fileId: 'core.registry-policy',
+        pathKey: 'opendc.registry.policy',
+        owner: 'root',
+        mode: '0644',
+        comment: 'json-field',
+      },
+      {
         fileId: 'core.registry-rendered',
         pathKey: 'opendc.registry.rendered',
         owner: 'root',

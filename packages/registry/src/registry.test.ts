@@ -7,7 +7,14 @@ import { PlatformError } from '@opendc/shared';
 import type { RegistryKeyDefinition } from '@opendc/shared/manifest';
 import { Registry, readsKey } from './registry.ts';
 import { headerText, withHeader } from './header.ts';
-import { LAYER_FILES, RENDERED_FILE, RegistryService, type RegistryAgent, type TemplateEntry } from './commit.ts';
+import {
+  LAYER_FILES,
+  POLICY_FILE,
+  RENDERED_FILE,
+  RegistryService,
+  type RegistryAgent,
+  type TemplateEntry,
+} from './commit.ts';
 
 const sha = (s: string): string => createHash('sha256').update(s).digest('hex');
 
@@ -313,4 +320,33 @@ test('a corrupt layer file is reported, not silently ignored', async () => {
   await assert.rejects(service(f.agent, []).load(), isCode('registry.layer-corrupt'));
   f.files.set(LAYER_FILES.local, '   ');
   assert.equal((await service(f.agent, []).load()).get('demo.port'), 80);
+});
+
+test('the domain-policy layer: written by setPolicyLayer, below local, re-renders only what changed', async () => {
+  const f = fakeAgent();
+  const svc = service(f.agent, [tpl('demo.a', ['demo.message']), tpl('demo.c', ['other.flag'])]);
+  await svc.commit();
+  const r = await svc.setPolicyLayer({ 'demo.message': 'policy', 'demo.port': 1 });
+  assert.deepEqual(r?.changed, ['demo.a']);
+  assert.ok(f.files.get('demo.a')?.includes('demo.message = "policy"'));
+  assert.equal((await svc.load()).explain('demo.message').layer, 'domain-policy');
+  // demo.port is not policy-settable: stored, but ignored by the registry
+  assert.equal((await svc.load()).explain('demo.port').layer, 'default');
+  assert.deepEqual((JSON.parse(f.files.get(POLICY_FILE) ?? '{}') as { values: object }).values, {
+    'demo.message': 'policy',
+    'demo.port': 1,
+  });
+  // unchanged values: nothing written
+  f.calls.length = 0;
+  assert.equal(await svc.setPolicyLayer({ 'demo.port': 1, 'demo.message': 'policy' }), null);
+  assert.deepEqual(
+    f.calls.filter((c) => c.startsWith('write')),
+    [],
+  );
+  // a local value wins over the policy
+  await svc.set('demo.message', 'local');
+  assert.ok(f.files.get('demo.a')?.includes('demo.message = "local"'));
+  // the policy goes away: back to the default for other.flag (never set), local stays
+  const gone = await svc.setPolicyLayer({});
+  assert.deepEqual(gone?.changed, []);
 });

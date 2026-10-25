@@ -4,9 +4,13 @@ import type { GeneratedWatcher } from './types.ts';
 import domain_w0 from '../domain/watchers/posix-ids.ts';
 import policies_w0 from '../policies/watchers/password-policies.ts';
 import policies_w1 from '../policies/watchers/password-policy-users.ts';
+import policies_w2 from '../policies/watchers/registry-policy.ts';
+import policies_w3 from '../policies/watchers/registry-policy.ts';
 
 export const watchers: GeneratedWatcher[] = [
   { module: "domain", handler: domain_w0, ...{"id":"posix-ids","base":"","scope":"sub","filter":"(|(&(objectCategory=person)(objectClass=user)(!(uidNumber=*)))(&(objectClass=group)(!(gidNumber=*))))","attributes":["whenCreated"],"roles":["writable-dc"],"leader":true,"timeoutMs":300000} },
   { module: "policies", handler: policies_w0, ...{"id":"password-policies","base":"{platform},CN=Policies","scope":"one","filter":"(objectClass=msDS-App-Configuration)","attributes":[],"roles":["writable-dc"],"leader":true,"timeoutMs":600000} },
   { module: "policies", handler: policies_w1, ...{"id":"password-policy-users","base":"","scope":"sub","filter":"(|(&(objectCategory=person)(objectClass=user))(objectClass=organizationalUnit))","attributes":["name"],"roles":["writable-dc"],"leader":true,"timeoutMs":600000} },
+  { module: "policies", handler: policies_w2, ...{"id":"registry-policy","base":"{platform},CN=Policies","scope":"one","filter":"(objectClass=msDS-App-Configuration)","attributes":[],"roles":["any"]} },
+  { module: "policies", handler: policies_w3, ...{"id":"registry-policy-node","base":"","scope":"sub","filter":"(objectClass=computer)","attributes":["name"],"roles":["any"]} },
 ];

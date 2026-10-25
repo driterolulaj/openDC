@@ -118,6 +118,10 @@ async function main(): Promise<void> {
   const facts = await detectFacts();
   const registry = new Registry(registryKeys)
     .withLayer(
+      'domain-policy',
+      parseLayer('core.registry-policy', readOptional(facts.paths.managedFile('opendc.registry.policy'))),
+    )
+    .withLayer(
       'local',
       parseLayer('core.registry-local', readOptional(facts.paths.managedFile('opendc.registry.local'))),
     )
@@ -165,6 +169,12 @@ async function main(): Promise<void> {
       signal: o.signal,
       ldap: { search: (base, so) => ldap.search(base, so) },
       agent: (op, args) => client.call(op, args, { actor, timeoutMs: 120_000 }),
+      registry: {
+        applyPolicyLayer: async (values) => {
+          const r = await svc.setPolicyLayer(values);
+          return r ? { changed: r.changed } : null;
+        },
+      },
       audit: (e) => {
         try {
           writeInbox(facts.paths.auditInbox, { ts: new Date().toISOString(), actor: auditActor, ...e });

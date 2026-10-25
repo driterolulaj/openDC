@@ -96,6 +96,13 @@ export const allowlist = {
       "mode": 420,
       "comment": "json-field"
     },
+    "core.registry-policy": {
+      "module": "core",
+      "pathKey": "opendc.registry.policy",
+      "owner": "root",
+      "mode": 420,
+      "comment": "json-field"
+    },
     "core.registry-rendered": {
       "module": "core",
       "pathKey": "opendc.registry.rendered",

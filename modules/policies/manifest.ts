@@ -52,6 +52,26 @@ export default {
       entry: './watchers/password-policy-users.ts',
       timeoutMs: 600_000,
     },
+    {
+      // registry policies: this node's domain-policy layer (every node, for itself)
+      id: 'registry-policy',
+      base: '{platform},CN=Policies',
+      scope: 'one',
+      filter: '(objectClass=msDS-App-Configuration)',
+      attributes: [],
+      roles: ['any'],
+      entry: './watchers/registry-policy.ts',
+    },
+    {
+      // this node's computer object moved to another OU
+      id: 'registry-policy-node',
+      base: '',
+      scope: 'sub',
+      filter: '(objectClass=computer)',
+      attributes: ['name'],
+      roles: ['any'],
+      entry: './watchers/registry-policy.ts',
+    },
   ],
   i18n: { namespaces: ['policies'] },
 } satisfies ModuleManifest;

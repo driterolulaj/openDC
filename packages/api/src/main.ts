@@ -52,6 +52,7 @@ async function main(): Promise<void> {
   const facts = dev ? null : await detectFacts();
   const layerPath = (k: string): string | undefined => facts?.paths.managedFile(k);
   const registry = new Registry(registryKeys)
+    .withLayer('domain-policy', parseLayer('core.registry-policy', readOptional(layerPath('opendc.registry.policy'))))
     .withLayer('local', parseLayer('core.registry-local', readOptional(layerPath('opendc.registry.local'))))
     .withLayer('forced', parseLayer('core.registry-forced', readOptional(layerPath('opendc.registry.forced'))));
 

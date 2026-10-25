@@ -91,3 +91,22 @@ export const effectivePolicy = z.object({
   winner: z.string().nullable(),
 });
 export type EffectivePolicy = z.infer<typeof effectivePolicy>;
+
+const PAYLOAD_PREFIX = 'opendc:v1:';
+
+/** A policy object's msDS-Settings value -> its data; null for other kinds, newer versions or damaged values. */
+export function parsePolicyPayload(raw: string | null | undefined): PolicyData | null {
+  if (!raw?.startsWith(PAYLOAD_PREFIX)) return null;
+  try {
+    const env = JSON.parse(raw.slice(PAYLOAD_PREFIX.length)) as {
+      kind?: unknown;
+      schemaVersion?: unknown;
+      data?: unknown;
+    };
+    if (env.kind !== 'policy' || env.schemaVersion !== 1) return null;
+    const r = policyInput.safeParse(env.data);
+    return r.success ? r.data : null;
+  } catch {
+    return null;
+  }
+}

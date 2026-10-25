@@ -11,7 +11,7 @@
  * created); the PSOs and groups are still brought up to date.
  */
 import type { OpResult } from '@opendc/shared/agent';
-import { policyInput, type PolicyData } from '@opendc/shared/api';
+import { parsePolicyPayload } from '@opendc/shared/api';
 import type { PasswordSettings } from '@opendc/shared/domain';
 import { and, childDn, eq, guidToBytes, inChain, or } from '@opendc/shared/ldap';
 import { applicablePolicies, chainOf, type ResolvablePolicy } from '@opendc/shared/policy';
@@ -20,7 +20,6 @@ import type { SambaLocal } from './local.ts';
 import { setPolicy, showPolicies } from './password-policy.ts';
 import { SHADOW_OU } from './platform.ts';
 
-const PREFIX = 'opendc:v1:';
 const PSO_PREFIX = 'OpenDC-';
 const GROUP_PREFIX = 'pso-';
 /** OpenDC PSOs rank after PSOs an admin applied to groups directly (lower precedence wins in AD) */
@@ -48,25 +47,18 @@ export async function readPasswordPolicies(samba: SambaLocal, platformDn: string
     .catch(() => [] as LdifEntry[]);
   const out: PasswordPolicy[] = [];
   for (const e of entries) {
-    const raw = first(e, 'msDS-Settings');
-    if (!raw?.startsWith(PREFIX)) continue;
-    try {
-      const env = JSON.parse(raw.slice(PREFIX.length)) as { kind?: string; data?: unknown };
-      if (env.kind !== 'policy') continue;
-      const d: PolicyData = policyInput.parse(env.data);
-      if (d.type !== 'password') continue;
-      out.push({
-        id: first(e, 'cn') ?? '',
-        name: d.name,
-        type: d.type,
-        priority: d.priority,
-        links: d.links,
-        ...(d.filter ? { filter: d.filter } : {}),
-        settings: d.settings,
-      });
-    } catch {
-      // a payload from a newer version or a damaged one: leave its PSO alone rather than guess
-    }
+    const d = parsePolicyPayload(first(e, 'msDS-Settings'));
+    // other kinds, newer versions, damaged values: leave their PSOs alone rather than guess
+    if (d?.type !== 'password') continue;
+    out.push({
+      id: first(e, 'cn') ?? '',
+      name: d.name,
+      type: d.type,
+      priority: d.priority,
+      links: d.links,
+      ...(d.filter ? { filter: d.filter } : {}),
+      settings: d.settings,
+    });
   }
   return out;
 }

@@ -45,6 +45,8 @@ export interface WatchContext {
     ): Promise<Entry[]>;
   };
   agent<O extends ImplementedOp>(op: O, args: OpArgs<O>): Promise<OpResult<O>>;
+  /** This node's Config Registry: replace the domain-policy layer (re-renders affected files). */
+  readonly registry: { applyPolicyLayer(values: Record<string, unknown>): Promise<{ changed: string[] } | null> };
   /** One audit entry (actor: the watcher of this node); delivered to the console's audit log. */
   audit(e: {
     action: string;
