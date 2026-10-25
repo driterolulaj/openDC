@@ -137,7 +137,8 @@ are updated.
 - [ ] Kea DHCPv4/v6: subnets, pools, reservations, options from directory + DHCP policies; config-test before swap;
   lease viewer; HA pair; optional DNS registration (GSS-TSIG or lease hook, per spike).
 - [ ] PKI: root + per-DC issuing CAs, node/service/web/LDAPS certificates, revocation, CRL publication, expiry
-  warnings, auto-renew; ACME via the chosen client.
+  warnings, auto-renew; ACME via the chosen client. *Done except ACME (waits for Q7) and expiry warnings in the
+  diagnostics framework (Phase 4); a DC's issuing CA needs a tier-0 approval on the root holder.*
 - [ ] GPO: list/backup/restore/link/unlink.
 
 **Acceptance:**
@@ -156,6 +157,9 @@ are updated.
    16-character OU and accepted outside.
 5. Console, LDAPS and node certificates are issued by the internal CA, renew automatically in a time-shifted
    test, and a revoked node certificate is refused on node RPC.
+   **Met:** dc1 and dc2 serve console, LDAPS and node RPC certificates from their issuing CAs; renewal at 2/3 of
+   the life is unit-tested with a shifted clock and ran in the lab through the timer; a revoked node certificate
+   was refused 47 s after the revocation (`CERT_REVOKED`), and the node replaced it on its own.
 6. DNS diagnostics detect a deliberately deleted `_ldap._tcp` SRV record and suggest the fix.
    **Met:** dc2's `_ldap._tcp` SRV deleted: reported missing on both DNS servers with the fix; "Repair" re-created
    it (tier 0) and the next run passed 59/59.
