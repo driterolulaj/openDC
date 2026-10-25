@@ -13,8 +13,9 @@ It is a general-purpose product installed by integrators at many client sites. *
 site-specific.** Topology, names, subnets and features are configurable; ship defaults, allow overrides.
 
 ## Current phase
-See `ROADMAP.md`. **Phase 1 (foundation) is complete (2026-10-24) and awaits the user's review.** Phase 2 (domain
-core) starts only after the user's explicit go-ahead.
+See `ROADMAP.md`. Phase 1 (foundation) is complete (2026-10-24). **Phase 2 (domain core) is complete except
+network apply-with-rollback (2026-10-25): acceptance 1-7 met in the lab; awaits the user's review and
+decisions on Q21-Q23 (`docs/OPEN-QUESTIONS.md`).** Phase 3 starts only after the user's explicit go-ahead.
 
 Day-to-day commands: `npm ci --ignore-scripts`, `npm run build`, `npm run check` (lint, typecheck, generated
 files, OpenAPI, tests, coverage gate), `npm run gen` after manifest changes, `npm run openapi` after route
