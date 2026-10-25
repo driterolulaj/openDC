@@ -180,3 +180,66 @@ test('import dry run: create, update diff, unchanged, errors, RBAC and tier 0', 
   assert.match(createOnly.preview.rows[0]?.error ?? '', /exists/);
   await assert.rejects(planImport('givenName\nx\n', ctx), /sam/);
 });
+
+test('service connection: a lost or unbound connection is replaced once, shared by concurrent callers', async () => {
+  const { ServiceLdap } = await import('./ldap.ts');
+  type Fake = { bound: boolean; fail: Error | null; binds: number };
+  const clients: Fake[] = [];
+  let refuse = false;
+  const factory = () => {
+    const f: Fake = { bound: false, fail: null, binds: 0 };
+    clients.push(f);
+    return {
+      get isBound() {
+        return f.bound;
+      },
+      bind: async () => {
+        if (refuse) throw Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' });
+        f.binds++;
+        f.bound = true;
+      },
+      search: async () => {
+        if (f.fail) {
+          const e = f.fail;
+          f.fail = null;
+          throw e;
+        }
+        return { searchEntries: [{ dn: 'CN=x' }] };
+      },
+      unbind: async () => {
+        f.bound = false;
+      },
+    } as unknown as import('ldapts').Client;
+  };
+  const ldap = new ServiceLdap(
+    { urls: ['ldaps://dc1.example.test'], caPem: null, credential: { dn: 'CN=svc', sam: 'svc', password: 'x' } },
+    factory,
+  );
+  const one = () => ldap.search('DC=example,DC=test', { scope: 'base', attributes: ['cn'] });
+
+  assert.equal((await one()).length, 1);
+  assert.equal(clients.length, 1);
+
+  // the DC restarted: ldapts would reconnect anonymously; three concurrent calls share one new bound client
+  clients[0]!.bound = false;
+  const r = await Promise.all([one(), one(), one()]);
+  assert.deepEqual(
+    r.map((x) => x.length),
+    [1, 1, 1],
+  );
+  assert.equal(clients.length, 2);
+  assert.equal(clients[1]!.binds, 1);
+
+  // the socket closes under a request: retried once on a fresh connection
+  clients[1]!.fail = new Error('Connection closed before message response was received. Message type: SearchRequest');
+  assert.equal((await one()).length, 1);
+  assert.equal(clients.length, 3);
+
+  // the DC stays down: an error, no endless retries
+  clients[2]!.bound = false;
+  refuse = true;
+  await assert.rejects(one(), (e: { code?: string }) => e.code === 'ldap.unreachable');
+  assert.ok(clients.length <= 5);
+  refuse = false;
+  assert.equal((await one()).length, 1);
+});

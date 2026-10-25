@@ -2,7 +2,9 @@
 /**
  * The API's directory connection (ADR-0012, tier 1): LDAPS (or StartTLS) to the local DC, bound as the
  * delegated platform account opendc-svc-<host> whose credential arrives as a systemd credential. One
- * connection is reused (ldapts multiplexes requests); it is re-established once on a network error.
+ * connection is reused (ldapts multiplexes requests); it is re-established (and bound again) once when it is
+ * lost. ldapts would otherwise reconnect a closed socket by itself, unauthenticated, once per concurrent
+ * caller, and a request sent on one of those sockets can be orphaned and never answered.
  * Every filter is built with the escaping helpers; every LDAP error becomes a PlatformError.
  */
 import {
@@ -73,9 +75,16 @@ export function mapLdapError(e: unknown, what: string): PlatformError {
   );
 }
 
-const isNetworkError = (e: unknown): boolean => {
+/** The connection is gone or no longer bound (the DC restarted): worth one retry on a fresh, bound one. */
+const isConnectionLost = (e: unknown): boolean => {
   const code = (e as NodeJS.ErrnoException).code;
-  return typeof code === 'string' && /^(ECONNRESET|EPIPE|ECONNREFUSED|ETIMEDOUT|ENOTCONN)$/.test(code);
+  if (typeof code === 'string' && /^(ECONNRESET|EPIPE|ECONNREFUSED|ETIMEDOUT|ENOTCONN)$/.test(code)) return true;
+  const msg = e instanceof Error ? e.message : '';
+  // ldapts messages for a socket closed under a request, a missing socket and a request timeout; Samba's
+  // 00002020 for a request on a connection that lost its bind
+  return /Connection closed before message response|Socket connection not established|Operation timed out|00002020/.test(
+    msg,
+  );
 };
 
 export interface LdapLike {
@@ -141,25 +150,36 @@ export class ServiceLdap implements LdapLike {
 
   async #run<T>(what: string, fn: (c: Client) => Promise<T>): Promise<T> {
     for (let attempt = 0; ; attempt++) {
-      this.#client ??= this.#connect();
+      const pending = (this.#client ??= this.#connect());
       let c: Client;
       try {
-        c = await this.#client;
+        c = await pending;
       } catch (e) {
-        this.#client = null;
+        if (this.#client === pending) this.#client = null;
         throw mapLdapError(e, what);
+      }
+      // never let ldapts reconnect by itself: that connection would be anonymous
+      if (!c.isBound) {
+        this.#drop(pending, c);
+        if (attempt === 0) continue;
+        throw new PlatformError('ldap.unreachable', { host: '-', port: '-', reason: 'connection lost' });
       }
       try {
         return await fn(c);
       } catch (e) {
-        if (attempt === 0 && isNetworkError(e)) {
-          this.#client = null;
-          await c.unbind().catch(() => undefined);
+        if (attempt === 0 && isConnectionLost(e)) {
+          this.#drop(pending, c);
           continue;
         }
         throw mapLdapError(e, what);
       }
     }
+  }
+
+  /** Forgets a lost connection; concurrent callers share the one that replaces it. */
+  #drop(pending: Promise<Client>, c: Client): void {
+    if (this.#client === pending) this.#client = null;
+    void c.unbind().catch(() => undefined);
   }
 
   async search(
