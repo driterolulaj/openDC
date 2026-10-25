@@ -9,7 +9,7 @@
  * never leave the host. Every node pins the root it first trusted (trust anchor file), so a certificate swapped
  * in the directory can't become a new anchor.
  */
-import { X509Certificate, randomBytes } from 'node:crypto';
+import { X509Certificate, createPrivateKey, createPublicKey, randomBytes } from 'node:crypto';
 import { access, chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { PlatformError } from '@opendc/shared';
@@ -285,6 +285,15 @@ export class Pki {
   }
 
   #file = (name: string): string => join(this.#p.keys, name);
+
+  async #keyMatches(keyPath: string, cert: X509Certificate): Promise<boolean> {
+    try {
+      const pub = createPublicKey(createPrivateKey(await readFile(keyPath, 'utf8')));
+      return pub.export({ type: 'spki', format: 'pem' }) === cert.publicKey.export({ type: 'spki', format: 'pem' });
+    } catch {
+      return false;
+    }
+  }
   #issuerId = (host: string): string => `issuer-${host}`;
 
   async #readCert(path: string): Promise<X509Certificate | null> {
@@ -491,8 +500,13 @@ export class Pki {
     const cur = await this.#readCert(target.cert);
     const issuer = new X509Certificate(issuerPem);
     const fromThisIssuer = cur?.checkIssued(issuer) ?? false;
+    // a certificate that doesn't belong to the key next to it (an interrupted run) is replaced too
+    const keyMatches = cur ? await this.#keyMatches(target.key, cur) : false;
     const due =
-      !cur || !fromThisIssuer || renewalDue(new Date(cur.validFrom), new Date(cur.validTo), this.#now(), fraction);
+      !cur ||
+      !fromThisIssuer ||
+      !keyMatches ||
+      renewalDue(new Date(cur.validFrom), new Date(cur.validTo), this.#now(), fraction);
     if (!due)
       return { profile, serial: cur.serialNumber, notAfter: new Date(cur.validTo).toISOString(), renewed: false };
 
