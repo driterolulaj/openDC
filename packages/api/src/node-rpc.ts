@@ -64,6 +64,13 @@ export async function startNodeRpc(
     }
     send(res, 404, { code: 'request.not-found' });
   }
+  // a peer refused during the handshake (unknown CA, revoked, expired) leaves a trace
+  server.on('tlsClientError', (err, socket) => {
+    o.log('warn', 'node RPC handshake refused', {
+      peer: socket.remoteAddress ?? '?',
+      error: err.message.slice(0, 200),
+    });
+  });
   const refresh = async (): Promise<void> => {
     server.setSecureContext(await context());
   };

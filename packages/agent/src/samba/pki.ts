@@ -502,10 +502,16 @@ export class Pki {
     const fromThisIssuer = cur?.checkIssued(issuer) ?? false;
     // a certificate that doesn't belong to the key next to it (an interrupted run) is replaced too
     const keyMatches = cur ? await this.#keyMatches(target.key, cur) : false;
+    // a revoked certificate of this node is replaced at once (peers refuse it already)
+    const db0 = await this.#db();
+    const revoked = cur
+      ? (await db0.read(db0.dn('Certificates', cur.serialNumber), 'pki.cert', pkiCert))?.data.revoked
+      : null;
     const due =
       !cur ||
       !fromThisIssuer ||
       !keyMatches ||
+      !!revoked ||
       renewalDue(new Date(cur.validFrom), new Date(cur.validTo), this.#now(), fraction);
     if (!due)
       return { profile, serial: cur.serialNumber, notAfter: new Date(cur.validTo).toISOString(), renewed: false };
