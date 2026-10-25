@@ -168,6 +168,14 @@ export function pkiPaths(os: OsActions): PkiPaths {
   };
 }
 
+/** Every PKI operation of this agent runs after the previous one (the watcher and an admin may overlap). */
+let queue: Promise<unknown> = Promise.resolve();
+function queued<T>(fn: () => Promise<T>): Promise<T> {
+  const run = queue.then(fn, fn);
+  queue = run.catch(() => undefined);
+  return run;
+}
+
 export class Pki {
   readonly #os: OsActions;
   readonly #samba: SambaLocal;
@@ -295,12 +303,16 @@ export class Pki {
    * Creates the root CA on this DC (once per domain), its issuing CA and this node's certificates. When the domain
    * already has a root (setup resumed, or another DC created it), it only runs the maintenance.
    */
-  async initRoot(): Promise<OpResult<'ca.init'>> {
+  initRoot(): Promise<OpResult<'ca.init'>> {
+    return queued(() => this.#initRoot());
+  }
+
+  async #initRoot(): Promise<OpResult<'ca.init'>> {
     const n = await this.#node();
     const db = await this.#db();
     const existing = await db.read(db.dn(null, 'Root'), 'pki.root', pkiRoot);
     if (existing) {
-      const m = await this.maintain();
+      const m = await this.#maintain();
       return { fingerprint: existing.data.fingerprint, issuer: m.issuer ?? '', leafs: m.leafs };
     }
     if (await exists(this.#file('root.key')))
@@ -324,13 +336,15 @@ export class Pki {
     await this.#newKey(this.#file('issuer.key'));
     const req = await this.#csr(this.#file('issuer.key'), `OpenDC Issuing CA ${n.host}`);
     await this.#publishIssuer(n.nodeGuid, n.host, req);
-    const maint = await this.maintain();
+    const maint = await this.#maintain();
     return { fingerprint: x.fingerprint256, issuer: this.#issuerId(n.host), leafs: maint.leafs };
   }
 
   /** Pins the root: written once, never replaced from the directory. */
   async #pinRoot(certPem: string): Promise<void> {
     await mkdir(this.#p.trust, { recursive: true, mode: 0o755 });
+    // the agent's umask would leave it 0700; the API reads the CA bundle here
+    await chmod(this.#p.trust, 0o755);
     const pinned = join(this.#p.trust, 'root.pem');
     if (!(await exists(pinned))) await writeSystemFile(pinned, certPem, 0o644);
   }
@@ -363,7 +377,11 @@ export class Pki {
   }
 
   /** Root holder only: approves (signs) the pending issuer request of another DC. */
-  async approveIssuer(nodeGuid: string): Promise<OpResult<'ca.issuer.create'>> {
+  approveIssuer(nodeGuid: string): Promise<OpResult<'ca.issuer.create'>> {
+    return queued(() => this.#approveIssuer(nodeGuid));
+  }
+
+  async #approveIssuer(nodeGuid: string): Promise<OpResult<'ca.issuer.create'>> {
     if (!(await exists(this.#file('root.key'))))
       throw new PlatformError('validation.invalid', {
         issues: 'the root CA key is not on this DC; approve on the DC that holds it',
@@ -404,7 +422,11 @@ export class Pki {
    * Idempotent: pins the root, gets this DC its issuing CA (request, or install once approved), issues or renews
    * the node, web and LDAPS certificates, and regenerates this issuer's CRL when revocations changed or it is due.
    */
-  async maintain(o: { renewFraction?: number } = {}): Promise<OpResult<'pki.maintain'>> {
+  maintain(o: { renewFraction?: number } = {}): Promise<OpResult<'pki.maintain'>> {
+    return queued(() => this.#maintain(o));
+  }
+
+  async #maintain(o: { renewFraction?: number } = {}): Promise<OpResult<'pki.maintain'>> {
     const n = await this.#node();
     const db = await this.#db();
     const root = await db.read(db.dn(null, 'Root'), 'pki.root', pkiRoot);
@@ -480,7 +502,7 @@ export class Pki {
       ...(profile === 'node' ? { nodeGuid: n.nodeGuid } : {}),
       ...(profile === 'ldaps' ? { extraNames: [n.domain] } : {}),
     });
-    const keyTmp = `${target.key}.new`;
+    const keyTmp = `${target.key}.${randomBytes(4).toString('hex')}.new`;
     await this.#newKey(keyTmp);
     const csr = await this.#csr(keyTmp, n.fqdn);
     const cert = await this.#sign({
@@ -596,7 +618,11 @@ export class Pki {
   }
 
   /** Records a revocation in the index; this DC regenerates its own issuer's CRL at once. */
-  async revoke(serial: string, reason: string): Promise<OpResult<'cert.revoke'>> {
+  revoke(serial: string, reason: string): Promise<OpResult<'cert.revoke'>> {
+    return queued(() => this.#revoke(serial, reason));
+  }
+
+  async #revoke(serial: string, reason: string): Promise<OpResult<'cert.revoke'>> {
     const db = await this.#db();
     const dn = db.dn('Certificates', serial.toUpperCase());
     const cur = await db.read(dn, 'pki.cert', pkiCert);
