@@ -129,8 +129,9 @@ const watcherHandler = z.strictObject({
   scope: z.enum(['base', 'one', 'sub']),
   filter: z.string().startsWith('('),
   /**
-   * DirSync semantics: an object is delivered only when one of these attributes changed (plus creation and
-   * deletion). A move changes `name`; list `name` to see moves. The event carries only the changed attributes.
+   * DirSync semantics: with a list, an object is delivered only when one of these attributes changed (objectGUID
+   * doesn't count; a move changes `name`, a deletion `isDeleted`); an empty list means any change. The event
+   * carries only the changed attributes.
    */
   attributes: z.array(z.string()),
   roles: z.array(roleSelector).min(1),

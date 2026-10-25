@@ -221,7 +221,8 @@ export class WatcherEngine {
     try {
       r = await o.dir.dirsync(o.domainDn, {
         filter: h.filter,
-        attributes: [...new Set([...ALWAYS, ...h.attributes])],
+        // no list: every change (DirSync reports an object only when a *listed* attribute changed)
+        attributes: h.attributes.length ? [...new Set([...ALWAYS, ...h.attributes])] : [],
         cookie,
       });
     } catch (e) {

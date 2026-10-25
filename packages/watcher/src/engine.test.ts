@@ -225,6 +225,18 @@ test('a handler that keeps failing is quarantined; the others carry on; release 
   assert.equal(good.batches.at(-1)?.sync, true);
 });
 
+test('an empty attribute list asks for every change; a list adds the attributes every stream needs', async () => {
+  const seen: string[][] = [];
+  const { dc, engine } = setup([{ attributes: [] }, { filter: '(kind=other)', attributes: ['name'] }]);
+  const orig = dc.dirsync.bind(dc);
+  dc.dirsync = (nc, o) => {
+    seen.push(o.attributes);
+    return orig(nc, o);
+  };
+  await engine.pass();
+  assert.deepEqual(seen, [[], ['objectGUID', 'isDeleted', 'lastKnownParent', 'name']]);
+});
+
 test('a stream error (e.g. access denied) counts against that handler only', async () => {
   const r = reconciler();
   const { dc, engine } = setup([{ filter: '(kind=item)' }, { filter: '(kind=other)', handler: r.handler }]);
