@@ -178,7 +178,7 @@ export default function PasswordPolicies() {
         body: { kind: 'default', settings },
         schema: passwordPolicies,
       }),
-    onSuccess: async (r) => {
+    onSuccess: (r) => {
       qc.setQueryData(['password-policies'], r);
       setDraft(null);
     },
