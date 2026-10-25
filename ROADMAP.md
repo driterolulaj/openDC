@@ -131,8 +131,9 @@ are updated.
 - [x] Policies module: policy types, links, enforced/priority, effective-policy viewer; registry `domain-policy`
   layer; OU-linked password policies through shadow groups + PSOs. *Types so far: password, registry; DHCP
   policies arrive with Kea, the others with their phases.*
-- [ ] DNS: zones (forward/reverse), records, auto-PTR, aging/scavenging, forwarders, DNS diagnostics (SRV,
-  `_msdcs`, delegation); spike agent vs LDAP record writes.
+- [x] DNS: zones (forward/reverse), records, auto-PTR, aging/scavenging, forwarders, DNS diagnostics (SRV,
+  `_msdcs`, delegation); spike agent vs LDAP record writes. *Spike S3: writes through the agent, reads over LDAP.
+  Forwarders/scavenging are per DC (the DC the console runs on until node RPC in Phase 4).*
 - [ ] Kea DHCPv4/v6: subnets, pools, reservations, options from directory + DHCP policies; config-test before swap;
   lease viewer; HA pair; optional DNS registration (GSS-TSIG or lease hook, per spike).
 - [ ] PKI: root + per-DC issuing CAs, node/service/web/LDAPS certificates, revocation, CRL publication, expiry
@@ -156,6 +157,8 @@ are updated.
 5. Console, LDAPS and node certificates are issued by the internal CA, renew automatically in a time-shifted
    test, and a revoked node certificate is refused on node RPC.
 6. DNS diagnostics detect a deliberately deleted `_ldap._tcp` SRV record and suggest the fix.
+   **Met:** dc2's `_ldap._tcp` SRV deleted: reported missing on both DNS servers with the fix; "Repair" re-created
+   it (tier 0) and the next run passed 59/59.
 
 ---
 
