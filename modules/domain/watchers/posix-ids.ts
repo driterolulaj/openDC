@@ -4,8 +4,9 @@
  * idBase + RID and never overwrites. A full resync delivers every object without IDs; only objects created
  * since the handler first ran are filled (existing ones: the "Fill in POSIX IDs" bulk action).
  */
-import { isPlatformError } from '@opendc/shared';
 import type { WatchHandler } from '@opendc/shared/manifest';
+
+const BATCH = 500;
 
 /** "20261025120000.0Z" -> epoch ms */
 export function generalizedTime(v: unknown): number | null {
@@ -19,32 +20,35 @@ export function generalizedTime(v: unknown): number | null {
 const handler: WatchHandler = {
   async onChange(batch, ctx) {
     const since = Date.parse(ctx.since);
-    for (const e of batch.events) {
-      if (e.deleted || !e.guid) continue;
-      if (batch.sync) {
+    const guids = batch.events
+      .filter((e) => {
+        if (e.deleted || !e.guid) return false;
+        if (!batch.sync) return true;
         const created = generalizedTime(e.entry.whenCreated);
-        if (created === null || created < since) continue;
-      }
-      try {
-        const r = await ctx.agent('directory.posixIds.fill', { guid: e.guid });
-        if (r.skipped === null)
-          ctx.audit({
-            action: 'directory.posix-ids.fill',
-            result: 'success',
-            targetGuid: e.guid,
-            targetDn: r.dn,
-            after: r.set,
-          });
-      } catch (err) {
-        // one object with a conflicting ID must not stop the others (and must not quarantine the handler)
-        if (!isPlatformError(err) || (err.code !== 'directory.invalid' && err.code !== 'request.not-found')) throw err;
-        ctx.log('warn', 'POSIX IDs not filled', { guid: e.guid, code: err.code, error: err.message });
-        if (err.code === 'directory.invalid')
+        return created !== null && created >= since;
+      })
+      .map((e) => e.guid);
+    for (let i = 0; i < guids.length; i += BATCH) {
+      // agent errors (unreachable, timeout) fail the batch and it is retried; per-object problems don't
+      const { results } = await ctx.agent('directory.posixIds.fill', { guids: guids.slice(i, i + BATCH) });
+      for (const r of results) {
+        if (r.error === 'not found') continue; // deleted meanwhile
+        if (r.error) {
+          ctx.log('warn', 'POSIX IDs not filled', { guid: r.guid, dn: r.dn, error: r.error });
           ctx.audit({
             action: 'directory.posix-ids.fill',
             result: 'failure',
-            targetGuid: e.guid,
-            after: { error: err.message.slice(0, 300) },
+            targetGuid: r.guid,
+            ...(r.dn ? { targetDn: r.dn } : {}),
+            after: { error: r.error },
+          });
+        } else if (r.skipped === null && r.dn)
+          ctx.audit({
+            action: 'directory.posix-ids.fill',
+            result: 'success',
+            targetGuid: r.guid,
+            targetDn: r.dn,
+            after: r.set,
           });
       }
     }

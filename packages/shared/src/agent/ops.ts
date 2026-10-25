@@ -166,11 +166,19 @@ export const ops = {
   },
   'directory.posixIds.fill': {
     v: 1,
-    args: z.strictObject({ guid: z.uuid() }),
+    args: z.strictObject({ guids: z.array(z.uuid()).min(1).max(500) }),
     result: z.object({
-      dn: z.string(),
-      set: z.object({ uidNumber: z.number().optional(), gidNumber: z.number().optional() }),
-      skipped: z.string().nullable(),
+      results: z.array(
+        z.object({
+          guid: z.string(),
+          dn: z.string().nullable(),
+          set: z.object({ uidNumber: z.number().optional(), gidNumber: z.number().optional() }),
+          /** why nothing was needed (computer, BUILTIN, already has IDs) */
+          skipped: z.string().nullable(),
+          /** why it couldn't be done (not found, ID already used) */
+          error: z.string().nullable(),
+        }),
+      ),
     }),
   },
   'samba.passwordPolicy.show': { v: 1, args: empty, result: passwordPolicies },

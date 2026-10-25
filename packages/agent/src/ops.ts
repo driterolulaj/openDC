@@ -202,7 +202,7 @@ export const implementations: Impls = {
   'samba.level.raise': async (args, ctx) => levelRaise(ctx.os, new SambaLocal(ctx.os), args),
   'samba.protectedObject.modify': async (args, ctx) =>
     modifyProtected(new SambaLocal(ctx.os), args, (await ctx.os.system.info()).hostname),
-  'directory.posixIds.fill': async (args, ctx) => fillPosixIds(new SambaLocal(ctx.os), args.guid),
+  'directory.posixIds.fill': async (args, ctx) => fillPosixIds(new SambaLocal(ctx.os), args.guids),
   'samba.passwordPolicy.show': async (_args, ctx) => showPolicies(new SambaLocal(ctx.os)),
   'samba.passwordPolicy.set': async (args, ctx) => setPolicy(new SambaLocal(ctx.os), args),
   'samba.sdprop.run': async (_args, ctx) =>

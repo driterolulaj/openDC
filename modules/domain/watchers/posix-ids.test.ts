@@ -13,15 +13,17 @@ const ev = (guid: string, whenCreated: string, deleted = false): WatchEvent => (
   entry: { dn: childDn('DC=x', 'CN', guid), whenCreated },
 });
 
-function ctx(fill: (guid: string) => unknown) {
-  const audits: { result: string }[] = [];
-  const calls: string[] = [];
+type R = { guid: string; dn: string | null; set: object; skipped: string | null; error: string | null };
+
+function ctx(fill: (guid: string) => R) {
+  const audits: { result: string; targetGuid?: string }[] = [];
+  const calls: string[][] = [];
   const c = {
     since: '2026-10-25T12:00:00.000Z',
-    agent: (_op: string, args: { guid: string }) => {
-      calls.push(args.guid);
+    agent: (_op: string, args: { guids: string[] }) => {
+      calls.push(args.guids);
       try {
-        return Promise.resolve(fill(args.guid));
+        return Promise.resolve({ results: args.guids.map(fill) });
       } catch (e) {
         return Promise.reject(e instanceof Error ? e : new Error(String(e)));
       }
@@ -32,11 +34,17 @@ function ctx(fill: (guid: string) => unknown) {
   return { c, audits, calls };
 }
 
-test('POSIX IDs: incremental changes are filled and audited; a resync only fills objects created since', async () => {
+const ok = (guid: string): R => ({
+  guid,
+  dn: childDn('DC=x', 'CN', guid),
+  set: { uidNumber: 1 },
+  skipped: null,
+  error: null,
+});
+
+test('POSIX IDs: one batched call; a resync only fills objects created since; skips are not audited', async () => {
   const { c, audits, calls } = ctx((guid) =>
-    guid === 'old-skip'
-      ? { dn: 'CN=s', set: {}, skipped: 'already has its IDs' }
-      : { dn: childDn('DC=x', 'CN', guid), set: { uidNumber: 101234 }, skipped: null },
+    guid === 'old-skip' ? { guid, dn: 'CN=s', set: {}, skipped: 'already has its IDs', error: null } : ok(guid),
   );
   const sync: WatchBatch = {
     handlerId: 'posix-ids',
@@ -44,28 +52,42 @@ test('POSIX IDs: incremental changes are filled and audited; a resync only fills
     events: [ev('before', '20261025115959.0Z'), ev('after', '20261025120001.0Z'), ev('nodate', '')],
   };
   await handler.onChange(sync, c);
-  assert.deepEqual(calls, ['after']);
+  assert.deepEqual(calls, [['after']]);
   await handler.onChange(
     { handlerId: 'posix-ids', sync: false, events: [ev('before', '2020'), ev('gone', '', true), ev('old-skip', '')] },
     c,
   );
-  assert.deepEqual(calls, ['after', 'before', 'old-skip']);
-  assert.equal(audits.length, 2, 'skipped objects are not audited');
+  assert.deepEqual(calls[1], ['before', 'old-skip']);
+  assert.equal(audits.length, 2);
+  await handler.onChange({ handlerId: 'p', sync: true, events: [ev('x', '')] }, c);
+  assert.equal(calls.length, 2, 'nothing to do: no agent call');
+  const many = Array.from({ length: 1100 }, (_, i) => ev(`g${String(i)}`, ''));
+  await handler.onChange({ handlerId: 'p', sync: false, events: many }, c);
+  assert.deepEqual(
+    calls.slice(2).map((x) => x.length),
+    [500, 500, 100],
+  );
 });
 
-test('POSIX IDs: a conflicting ID is audited and skipped; other errors fail the batch', async () => {
+test('POSIX IDs: per-object errors are audited, vanished objects ignored, agent errors fail the batch', async () => {
   const { c, audits } = ctx((guid) => {
-    if (guid === 'conflict') throw new PlatformError('directory.invalid', { reason: 'uidNumber 101 is already used' });
-    if (guid === 'vanished') throw new PlatformError('request.not-found', { what: 'x' });
     if (guid === 'down') throw new PlatformError('agent.unreachable', { socket: 's', reason: 'r' });
-    return { dn: 'CN=ok', set: { gidNumber: 100513 }, skipped: null };
+    if (guid === 'conflict')
+      return { guid, dn: 'CN=c', set: {}, skipped: null, error: 'the computed ID is already used' };
+    if (guid === 'vanished') return { guid, dn: null, set: {}, skipped: null, error: 'not found' };
+    return ok(guid);
   });
   await handler.onChange(
-    { handlerId: 'p', sync: false, events: [ev('conflict', ''), ev('vanished', ''), ev('ok', '')] },
+    { handlerId: 'p', sync: false, events: [ev('conflict', ''), ev('vanished', ''), ev('fine', '')] },
     c,
   );
-  assert.equal(audits[0]?.result, 'failure');
-  assert.equal(audits[1]?.result, 'success');
+  assert.deepEqual(
+    audits.map((a) => [a.targetGuid, a.result]),
+    [
+      ['conflict', 'failure'],
+      ['fine', 'success'],
+    ],
+  );
   await assert.rejects(handler.onChange({ handlerId: 'p', sync: false, events: [ev('down', '')] }, c));
   assert.equal(generalizedTime(['20261025120000.0Z']), Date.UTC(2026, 9, 25, 12, 0, 0));
   assert.equal(generalizedTime(42), null);
