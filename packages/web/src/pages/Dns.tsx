@@ -20,7 +20,15 @@ import {
 } from '@mantine/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { dnsDiagnostics, dnsRecords, dnsRepairResult, dnsZones, recordAdded } from '@opendc/shared/api';
+import {
+  dnsDiagnostics,
+  dnsRecords,
+  dnsRepairResult,
+  dnsServer,
+  dnsServerResult,
+  dnsZones,
+  recordAdded,
+} from '@opendc/shared/api';
 import { recordTypes, sambaToolData, type RecordData, type RecordType } from '@opendc/shared/dns';
 import { z } from 'zod';
 import { api } from '../api.ts';
@@ -268,6 +276,62 @@ function Diagnostics() {
   );
 }
 
+function Server() {
+  const { t } = useTranslation();
+  const { has } = useSession();
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ['dns-server'], queryFn: () => api('/dns/server', { schema: dnsServer }) });
+  const [draft, setDraft] = useState<{ forwarders: string; scavenging: boolean } | null>(null);
+  const save = useMutation({
+    mutationFn: (v: { forwarders: string; scavenging: boolean }) =>
+      api('/dns/server', {
+        method: 'PUT',
+        body: { forwarders: v.forwarders.split(/[\s,]+/).filter(Boolean), scavenging: v.scavenging },
+        schema: dnsServerResult,
+      }),
+    onSuccess: async () => {
+      setDraft(null);
+      await qc.invalidateQueries({ queryKey: ['dns-server'] });
+    },
+  });
+  if (q.isPending) return <Loader size="sm" aria-label={t('app.loading')} />;
+  if (q.isError) return <ErrorView error={q.error} />;
+  const v = draft ?? { forwarders: q.data.forwarders.join(' '), scavenging: q.data.scavenging };
+  const canManage = has('dns.zones.manage');
+  return (
+    <Stack maw={560}>
+      <Text c="dimmed">{t('dns.server-hint')}</Text>
+      {save.error ? <ErrorView error={save.error} /> : null}
+      <TextInput
+        label={t('dns.forwarders')}
+        description={t('dns.forwarders-hint')}
+        readOnly={!canManage}
+        value={v.forwarders}
+        onChange={(e) => {
+          const x = e.currentTarget.value;
+          setDraft({ ...v, forwarders: x });
+        }}
+      />
+      <Checkbox
+        label={t('dns.scavenging')}
+        disabled={!canManage}
+        checked={v.scavenging}
+        onChange={(e) => {
+          const x = e.currentTarget.checked;
+          setDraft({ ...v, scavenging: x });
+        }}
+      />
+      {canManage ? (
+        <Group>
+          <Button disabled={!draft} loading={save.isPending} onClick={() => draft && save.mutate(draft)}>
+            {t('dns.save-restart')}
+          </Button>
+        </Group>
+      ) : null}
+    </Stack>
+  );
+}
+
 export default function Dns() {
   const { t } = useTranslation();
   const { has } = useSession();
@@ -282,6 +346,7 @@ export default function Dns() {
         <Tabs.List>
           <Tabs.Tab value="zones">{t('dns.zones')}</Tabs.Tab>
           <Tabs.Tab value="diagnostics">{t('dns.diagnostics')}</Tabs.Tab>
+          <Tabs.Tab value="server">{t('dns.server')}</Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel value="zones" pt="md">
           {zones.isPending ? <Loader size="sm" aria-label={t('app.loading')} /> : null}
@@ -305,6 +370,9 @@ export default function Dns() {
         </Tabs.Panel>
         <Tabs.Panel value="diagnostics" pt="md">
           <Diagnostics />
+        </Tabs.Panel>
+        <Tabs.Panel value="server" pt="md">
+          <Server />
         </Tabs.Panel>
       </Tabs>
     </Stack>

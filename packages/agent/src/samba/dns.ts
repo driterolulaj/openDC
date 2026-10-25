@@ -7,7 +7,10 @@
 import { PlatformError } from '@opendc/shared';
 import type { OpParsedArgs, OpResult } from '@opendc/shared/agent';
 import { sambaToolData, type RecordData } from '@opendc/shared/dns';
+import { readFile } from 'node:fs/promises';
+import { writeSystemFile, type OsActions } from '@opendc/os';
 import { first } from './ldif.ts';
+import { globalParam, withGlobalParam } from './smbconf.ts';
 import type { SambaLocal } from './local.ts';
 
 const SERVER = 'localhost';
@@ -131,4 +134,37 @@ export async function zoneSetAging(
     { zone: a.zone, what: `Zone ${a.zone}` },
   );
   return { zone: a.zone };
+}
+
+/** Forwarders and scavenging of this DC's DNS server (smb.conf [global]). */
+export async function serverShow(samba: SambaLocal): Promise<OpResult<'dns.server.show'>> {
+  const text = await readFile(samba.paths.smbConf, 'utf8');
+  const fw = globalParam(text, 'dns forwarder');
+  return {
+    forwarders: fw ? fw.split(/[\s,]+/).filter(Boolean) : [],
+    scavenging: /^(yes|true|1)$/i.test(globalParam(text, 'dns zone scavenging') ?? ''),
+  };
+}
+
+/**
+ * Sets this DC's forwarders and scavenging; Samba reads them at start, so a change restarts it (the DC is away
+ * for a few seconds). Nothing is written or restarted when nothing changes.
+ */
+export async function serverConfigure(
+  os: OsActions,
+  samba: SambaLocal,
+  a: OpParsedArgs<'dns.server.configure'>,
+): Promise<OpResult<'dns.server.configure'>> {
+  const conf = samba.paths.smbConf;
+  const text = await readFile(conf, 'utf8');
+  let next = text;
+  if (a.forwarders) next = withGlobalParam(next, 'dns forwarder', a.forwarders.length ? a.forwarders.join(' ') : null);
+  if (a.scavenging !== undefined) next = withGlobalParam(next, 'dns zone scavenging', a.scavenging ? 'yes' : null);
+  let restarted = false;
+  if (next !== text) {
+    await writeSystemFile(conf, next, 0o644);
+    await os.services.restart('samba-ad-dc');
+    restarted = true;
+  }
+  return { ...(await serverShow(samba)), restarted };
 }

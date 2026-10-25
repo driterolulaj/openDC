@@ -8,6 +8,8 @@ export const allowlist = {
       "dns.record.add",
       "dns.record.delete",
       "dns.record.update",
+      "dns.server.configure",
+      "dns.server.show",
       "dns.zone.create",
       "dns.zone.delete",
       "dns.zone.list",
@@ -48,6 +50,8 @@ export const allowlist = {
     ],
     "cli": [
       "directory.posixIds.fill",
+      "dns.server.configure",
+      "dns.server.show",
       "dns.zone.list",
       "file.readManaged",
       "file.restorePrevious",

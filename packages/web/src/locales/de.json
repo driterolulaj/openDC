@@ -534,6 +534,12 @@
     "diag-ok": "Alle {{count}} Prüfungen bestanden.",
     "check-again": "Erneut prüfen",
     "repair": "{{count}} fehlende Einträge neu anlegen",
-    "repaired": "{{count}} Einträge neu angelegt, {{failed}} fehlgeschlagen."
+    "repaired": "{{count}} Einträge neu angelegt, {{failed}} fehlgeschlagen.",
+    "server": "Dieser DC",
+    "server-hint": "DNS-Server-Einstellungen des Domänencontrollers, auf dem diese Konsole läuft. Eine Änderung startet Samba dort neu (einige Sekunden ohne Anmeldungen an diesem DC).",
+    "forwarders": "Weiterleitungen",
+    "forwarders-hint": "Bis zu vier DNS-Server für Internetnamen, durch Leerzeichen getrennt.",
+    "scavenging": "Veraltete dynamische Einträge bereinigen (Zonen mit eingeschalteter Alterung)",
+    "save-restart": "Speichern und Samba neu starten"
   }
 }

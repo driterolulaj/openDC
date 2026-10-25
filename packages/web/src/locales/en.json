@@ -534,6 +534,12 @@
     "diag-ok": "All {{count}} checks passed.",
     "check-again": "Check again",
     "repair": "Re-create {{count}} missing records",
-    "repaired": "{{count}} records re-created, {{failed}} failed."
+    "repaired": "{{count}} records re-created, {{failed}} failed.",
+    "server": "This DC",
+    "server-hint": "DNS server settings of the domain controller this console runs on. Saving a change restarts Samba on it (a few seconds without logons on this DC).",
+    "forwarders": "Forwarders",
+    "forwarders-hint": "Up to four DNS servers for Internet names, separated by spaces.",
+    "scavenging": "Scavenge stale dynamic records (zones with aging turned on)",
+    "save-restart": "Save and restart Samba"
   }
 }

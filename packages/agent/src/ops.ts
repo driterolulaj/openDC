@@ -218,6 +218,8 @@ export const implementations: Impls = {
   'dns.record.update': async (args, ctx) => dnsOps.recordUpdate(new SambaLocal(ctx.os), args),
   'dns.record.delete': async (args, ctx) => dnsOps.recordDelete(new SambaLocal(ctx.os), args),
   'dns.zone.setAging': async (args, ctx) => dnsOps.zoneSetAging(new SambaLocal(ctx.os), args),
+  'dns.server.show': async (_args, ctx) => dnsOps.serverShow(new SambaLocal(ctx.os)),
+  'dns.server.configure': async (args, ctx) => dnsOps.serverConfigure(ctx.os, new SambaLocal(ctx.os), args),
   'platform.watchAccess.ensure': async (_args, ctx) => {
     const samba = new SambaLocal(ctx.os);
     if (!(await samba.provisioned())) throw new PlatformError('samba.not-provisioned');

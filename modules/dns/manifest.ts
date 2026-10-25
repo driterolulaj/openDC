@@ -27,6 +27,8 @@ export default {
     { op: 'dns.record.add', from: ['api'] },
     { op: 'dns.record.update', from: ['api'] },
     { op: 'dns.record.delete', from: ['api'] },
+    { op: 'dns.server.show', from: ['api', 'cli'] },
+    { op: 'dns.server.configure', from: ['api', 'cli'] },
   ],
   i18n: { namespaces: ['dns'] },
 } satisfies ModuleManifest;

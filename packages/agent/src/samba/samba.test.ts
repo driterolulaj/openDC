@@ -127,3 +127,23 @@ test('pre-flight recognises Samba AD task names as Samba (resume of an unfinishe
     assert.ok(isSambaProcess(p), p);
   for (const p of ['systemd-resolve', 'named', 'slapd', null]) assert.ok(!isSambaProcess(p), String(p));
 });
+
+test('smb.conf [global] parameters: set, replace, remove, read; other sections untouched', async () => {
+  const { withGlobalParam, globalParam, withDnsForwarder } = await import('./smbconf.ts');
+  const conf = '[global]\n\tworkgroup = X\n\tdns  forwarder = 1.1.1.1\n\n[sysvol]\n\tdns forwarder = not-global\n';
+  assert.equal(globalParam(conf, 'dns forwarder'), '1.1.1.1');
+  assert.equal(globalParam(conf, 'dns zone scavenging'), null);
+  const a = withGlobalParam(conf, 'dns zone scavenging', 'yes');
+  assert.match(a, /\[global\][^[]*\tdns zone scavenging = yes/);
+  assert.equal(globalParam(a, 'dns zone scavenging'), 'yes');
+  const b = withDnsForwarder(a, ['9.9.9.9', '1.0.0.1']);
+  assert.equal(globalParam(b, 'dns forwarder'), '9.9.9.9 1.0.0.1');
+  assert.ok(b.includes('dns forwarder = not-global'), 'other sections stay');
+  const c = withGlobalParam(withDnsForwarder(b, []), 'dns zone scavenging', null);
+  assert.equal(globalParam(c, 'dns forwarder'), null);
+  assert.equal(globalParam(c, 'dns zone scavenging'), null);
+  assert.ok(c.includes('workgroup = X'));
+  assert.equal(withGlobalParam('[global]\n', 'x y', '1'), '[global]\n\tx y = 1\n');
+  // a new parameter goes after the section's last setting, not after its blank lines
+  assert.equal(withGlobalParam('[global]\n\ta = 1\n\n[x]\n', 'b', '2'), '[global]\n\ta = 1\n\tb = 2\n\n[x]\n');
+});

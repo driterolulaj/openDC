@@ -112,6 +112,9 @@ export const catalogue = {
   'dns.record.update': { sockets: [A, W], risk: 'write', phase: 3 },
   'dns.record.delete': { sockets: [A, W], risk: 'write', phase: 3 },
   'dns.zone.setAging': { sockets: [A], risk: 'write', phase: 3 },
+  // forwarders and scavenging of this DC's DNS server (smb.conf; restarts Samba when changed)
+  'dns.server.show': { sockets: [A, C], risk: 'read', phase: 3 },
+  'dns.server.configure': { sockets: [A, C], risk: 'write', phase: 3 },
   // 3.5 DHCP
   'kea.configTest': { sockets: [W], risk: 'read', phase: 3 },
   'kea.command': { sockets: [A, W], risk: 'write', phase: 3 },

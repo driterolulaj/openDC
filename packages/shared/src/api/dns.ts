@@ -82,3 +82,14 @@ export const dnsRepairResult = z.object({
   added: z.array(z.string()),
   failed: z.array(z.object({ name: z.string(), error: z.string() })),
 });
+
+/** This DC's DNS server: forwarders and scavenging (smb.conf; a change restarts Samba on this DC). */
+export const dnsServer = z.object({ forwarders: z.array(z.string()), scavenging: z.boolean() });
+export const dnsServerUpdate = z.strictObject({
+  forwarders: z
+    .array(z.union([z.ipv4(), z.ipv6()]))
+    .max(4)
+    .optional(),
+  scavenging: z.boolean().optional(),
+});
+export const dnsServerResult = dnsServer.extend({ restarted: z.boolean() });

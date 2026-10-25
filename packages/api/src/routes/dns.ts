@@ -14,6 +14,9 @@ import {
   dnsRecords,
   dnsRepair,
   dnsRepairResult,
+  dnsServer,
+  dnsServerResult,
+  dnsServerUpdate,
   dnsZones,
   empty,
   recordAdd,
@@ -403,6 +406,36 @@ export function dnsRoutes(
         data: sambaToolData(c.body.record),
       });
       return {};
+    },
+  });
+
+  // ---------------------------------------------------------------- this DC's server settings
+
+  t.add({
+    method: 'GET',
+    url: '/api/v1/dns/server',
+    operationId: 'getDnsServer',
+    summary: "This DC's DNS forwarders and scavenging",
+    tags: ['dns'],
+    auth: { permission: 'dns.zones.read' },
+    response: dnsServer,
+    handler: async (c) => d.agent().call('dns.server.show', {}, { actor: actor(c) }),
+  });
+
+  t.add({
+    method: 'PUT',
+    url: '/api/v1/dns/server',
+    operationId: 'setDnsServer',
+    summary: "Set this DC's DNS forwarders and scavenging (restarts Samba on this DC when something changes)",
+    tags: ['dns'],
+    auth: { permission: 'dns.zones.manage' },
+    body: dnsServerUpdate,
+    response: dnsServerResult,
+    handler: async (c) => {
+      const before = await d.agent().call('dns.server.show', {}, { actor: actor(c) });
+      const r = await d.agent().call('dns.server.configure', c.body, { actor: actor(c), timeoutMs: 180_000 });
+      if (r.restarted) audit(c, 'dns.server.configure', { forwarders: r.forwarders, scavenging: r.scavenging }, before);
+      return r;
     },
   });
 

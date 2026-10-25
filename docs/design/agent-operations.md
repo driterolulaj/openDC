@@ -148,7 +148,7 @@ Phase 2 notes on provisioning and join (amended 2026-10-25, for review):
 | `dns.zone.create/delete` | `zone (validated), type: forward|reverse` | A | W (delete ✔c) | 3 |
 | `dns.record.add/update/delete` | `zone, name, type ∈ {A,AAAA,CNAME,MX,SRV,TXT,PTR,NS}, data (typed per type), ttl` | AW | W | 3 |
 | `dns.zone.setAging` | `zone, aging, refreshH, noRefreshH` | A | W | 3 |
-| `dns.forwarders.set` | `servers[]` (renders `dns forwarder` through the registry, then restarts Samba) | — | via registry | 3 |
+| `dns.server.show` / `dns.server.configure` | `forwarders?[] (≤ 4 IPs), scavenging?` — this DC's `dns forwarder` / `dns zone scavenging` in smb.conf; a change restarts Samba (Phase 3: replaces `dns.forwarders.set`) | A, C | R / W | 3 |
 
 The DNS operations wrap `samba-tool dns` with machine credentials on the DC. Phase 3 has a spike to compare
 this with writing `dnsRecord` blobs over LDAP from the API, which would avoid root; the result will be an

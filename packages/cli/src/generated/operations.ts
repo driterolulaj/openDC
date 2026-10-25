@@ -402,6 +402,18 @@ export const operations = [
     "auth": "dns.zones.read"
   },
   {
+    "operationId": "getDnsServer",
+    "method": "GET",
+    "path": "/api/v1/dns/server",
+    "tag": "dns",
+    "summary": "This DC's DNS forwarders and scavenging",
+    "pathParams": [],
+    "queryParams": [],
+    "body": false,
+    "stream": false,
+    "auth": "dns.zones.read"
+  },
+  {
     "operationId": "getDomainInfo",
     "method": "GET",
     "path": "/api/v1/directory/info",
@@ -942,6 +954,18 @@ export const operations = [
     "body": true,
     "stream": false,
     "auth": "domain.fsmo.manage"
+  },
+  {
+    "operationId": "setDnsServer",
+    "method": "PUT",
+    "path": "/api/v1/dns/server",
+    "tag": "dns",
+    "summary": "Set this DC's DNS forwarders and scavenging (restarts Samba on this DC when something changes)",
+    "pathParams": [],
+    "queryParams": [],
+    "body": true,
+    "stream": false,
+    "auth": "dns.zones.manage"
   },
   {
     "operationId": "setDnsZoneAging",

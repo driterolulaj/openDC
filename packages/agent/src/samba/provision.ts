@@ -19,6 +19,7 @@ import { parseLayer, withHeader } from '@opendc/registry';
 import { modifyRecord, unicodePwd, first } from './ldif.ts';
 import { SambaLocal } from './local.ts';
 import { PlatformBootstrap } from './platform.ts';
+import { withDnsForwarder } from './smbconf.ts';
 import { runSdPropIfPdc } from './sdprop.ts';
 import type { NodeStateFile, SecretFiles } from '../state.ts';
 import { servicePassword } from '../state.ts';
@@ -54,30 +55,7 @@ async function step<T>(name: string, fn: () => Promise<T>): Promise<T> {
 }
 
 /** smb.conf text with `dns forwarder` in [global] set to `forwarders` (removed when empty). */
-export function withDnsForwarder(text: string, forwarders: string[]): string {
-  const line = forwarders.length ? '\t' + 'dns forwarder = ' + forwarders.join(' ') : null;
-  const out: string[] = [];
-  let inGlobal = false;
-  let done = false;
-  for (const l of text.split('\n')) {
-    const section = /^\s*\[(.+)\]\s*$/.exec(l);
-    if (section) {
-      if (inGlobal && !done && line) out.push(line);
-      inGlobal = section[1]?.trim().toLowerCase() === 'global';
-      done = false;
-      out.push(l);
-      continue;
-    }
-    if (inGlobal && /^\s*dns\s+forwarder\s*=/i.test(l)) {
-      if (line && !done) out.push(line);
-      done = true;
-      continue;
-    }
-    out.push(l);
-  }
-  if (inGlobal && !done && line) out.push(line);
-  return out.join('\n');
-}
+export { withDnsForwarder, withGlobalParam, globalParam } from './smbconf.ts';
 
 /** Network address of `ip` within its interface prefix, as CIDR (default `ntpAllow`). */
 export function networkOf(ip: string, prefix: number): string {

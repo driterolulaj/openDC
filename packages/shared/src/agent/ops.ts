@@ -197,6 +197,22 @@ export const ops = {
     }),
     result: z.object({ zone: z.string() }),
   },
+  'dns.server.show': {
+    v: 1,
+    args: empty,
+    result: z.object({ forwarders: z.array(z.string()), scavenging: z.boolean() }),
+  },
+  'dns.server.configure': {
+    v: 1,
+    args: z.strictObject({
+      forwarders: z
+        .array(z.union([z.ipv4(), z.ipv6()]))
+        .max(4)
+        .optional(),
+      scavenging: z.boolean().optional(),
+    }),
+    result: z.object({ forwarders: z.array(z.string()), scavenging: z.boolean(), restarted: z.boolean() }),
+  },
   'platform.watchAccess.ensure': { v: 1, args: empty, result: z.object({ changed: z.array(z.string()) }) },
   'directory.posixIds.fill': {
     v: 1,
