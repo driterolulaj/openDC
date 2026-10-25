@@ -59,6 +59,8 @@
     "result": "Result",
     "target": "Target",
     "source": "Source",
+    "before": "Before",
+    "after": "After",
     "empty": "No entries yet."
   },
   "role": {

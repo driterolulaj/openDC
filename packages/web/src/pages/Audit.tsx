@@ -37,6 +37,8 @@ export default function Audit() {
               <Table.Th>{t('audit.result')}</Table.Th>
               <Table.Th>{t('audit.target')}</Table.Th>
               <Table.Th>{t('audit.source')}</Table.Th>
+              <Table.Th>{t('audit.before')}</Table.Th>
+              <Table.Th>{t('audit.after')}</Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -52,6 +54,12 @@ export default function Audit() {
                 </Table.Td>
                 <Table.Td>{e.targetDn ?? ''}</Table.Td>
                 <Table.Td>{e.sourceIp ?? ''}</Table.Td>
+                <Table.Td ff="monospace" fz="xs">
+                  {e.before == null ? '' : JSON.stringify(e.before)}
+                </Table.Td>
+                <Table.Td ff="monospace" fz="xs">
+                  {e.after == null ? '' : JSON.stringify(e.after)}
+                </Table.Td>
               </Table.Tr>
             ))}
           </Table.Tbody>

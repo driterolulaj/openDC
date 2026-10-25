@@ -246,7 +246,7 @@ export function coreRoutes(t: RouteTable, d: CoreDeps): void {
             ...(c.query.limit ? { limit: c.query.limit } : {}),
             ...(c.query.before ? { beforeTs: c.query.before } : {}),
           })
-          .map(({ before: _b, after: _a, prevHash: _p, hash: _h, ...e }) => e),
+          .map(({ prevHash: _p, hash: _h, ...e }) => e),
       }),
   });
 

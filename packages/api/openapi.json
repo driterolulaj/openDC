@@ -201,7 +201,9 @@
                               "string",
                               "null"
                             ]
-                          }
+                          },
+                          "before": {},
+                          "after": {}
                         },
                         "required": [
                           "originNodeId",
@@ -214,7 +216,9 @@
                           "result",
                           "targetGuid",
                           "targetDn",
-                          "requestId"
+                          "requestId",
+                          "before",
+                          "after"
                         ],
                         "additionalProperties": false
                       }

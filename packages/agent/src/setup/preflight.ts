@@ -184,7 +184,8 @@ export async function preflight(a: Args, os: OsActions, samDb: string, resume = 
   add('disk', !fs || freeGiB < 2 ? 'fail' : freeGiB < 5 ? 'warn' : 'pass', { free: freeGiB, path: samba_.stateDir });
   add('filesystem', fs && XATTR_FS.has(fs.type) ? 'pass' : 'warn', { type: fs?.type ?? '?', path: samba_.stateDir });
   const memGiB = Math.round((totalmem() / GiB) * 10) / 10;
-  add('memory', memGiB < 1.5 ? 'fail' : memGiB < 2 ? 'warn' : 'pass', { memory: memGiB });
+  // the kernel keeps part of the installed memory for itself: a 2 GiB host reports about 1.9 GiB
+  add('memory', memGiB < 1.4 ? 'fail' : memGiB < 1.8 ? 'warn' : 'pass', { memory: memGiB });
   const mac = await os.facts.macKind();
   add('mac', mac === 'selinux' ? 'warn' : 'pass', { kind: mac });
 

@@ -74,6 +74,9 @@ export const auditEntry = z.object({
   targetGuid: z.string().nullable(),
   targetDn: z.string().nullable(),
   requestId: z.string().nullable(),
+  /** What changed (no secrets are ever recorded) */
+  before: z.unknown(),
+  after: z.unknown(),
 });
 export const auditQuery = z.strictObject({
   limit: z.coerce.number().int().min(1).max(500).optional(),

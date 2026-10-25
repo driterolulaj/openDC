@@ -59,6 +59,8 @@
     "result": "Ergebnis",
     "target": "Ziel",
     "source": "Quelle",
+    "before": "Vorher",
+    "after": "Nachher",
     "empty": "Noch keine Einträge."
   },
   "role": {

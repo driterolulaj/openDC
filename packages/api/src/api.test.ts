@@ -234,7 +234,10 @@ test('audit list and the hash chain', async () => {
     url: '/api/v1/audit?limit=10',
     cookies: { '__Host-opendc_sid': cookie?.value ?? '' },
   });
-  assert.equal(r.json<{ entries: unknown[] }>().entries.length, 2);
+  const entries = r.json<{ entries: { action: string; result: string; after: unknown }[] }>().entries;
+  assert.equal(entries.length, 2);
+  // newest first; what happened is part of the entry
+  assert.deepEqual(entries[0]?.after, { reason: 'auth.invalid-credentials' });
   assert.equal(a.audit.verify(), 2);
   const bad = await a.app.inject({
     method: 'GET',
