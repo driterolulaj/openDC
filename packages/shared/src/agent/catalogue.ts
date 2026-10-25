@@ -80,6 +80,8 @@ export const catalogue = {
   'samba.sdprop.run': { sockets: [A, C], risk: 'write', phase: 2 },
   // RFC2307 IDs for objects created outside OpenDC (ADR-0018, Q22): watcher handler and bulk action
   'directory.posixIds.fill': { sockets: [A, W, C], risk: 'write', phase: 3 },
+  // OU-linked password policies: PSOs + shadow groups (directory-object-model §3.2), run by the leader's watcher
+  'policy.password.reconcile': { sockets: [A, W, C], risk: 'write', phase: 3 },
   // PSOs and the default policy aren't readable/writable by the delegated account (Phase 2)
   'samba.passwordPolicy.show': { sockets: [A, C], risk: 'read', phase: 2 },
   'samba.passwordPolicy.set': { sockets: [A, C], risk: 'tier0', phase: 2 },

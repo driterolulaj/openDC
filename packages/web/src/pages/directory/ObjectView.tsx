@@ -38,6 +38,7 @@ import { ErrorView } from '../../ErrorView.tsx';
 import { useSession } from '../../session.tsx';
 import { ObjectPicker, ProtectedBadge, SecretOnce, TypeBadge, TypedConfirm } from '../../components/directory.tsx';
 import { OuPickerModal } from './OuPicker.tsx';
+import { EffectivePolicies } from '../Policies.tsx';
 
 const USER_GENERAL = [
   'givenName',
@@ -465,6 +466,9 @@ export default function ObjectView() {
           {o.type === 'user' ? <Tabs.Tab value="profile">{t('dir.tab-profile')}</Tabs.Tab> : null}
           {o.type === 'group' ? <Tabs.Tab value="members">{t('dir.tab-members')}</Tabs.Tab> : null}
           {'memberOf' in o ? <Tabs.Tab value="memberOf">{t('dir.tab-memberOf')}</Tabs.Tab> : null}
+          {(o.type === 'user' || o.type === 'computer') && has('policies.policy.read') ? (
+            <Tabs.Tab value="policies">{t('dir.tab-policies')}</Tabs.Tab>
+          ) : null}
           {has('core.audit.read') ? <Tabs.Tab value="history">{t('dir.tab-history')}</Tabs.Tab> : null}
         </Tabs.List>
 
@@ -670,6 +674,9 @@ export default function ObjectView() {
             <RefList refs={o.memberOf} />
           </Tabs.Panel>
         ) : null}
+        <Tabs.Panel value="policies" pt="md">
+          <EffectivePolicies guid={o.guid} />
+        </Tabs.Panel>
         <Tabs.Panel value="history" pt="md">
           <History guid={o.guid} />
         </Tabs.Panel>

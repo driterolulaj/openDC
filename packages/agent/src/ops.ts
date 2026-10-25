@@ -10,6 +10,7 @@ import { join as joinDomain, provision } from './samba/provision.ts';
 import { fsmoShow, levelShow, sambaStatus } from './samba/info.ts';
 import { runSdPropIfPdc } from './samba/sdprop.ts';
 import { fillPosixIds } from './samba/posix.ts';
+import { reconcilePasswordPolicies } from './samba/policy-password.ts';
 import { modifyProtected } from './samba/protected.ts';
 import { fsmoSeize, fsmoTransfer, levelRaise } from './samba/fsmo.ts';
 import { setPolicy, showPolicies } from './samba/password-policy.ts';
@@ -53,6 +54,8 @@ export const timeouts: Partial<Record<ImplementedOp, number>> = {
   'samba.fsmo.seize': 1_800_000,
   'samba.level.raise': 600_000,
   'samba.passwordPolicy.set': 300_000,
+  'policy.password.reconcile': 600_000,
+  'directory.posixIds.fill': 300_000,
 };
 
 /** In-memory registry commit lock. Registry commits are short; a holder that vanished expires. */
@@ -202,6 +205,8 @@ export const implementations: Impls = {
   'samba.level.raise': async (args, ctx) => levelRaise(ctx.os, new SambaLocal(ctx.os), args),
   'samba.protectedObject.modify': async (args, ctx) =>
     modifyProtected(new SambaLocal(ctx.os), args, (await ctx.os.system.info()).hostname),
+  'policy.password.reconcile': async (args, ctx) =>
+    reconcilePasswordPolicies(new SambaLocal(ctx.os), args.users ? { users: args.users } : {}),
   'directory.posixIds.fill': async (args, ctx) => fillPosixIds(new SambaLocal(ctx.os), args.guids),
   'samba.passwordPolicy.show': async (_args, ctx) => showPolicies(new SambaLocal(ctx.os)),
   'samba.passwordPolicy.set': async (args, ctx) => setPolicy(new SambaLocal(ctx.os), args),

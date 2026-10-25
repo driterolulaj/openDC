@@ -110,6 +110,7 @@ Legend for sockets: **A** = api, **W** = watch, **C** = cli. Risk: R = read, W =
 | `samba.sites.link.set` | `link, sites[], cost, intervalMin, schedule?` | AC | T0 | 4 |
 | `samba.protectedObject.modify` | `targetGuid, changes (typed: memberAdd/Remove, passwordReset, enable/disable)` | A | T0 ✔c | 2 |
 | `directory.posixIds.fill` | `guids[]` (≤ 500 users or groups; per-object results); the agent computes `idBase + RID` (ADR-0018, Q22), never overwrites, refuses a used ID | A, W, C | W | 3 |
+| `policy.password.reconcile` | `users?[]` (≤ 5000 GUIDs; all users when absent). Reads the password policies in `CN=Policies`, sets the domain default from the head-linked winner, keeps PSO `OpenDC-<id>` + shadow group `pso-<id>` per other policy, memberships = users whose effective policy it is (shared resolver); removes orphans | A, W, C | W | 3 |
 | `samba.gpo.list` | — | AWC | R | 3 |
 | `samba.gpo.backup` | `gpoGuid, targetId` | AC | W | 3 |
 | `samba.gpo.restore` | `backupId, newName?` | AC | T0 ✔c | 3 |

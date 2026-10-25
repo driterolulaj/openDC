@@ -44,6 +44,11 @@
       "types": "./src/domain/index.ts",
       "development": "./src/domain/index.ts",
       "default": "./dist/domain/index.js"
+    },
+    "./policy": {
+      "types": "./src/policy/index.ts",
+      "development": "./src/policy/index.ts",
+      "default": "./dist/policy/index.js"
     }
   },
   "files": [

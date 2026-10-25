@@ -13380,6 +13380,1188 @@
         }
       }
     },
+    "/api/v1/policies": {
+      "get": {
+        "operationId": "listPolicies",
+        "summary": "Policies (optionally of one type), with their links",
+        "tags": [
+          "policies"
+        ],
+        "x-opendc-auth": {
+          "permission": "policies.policy.read"
+        },
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "password",
+                "registry"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "policies": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "password",
+                              "registry"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "priority": {
+                            "type": "number"
+                          },
+                          "links": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "targetGuid": {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                },
+                                "enforced": {
+                                  "default": false,
+                                  "type": "boolean"
+                                },
+                                "enabled": {
+                                  "default": true,
+                                  "type": "boolean"
+                                },
+                                "dn": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "targetGuid",
+                                "enforced",
+                                "enabled",
+                                "dn"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "filter": {
+                            "type": "object",
+                            "properties": {
+                              "groupGuids": {
+                                "maxItems": 50,
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                }
+                              },
+                              "nodeRoles": {
+                                "maxItems": 5,
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "enum": [
+                                    "primary-dc",
+                                    "dc",
+                                    "rodc",
+                                    "member",
+                                    "managed-node"
+                                  ]
+                                }
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "settings": {
+                            "type": "object",
+                            "propertyNames": {
+                              "type": "string"
+                            },
+                            "additionalProperties": {}
+                          },
+                          "rev": {
+                            "type": "number"
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          },
+                          "updatedBy": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "name",
+                          "description",
+                          "priority",
+                          "links",
+                          "settings",
+                          "rev",
+                          "updatedAt",
+                          "updatedBy"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "policies"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createPolicy",
+        "summary": "Create a policy (tier 0)",
+        "tags": [
+          "policies"
+        ],
+        "x-opendc-auth": "session",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "password"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[\\p{L}\\p{N}][\\p{L}\\p{N} ._()-]*$"
+                      },
+                      "description": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 512
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "priority": {
+                        "default": 100,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 999
+                      },
+                      "links": {
+                        "default": [],
+                        "maxItems": 100,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "targetGuid": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "enforced": {
+                              "default": false,
+                              "type": "boolean"
+                            },
+                            "enabled": {
+                              "default": true,
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "targetGuid"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "filter": {
+                        "type": "object",
+                        "properties": {
+                          "groupGuids": {
+                            "maxItems": 50,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            }
+                          },
+                          "nodeRoles": {
+                            "maxItems": 5,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "primary-dc",
+                                "dc",
+                                "rodc",
+                                "member",
+                                "managed-node"
+                              ]
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "settings": {
+                        "type": "object",
+                        "properties": {
+                          "complexity": {
+                            "type": "boolean"
+                          },
+                          "minLength": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 255
+                          },
+                          "historyLength": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 24
+                          },
+                          "minAgeDays": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 998
+                          },
+                          "maxAgeDays": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 999
+                          },
+                          "lockoutThreshold": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 999
+                          },
+                          "lockoutDurationMinutes": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 99999
+                          },
+                          "lockoutWindowMinutes": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 99999
+                          }
+                        },
+                        "required": [
+                          "complexity",
+                          "minLength",
+                          "historyLength",
+                          "minAgeDays",
+                          "maxAgeDays",
+                          "lockoutThreshold",
+                          "lockoutDurationMinutes",
+                          "lockoutWindowMinutes"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "name",
+                      "settings"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "registry"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[\\p{L}\\p{N}][\\p{L}\\p{N} ._()-]*$"
+                      },
+                      "description": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 512
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "priority": {
+                        "default": 100,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 999
+                      },
+                      "links": {
+                        "default": [],
+                        "maxItems": 100,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "targetGuid": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "enforced": {
+                              "default": false,
+                              "type": "boolean"
+                            },
+                            "enabled": {
+                              "default": true,
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "targetGuid"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "filter": {
+                        "type": "object",
+                        "properties": {
+                          "groupGuids": {
+                            "maxItems": 50,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            }
+                          },
+                          "nodeRoles": {
+                            "maxItems": 5,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "primary-dc",
+                                "dc",
+                                "rodc",
+                                "member",
+                                "managed-node"
+                              ]
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "settings": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9-]*(?:\\.[a-zA-Z0-9-]+)+$"
+                        },
+                        "additionalProperties": {}
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "name",
+                      "settings"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/policies/{id}": {
+      "delete": {
+        "operationId": "deletePolicy",
+        "summary": "Delete a policy (tier 0)",
+        "tags": [
+          "policies"
+        ],
+        "x-opendc-auth": "session",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]{1,64}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getPolicy",
+        "summary": "One policy",
+        "tags": [
+          "policies"
+        ],
+        "x-opendc-auth": {
+          "permission": "policies.policy.read"
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]{1,64}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "password",
+                        "registry"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "priority": {
+                      "type": "number"
+                    },
+                    "links": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "targetGuid": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "enforced": {
+                            "default": false,
+                            "type": "boolean"
+                          },
+                          "enabled": {
+                            "default": true,
+                            "type": "boolean"
+                          },
+                          "dn": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "targetGuid",
+                          "enforced",
+                          "enabled",
+                          "dn"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "filter": {
+                      "type": "object",
+                      "properties": {
+                        "groupGuids": {
+                          "maxItems": 50,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          }
+                        },
+                        "nodeRoles": {
+                          "maxItems": 5,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "primary-dc",
+                              "dc",
+                              "rodc",
+                              "member",
+                              "managed-node"
+                            ]
+                          }
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "settings": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    },
+                    "rev": {
+                      "type": "number"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "updatedBy": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "name",
+                    "description",
+                    "priority",
+                    "links",
+                    "settings",
+                    "rev",
+                    "updatedAt",
+                    "updatedBy"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updatePolicy",
+        "summary": "Replace a policy: settings, links, priority, filter (tier 0)",
+        "tags": [
+          "policies"
+        ],
+        "x-opendc-auth": "session",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]{1,64}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "password"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[\\p{L}\\p{N}][\\p{L}\\p{N} ._()-]*$"
+                      },
+                      "description": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 512
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "priority": {
+                        "default": 100,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 999
+                      },
+                      "links": {
+                        "default": [],
+                        "maxItems": 100,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "targetGuid": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "enforced": {
+                              "default": false,
+                              "type": "boolean"
+                            },
+                            "enabled": {
+                              "default": true,
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "targetGuid"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "filter": {
+                        "type": "object",
+                        "properties": {
+                          "groupGuids": {
+                            "maxItems": 50,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            }
+                          },
+                          "nodeRoles": {
+                            "maxItems": 5,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "primary-dc",
+                                "dc",
+                                "rodc",
+                                "member",
+                                "managed-node"
+                              ]
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "settings": {
+                        "type": "object",
+                        "properties": {
+                          "complexity": {
+                            "type": "boolean"
+                          },
+                          "minLength": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 255
+                          },
+                          "historyLength": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 24
+                          },
+                          "minAgeDays": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 998
+                          },
+                          "maxAgeDays": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 999
+                          },
+                          "lockoutThreshold": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 999
+                          },
+                          "lockoutDurationMinutes": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 99999
+                          },
+                          "lockoutWindowMinutes": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 99999
+                          }
+                        },
+                        "required": [
+                          "complexity",
+                          "minLength",
+                          "historyLength",
+                          "minAgeDays",
+                          "maxAgeDays",
+                          "lockoutThreshold",
+                          "lockoutDurationMinutes",
+                          "lockoutWindowMinutes"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "name",
+                      "settings"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "registry"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[\\p{L}\\p{N}][\\p{L}\\p{N} ._()-]*$"
+                      },
+                      "description": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 512
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "priority": {
+                        "default": 100,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 999
+                      },
+                      "links": {
+                        "default": [],
+                        "maxItems": 100,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "targetGuid": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "enforced": {
+                              "default": false,
+                              "type": "boolean"
+                            },
+                            "enabled": {
+                              "default": true,
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "targetGuid"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "filter": {
+                        "type": "object",
+                        "properties": {
+                          "groupGuids": {
+                            "maxItems": 50,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            }
+                          },
+                          "nodeRoles": {
+                            "maxItems": 5,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "primary-dc",
+                                "dc",
+                                "rodc",
+                                "member",
+                                "managed-node"
+                              ]
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "settings": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9-]*(?:\\.[a-zA-Z0-9-]+)+$"
+                        },
+                        "additionalProperties": {}
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "name",
+                      "settings"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/policies/effective": {
+      "get": {
+        "operationId": "getEffectivePolicy",
+        "summary": "The policies of a type that apply to an object, winner first, and each setting with its source",
+        "tags": [
+          "policies"
+        ],
+        "x-opendc-auth": {
+          "permission": "policies.policy.read"
+        },
+        "parameters": [
+          {
+            "name": "target",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "password",
+                "registry"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "target": {
+                      "type": "object",
+                      "properties": {
+                        "guid": {
+                          "type": "string"
+                        },
+                        "dn": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "guid",
+                        "dn"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "password",
+                        "registry"
+                      ]
+                    },
+                    "chain": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "guid": {
+                            "type": "string"
+                          },
+                          "dn": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "guid",
+                          "dn"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "applicable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "priority": {
+                            "type": "number"
+                          },
+                          "level": {
+                            "type": "object",
+                            "properties": {
+                              "guid": {
+                                "type": "string"
+                              },
+                              "dn": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "guid",
+                              "dn"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "depth": {
+                            "type": "number"
+                          },
+                          "enforced": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "priority",
+                          "level",
+                          "depth",
+                          "enforced"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "settings": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "value": {},
+                          "policyId": {
+                            "type": "string"
+                          },
+                          "policyName": {
+                            "type": "string"
+                          },
+                          "levelDn": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "policyId",
+                          "policyName",
+                          "levelDn"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "winner": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "target",
+                    "type",
+                    "chain",
+                    "applicable",
+                    "settings",
+                    "winner"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/rbac/assignments": {
       "get": {
         "operationId": "listAssignments",

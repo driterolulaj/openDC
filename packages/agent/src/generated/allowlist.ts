@@ -6,6 +6,7 @@ export const allowlist = {
     "api": [
       "directory.posixIds.fill",
       "file.readManaged",
+      "policy.password.reconcile",
       "registry.commitLock",
       "samba.fsmo.seize",
       "samba.fsmo.show",
@@ -29,6 +30,7 @@ export const allowlist = {
       "file.readManaged",
       "file.restorePrevious",
       "file.writeManaged",
+      "policy.password.reconcile",
       "registry.commitLock",
       "samba.status",
       "service.reload",
@@ -41,6 +43,7 @@ export const allowlist = {
       "file.readManaged",
       "file.restorePrevious",
       "file.writeManaged",
+      "policy.password.reconcile",
       "registry.commitLock",
       "samba.fsmo.seize",
       "samba.fsmo.show",

@@ -36,7 +36,7 @@ const NUMBERS = [
   'lockoutWindowMinutes',
 ] as const;
 
-function SettingsForm({
+export function SettingsForm({
   value,
   onChange,
   readOnly,
@@ -72,7 +72,9 @@ function SettingsForm({
   );
 }
 
-const EMPTY: PasswordSettings = {
+const managed = (p: Pso): boolean => p.name.startsWith('OpenDC-');
+
+export const PASSWORD_DEFAULTS: PasswordSettings = {
   complexity: true,
   minLength: 12,
   historyLength: 24,
@@ -89,7 +91,7 @@ function PsoEditor({ pso, onClose }: { pso: Pso | 'new' | null; onClose: () => v
   const editing = pso && pso !== 'new' ? pso : null;
   const [name, setName] = useState(editing?.name ?? '');
   const [precedence, setPrecedence] = useState<number>(editing?.precedence ?? 10);
-  const [settings, setSettings] = useState<PasswordSettings>(editing?.settings ?? EMPTY);
+  const [settings, setSettings] = useState<PasswordSettings>(editing?.settings ?? PASSWORD_DEFAULTS);
   const [targets, setTargets] = useState<{ guid: string; name: string }[]>(editing?.appliesTo ?? []);
   const save = useMutation({
     mutationFn: () =>
@@ -243,20 +245,27 @@ export default function PasswordPolicies() {
           <Table.Tbody>
             {q.data.psos.map((p) => (
               <Table.Tr key={p.guid}>
-                <Table.Td>{p.name}</Table.Td>
+                <Table.Td>
+                  {p.name} {/* OpenDC-<id>: an OU-linked policy (Policies page); changes here would be overwritten */}
+                  {managed(p) ? (
+                    <Badge size="xs" variant="light">
+                      {t('pwp.managed')}
+                    </Badge>
+                  ) : null}
+                </Table.Td>
                 <Table.Td>{p.precedence}</Table.Td>
                 <Table.Td>{p.settings.minLength}</Table.Td>
                 <Table.Td>{p.appliesTo.map((a) => a.name).join(', ')}</Table.Td>
                 <Table.Td w={1}>
                   <Group gap={4} wrap="nowrap">
-                    <Button size="xs" variant="subtle" disabled={!canWrite} onClick={() => setEdit(p)}>
+                    <Button size="xs" variant="subtle" disabled={!canWrite || managed(p)} onClick={() => setEdit(p)}>
                       {t('rbac.edit')}
                     </Button>
                     <Button
                       size="xs"
                       variant="subtle"
                       color="red"
-                      disabled={!canWrite}
+                      disabled={!canWrite || managed(p)}
                       onClick={() => del.mutate(p.name)}
                     >
                       {t('dir.delete')}

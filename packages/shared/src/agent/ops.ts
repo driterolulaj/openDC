@@ -181,6 +181,19 @@ export const ops = {
       ),
     }),
   },
+  'policy.password.reconcile': {
+    v: 1,
+    /** only these users' memberships (moved or new users); all users when absent */
+    args: z.strictObject({ users: z.array(z.uuid()).max(5000).optional() }),
+    result: z.object({
+      policies: z.number(),
+      /** id of the policy that sets the domain default, if any */
+      domainDefault: z.string().nullable(),
+      psos: z.object({ created: z.number(), updated: z.number(), removed: z.number() }),
+      members: z.object({ added: z.number(), removed: z.number() }),
+      users: z.number(),
+    }),
+  },
   'samba.passwordPolicy.show': { v: 1, args: empty, result: passwordPolicies },
   'samba.passwordPolicy.set': { v: 1, args: passwordPolicyChange, result: passwordPolicies },
   'samba.sdprop.run': {

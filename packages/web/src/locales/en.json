@@ -28,7 +28,8 @@
     "domain": "Domain",
     "rbac": "Roles",
     "passwordPolicies": "Password policies",
-    "account": "Account"
+    "account": "Account",
+    "policies": "Policies"
   },
   "home": {
     "title": "Overview",
@@ -305,7 +306,8 @@
     "select-x": "Select {{name}}",
     "bulk-delete-body_one": "{{count}} object will be deleted.",
     "bulk-delete-body_other": "{{count}} objects will be deleted.",
-    "f-template": "Template"
+    "f-template": "Template",
+    "tab-policies": "Policies"
   },
   "domain": {
     "title": "Domain",
@@ -391,7 +393,8 @@
     "lockoutThreshold": "Failed logons before lockout",
     "lockoutThreshold-hint": "0: accounts never lock.",
     "lockoutDurationMinutes": "Lockout duration (minutes)",
-    "lockoutWindowMinutes": "Reset failed-logon count after (minutes)"
+    "lockoutWindowMinutes": "Reset failed-logon count after (minutes)",
+    "managed": "Managed by a policy"
   },
   "imp": {
     "title": "Import users",
@@ -466,5 +469,41 @@
     "token-created": "Token created. Copy it now: it is shown only once.",
     "token-expires": "Expires",
     "token-revoke": "Revoke"
+  },
+  "pol": {
+    "title": "Policies",
+    "intro": "Settings linked to OUs, containers or the whole domain. A closer link wins, except that an enforced link wins over everything below it; at the same level the lower priority number wins.",
+    "password": "Password policies",
+    "registry": "Registry settings",
+    "password-hint": "The policy linked at the domain sets the domain default; other policies become fine-grained password policies for the users in their OUs (updated within one watcher cycle).",
+    "registry-hint": "OpenDC settings for the nodes in the linked OUs (only keys that a domain policy may set).",
+    "new": "New policy",
+    "edit": "Edit policy",
+    "empty": "No policies of this type yet.",
+    "name": "Name",
+    "description": "Description",
+    "priority": "Priority",
+    "priority-hint": "Among links at the same level, the lower number wins.",
+    "settings": "Settings",
+    "registry-settings": "Settings",
+    "registry-invalid": "Not a \"key = value\" line: {{line}}",
+    "links": "Links",
+    "add-link": "Link to…",
+    "link-target": "OU, container or domain",
+    "enforced": "Enforced",
+    "enabled": "Enabled",
+    "remove-link": "Remove link",
+    "no-links": "Not linked: the policy applies nowhere yet.",
+    "filter-groups": "Only for members of (optional)",
+    "remove-group": "Remove {{name}}",
+    "effective": "Effective policies",
+    "type": "Policy type",
+    "setting": "Setting",
+    "value": "Value",
+    "source": "From",
+    "order": "Applicable policies, winner first",
+    "effective-none": "No policy of this type applies.",
+    "effective-none-password": "No password policy is linked above this object: the domain default applies.",
+    "registry-format": "One setting per line: key = value (JSON), e.g. core.session.requireTotpForTier0 = true"
   }
 }

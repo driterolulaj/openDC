@@ -1,0 +1,10 @@
+{
+  "module": {
+    "title": "Policies",
+    "description": "Settings linked to OUs and the domain: password policies, registry settings; effective-policy viewer."
+  },
+  "perm": {
+    "read": "View policies and effective policies",
+    "manage": "Create, change, link and delete policies"
+  }
+}

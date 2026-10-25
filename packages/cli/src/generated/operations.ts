@@ -115,6 +115,18 @@ export const operations = [
     "auth": "domain.ous.write"
   },
   {
+    "operationId": "createPolicy",
+    "method": "POST",
+    "path": "/api/v1/policies",
+    "tag": "policies",
+    "summary": "Create a policy (tier 0)",
+    "pathParams": [],
+    "queryParams": [],
+    "body": true,
+    "stream": false,
+    "auth": "session"
+  },
+  {
     "operationId": "createRole",
     "method": "POST",
     "path": "/api/v1/rbac/roles",
@@ -187,6 +199,20 @@ export const operations = [
     ],
     "queryParams": [],
     "body": true,
+    "stream": false,
+    "auth": "session"
+  },
+  {
+    "operationId": "deletePolicy",
+    "method": "DELETE",
+    "path": "/api/v1/policies/:id",
+    "tag": "policies",
+    "summary": "Delete a policy (tier 0)",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [],
+    "body": false,
     "stream": false,
     "auth": "session"
   },
@@ -322,6 +348,21 @@ export const operations = [
     "auth": "domain.info.read"
   },
   {
+    "operationId": "getEffectivePolicy",
+    "method": "GET",
+    "path": "/api/v1/policies/effective",
+    "tag": "policies",
+    "summary": "The policies of a type that apply to an object, winner first, and each setting with its source",
+    "pathParams": [],
+    "queryParams": [
+      "target",
+      "type"
+    ],
+    "body": false,
+    "stream": false,
+    "auth": "policies.policy.read"
+  },
+  {
     "operationId": "getFsmo",
     "method": "GET",
     "path": "/api/v1/domain/fsmo",
@@ -382,6 +423,20 @@ export const operations = [
     "body": false,
     "stream": false,
     "auth": "session"
+  },
+  {
+    "operationId": "getPolicy",
+    "method": "GET",
+    "path": "/api/v1/policies/:id",
+    "tag": "policies",
+    "summary": "One policy",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [],
+    "body": false,
+    "stream": false,
+    "auth": "policies.policy.read"
   },
   {
     "operationId": "getSession",
@@ -581,6 +636,20 @@ export const operations = [
     "body": false,
     "stream": false,
     "auth": "domain.rbac.read"
+  },
+  {
+    "operationId": "listPolicies",
+    "method": "GET",
+    "path": "/api/v1/policies",
+    "tag": "policies",
+    "summary": "Policies (optionally of one type), with their links",
+    "pathParams": [],
+    "queryParams": [
+      "type"
+    ],
+    "body": false,
+    "stream": false,
+    "auth": "policies.policy.read"
   },
   {
     "operationId": "listRoles",
@@ -960,6 +1029,20 @@ export const operations = [
     "summary": "Change an OU description",
     "pathParams": [
       "guid"
+    ],
+    "queryParams": [],
+    "body": true,
+    "stream": false,
+    "auth": "session"
+  },
+  {
+    "operationId": "updatePolicy",
+    "method": "PUT",
+    "path": "/api/v1/policies/:id",
+    "tag": "policies",
+    "summary": "Replace a policy: settings, links, priority, filter (tier 0)",
+    "pathParams": [
+      "id"
     ],
     "queryParams": [],
     "body": true,

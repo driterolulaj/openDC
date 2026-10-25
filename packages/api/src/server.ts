@@ -11,6 +11,7 @@ import type { PlatformDb } from '@opendc/shared/db';
 import { empty } from '@opendc/shared/api';
 import { AuditLog } from './audit.ts';
 import { watcherRoutes } from './routes/watcher.ts';
+import { policyRoutes } from './routes/policies.ts';
 import type { AuthenticatedUser } from './directory.ts';
 import { JobRunner } from './jobs.ts';
 import { SESSION_COOKIE, SessionStore, type Session } from './sessions.ts';
@@ -247,6 +248,7 @@ export async function buildApi(deps: ApiDeps): Promise<Api> {
   rbacRoutes(routes, { store: () => rbac as RbacStore, directory, audit });
   bulkRoutes(routes, { directory, db: deps.db, jobs, audit, engineFor, templates, agent: deps.agent });
   watcherRoutes(routes, { statusPath: deps.watcherStatusPath ?? null });
+  policyRoutes(routes, { directory, audit });
   accountRoutes(routes, {
     sessions,
     audit,

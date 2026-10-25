@@ -30,6 +30,13 @@ export function addRecord(dn: string, attrs: LdifAttrs): string {
   return out.join('\n') + '\n\n';
 }
 
+export function deleteRecord(dn: string): string {
+  return `${dnLine(dn)}
+changetype: delete
+
+`;
+}
+
 export type Mod = { op: 'add' | 'replace' | 'delete'; attr: string; values?: readonly LdifValue[] };
 
 export function modifyRecord(dn: string, mods: readonly Mod[]): string {

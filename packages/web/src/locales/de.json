@@ -28,7 +28,8 @@
     "domain": "Domäne",
     "rbac": "Rollen",
     "passwordPolicies": "Passwortrichtlinien",
-    "account": "Konto"
+    "account": "Konto",
+    "policies": "Richtlinien"
   },
   "home": {
     "title": "Übersicht",
@@ -305,7 +306,8 @@
     "select-x": "{{name}} auswählen",
     "bulk-delete-body_one": "{{count}} Objekt wird gelöscht.",
     "bulk-delete-body_other": "{{count}} Objekte werden gelöscht.",
-    "f-template": "Vorlage"
+    "f-template": "Vorlage",
+    "tab-policies": "Richtlinien"
   },
   "domain": {
     "title": "Domäne",
@@ -391,7 +393,8 @@
     "lockoutThreshold": "Fehlanmeldungen bis zur Sperre",
     "lockoutThreshold-hint": "0: Konten werden nie gesperrt.",
     "lockoutDurationMinutes": "Sperrdauer (Minuten)",
-    "lockoutWindowMinutes": "Fehlanmeldezähler zurücksetzen nach (Minuten)"
+    "lockoutWindowMinutes": "Fehlanmeldezähler zurücksetzen nach (Minuten)",
+    "managed": "Von einer Richtlinie verwaltet"
   },
   "imp": {
     "title": "Benutzer importieren",
@@ -466,5 +469,41 @@
     "token-created": "Token erstellt. Kopieren Sie es jetzt: Es wird nur einmal angezeigt.",
     "token-expires": "Läuft ab",
     "token-revoke": "Widerrufen"
+  },
+  "pol": {
+    "title": "Richtlinien",
+    "intro": "Mit OUs, Containern oder der ganzen Domäne verknüpfte Einstellungen. Eine nähere Verknüpfung gewinnt, außer eine erzwungene gewinnt gegen alles darunter; auf derselben Ebene gewinnt die niedrigere Priorität.",
+    "password": "Kennwortrichtlinien",
+    "registry": "Registry-Einstellungen",
+    "password-hint": "Die an der Domäne verknüpfte Richtlinie legt den Domänenstandard fest; andere Richtlinien werden zu Kennworteinstellungsobjekten für die Benutzer in ihren OUs (innerhalb eines Watcher-Zyklus aktualisiert).",
+    "registry-hint": "OpenDC-Einstellungen für die Knoten in den verknüpften OUs (nur Schlüssel, die eine Domänenrichtlinie setzen darf).",
+    "new": "Neue Richtlinie",
+    "edit": "Richtlinie bearbeiten",
+    "empty": "Noch keine Richtlinien dieses Typs.",
+    "name": "Name",
+    "description": "Beschreibung",
+    "priority": "Priorität",
+    "priority-hint": "Bei Verknüpfungen auf derselben Ebene gewinnt die niedrigere Zahl.",
+    "settings": "Einstellungen",
+    "registry-settings": "Einstellungen",
+    "registry-invalid": "Keine Zeile der Form \"Schlüssel = Wert\": {{line}}",
+    "links": "Verknüpfungen",
+    "add-link": "Verknüpfen mit…",
+    "link-target": "OU, Container oder Domäne",
+    "enforced": "Erzwungen",
+    "enabled": "Aktiv",
+    "remove-link": "Verknüpfung entfernen",
+    "no-links": "Nicht verknüpft: Die Richtlinie gilt noch nirgends.",
+    "filter-groups": "Nur für Mitglieder von (optional)",
+    "remove-group": "{{name}} entfernen",
+    "effective": "Wirksame Richtlinien",
+    "type": "Richtlinientyp",
+    "setting": "Einstellung",
+    "value": "Wert",
+    "source": "Aus",
+    "order": "Zutreffende Richtlinien, gewinnende zuerst",
+    "effective-none": "Keine Richtlinie dieses Typs trifft zu.",
+    "effective-none-password": "Über diesem Objekt ist keine Kennwortrichtlinie verknüpft: Es gilt der Domänenstandard.",
+    "registry-format": "Eine Einstellung pro Zeile: Schlüssel = Wert (JSON), z. B. core.session.requireTotpForTier0 = true"
   }
 }

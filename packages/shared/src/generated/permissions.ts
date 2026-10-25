@@ -257,6 +257,22 @@ export const permissions = [
     "implies": [
       "domain.users.read"
     ]
+  },
+  {
+    "module": "policies",
+    "name": "policies.policy.manage",
+    "title": "policies:perm.manage",
+    "scope": "global",
+    "tier0": true,
+    "implies": [
+      "policies.policy.read"
+    ]
+  },
+  {
+    "module": "policies",
+    "name": "policies.policy.read",
+    "title": "policies:perm.read",
+    "scope": "global"
   }
 ] as const;
 

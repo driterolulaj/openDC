@@ -442,3 +442,11 @@ test('watcher status and metrics; audit entries from the watcher inbox', async (
     0,
   );
 });
+
+test('registry policies may only set policy-settable keys with valid values', async () => {
+  const { validateRegistrySettings } = await import('./routes/policies.ts');
+  validateRegistrySettings({ 'core.session.requireTotpForTier0': false });
+  assert.throws(() => validateRegistrySettings({ 'core.nope': 1 }), /unknown registry key/);
+  assert.throws(() => validateRegistrySettings({ 'core.api.listenPort': 9443 }), /can't be set by a domain policy/);
+  assert.throws(() => validateRegistrySettings({ 'core.session.requireTotpForTier0': 'yes' }), /invalid value/);
+});

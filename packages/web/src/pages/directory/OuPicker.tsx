@@ -13,17 +13,20 @@ export function OuPickerModal({
   onClose,
   onPick,
   busy,
+  title,
 }: {
   opened: boolean;
   onClose: () => void;
   onPick: (guid: string) => void;
   busy?: boolean;
+  /** default: "Move to" */
+  title?: string;
 }) {
   const { t } = useTranslation();
   const info = useQuery({ queryKey: ['domain-info'], queryFn: () => api('/directory/info', { schema: domainInfo }) });
   const [selected, setSelected] = useState<string | null>(null);
   return (
-    <Modal opened={opened} onClose={onClose} title={t('dir.move-title')}>
+    <Modal opened={opened} onClose={onClose} title={title ?? t('dir.move-title')}>
       <Stack>
         <ScrollArea h={360}>
           {info.data ? (

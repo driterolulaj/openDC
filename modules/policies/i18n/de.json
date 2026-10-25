@@ -1,0 +1,10 @@
+{
+  "module": {
+    "title": "Richtlinien",
+    "description": "Mit OUs und der Domäne verknüpfte Einstellungen: Kennwortrichtlinien, Registry-Einstellungen; Anzeige der wirksamen Richtlinien."
+  },
+  "perm": {
+    "read": "Richtlinien und wirksame Richtlinien anzeigen",
+    "manage": "Richtlinien erstellen, ändern, verknüpfen und löschen"
+  }
+}
