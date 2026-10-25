@@ -37,7 +37,9 @@ export async function startNodeRpc(
 ): Promise<{ server: Server; refresh: () => Promise<void>; close: () => Promise<void> }> {
   const context = async () => ({ key: o.key, cert: o.cert, ca: await o.ca(), crl: await o.crls() });
   const server = createServer(
-    { ...(await context()), requestCert: true, rejectUnauthorized: true, minVersion: 'TLSv1.3' },
+    // the certificate is verified by TLS; the handler refuses unauthorized peers itself, so the reason
+    // (unknown CA, revoked, expired) is logged instead of a bare disconnect
+    { ...(await context()), requestCert: true, rejectUnauthorized: false, minVersion: 'TLSv1.3' },
     (req: IncomingMessage, res: ServerResponse) => {
       void handle(req, res);
     },
@@ -47,7 +49,16 @@ export async function startNodeRpc(
     res.end(JSON.stringify(body));
   };
   async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
-    const peer = (req.socket as TLSSocket).getPeerCertificate();
+    const tls = req.socket as TLSSocket;
+    if (!tls.authorized) {
+      // typed as always set, but absent when the peer sent no certificate
+      const err = (tls as { authorizationError?: Error | string }).authorizationError;
+      const reason = err === undefined ? 'no client certificate' : typeof err === 'string' ? err : err.message;
+      o.log('warn', 'node RPC refused', { reason });
+      send(res, 403, { code: 'auth.forbidden', message: `client certificate not accepted: ${reason}` });
+      return;
+    }
+    const peer = tls.getPeerCertificate();
     const guid = peerNodeGuid(peer.subjectaltname);
     const node = guid ? await o.node(guid).catch(() => null) : null;
     if (!guid || !node?.enabled) {

@@ -338,7 +338,15 @@ export class Pki {
     });
     await writeFile(this.#file('root.pem'), cert, { mode: 0o644 });
     const x = new X509Certificate(cert);
-    const root: PkiRoot = { certPem: cert, fingerprint: x.fingerprint256, holderNodeGuid: n.nodeGuid, holder: n.fqdn };
+    const root: PkiRoot = {
+      certPem: cert,
+      fingerprint: x.fingerprint256,
+      holderNodeGuid: n.nodeGuid,
+      holder: n.fqdn,
+      crlPem: null,
+      crlNumber: 0,
+      crlNextUpdate: null,
+    };
     await db.put(db.dn(null, 'Root'), 'pki.root', root, 'OpenDC root CA');
     await this.#pinRoot(cert);
     // this DC's issuing CA, signed right away
@@ -446,6 +454,7 @@ export class Pki {
       throw new PlatformError('validation.invalid', {
         issues: 'the root CA in the directory is not the one this node trusts; refusing to use it',
       });
+    await this.#rootCrl(root.data);
     // the issuing CA of this DC
     const id = this.#issuerId(n.host);
     const published = await db.read(db.dn('Issuers', id), 'pki.issuer', pkiIssuer);
@@ -571,27 +580,30 @@ export class Pki {
     if (ldapCaChanged) await this.#os.services.restart('opendc-watcher').catch(() => undefined);
   }
 
-  /** This issuer's CRL: regenerated when its revocations changed or it expires within two days. */
-  async #crl(issuer: PkiIssuer): Promise<boolean> {
-    const db = await this.#db();
-    const revoked = (await db.list('Certificates', 'pki.cert', pkiCert)).filter(
-      (c) => c.issuerId === issuer.id && c.revoked,
-    );
-    const serials = revoked.map((c) => c.serial).sort();
-    const nextUpdate = issuer.crlNextUpdate ? new Date(issuer.crlNextUpdate) : null;
-    const fresh = nextUpdate && nextUpdate.getTime() - this.#now().getTime() > 2 * 86_400_000;
-    if (issuer.crlPem && fresh && serials.join(',') === [...issuer.crlSerials].sort().join(',')) return false;
-    const crlPem = await this.#tmp(async (dir) => {
-      const index = revoked
+  /** A CRL signed by `key`, listing `revoked` (openssl ca -gencrl on a throw-away database). */
+  async #makeCrl(o: {
+    cert: string;
+    key: string;
+    revoked: { serial: string; notAfter: string; subject: string; revoked: { at: string; reason: string } | null }[];
+    number: number;
+    days: number;
+  }): Promise<string> {
+    return this.#tmp(async (dir) => {
+      const index = o.revoked
         .map(
           (c) =>
-            `R\t${utc(new Date(c.notAfter))}\t${utc(new Date(c.revoked?.at ?? this.#now()))},${c.revoked?.reason ?? 'unspecified'}\t${c.serial}\tunknown\t/CN=${safeCn(c.subject)}\n`,
+            [
+              'R',
+              utc(new Date(c.notAfter)),
+              `${utc(new Date(c.revoked?.at ?? this.#now()))},${c.revoked?.reason ?? 'unspecified'}`,
+              c.serial,
+              'unknown',
+              `/CN=${safeCn(c.subject)}`,
+            ].join('\t') + '\n',
         )
         .join('');
       await writeFile(join(dir, 'index.txt'), index, { mode: 0o600 });
-      await writeFile(join(dir, 'crlnumber'), (issuer.crlNumber + 1).toString(16).padStart(2, '0') + '\n', {
-        mode: 0o600,
-      });
+      await writeFile(join(dir, 'crlnumber'), `${o.number.toString(16).padStart(2, '0')}\n`, { mode: 0o600 });
       const cfg = [
         '[ca]',
         'default_ca = CA',
@@ -599,7 +611,7 @@ export class Pki {
         `database = ${join(dir, 'index.txt')}`,
         `crlnumber = ${join(dir, 'crlnumber')}`,
         'default_md = sha256',
-        'default_crl_days = 7',
+        `default_crl_days = ${String(o.days)}`,
         'crl_extensions = crl_ext',
         '[crl_ext]',
         'authorityKeyIdentifier = keyid:always',
@@ -614,13 +626,62 @@ export class Pki {
         '-config',
         join(dir, 'ca.cnf'),
         '-cert',
-        this.#file('issuer.pem'),
+        o.cert,
         '-keyfile',
-        this.#file('issuer.key'),
+        o.key,
         '-out',
         out,
       ]);
       return readFile(out, 'utf8');
+    });
+  }
+
+  /**
+   * The root's CRL (the issuing CAs it revoked; none yet): verifiers check the whole chain against CRLs, so the
+   * root holder keeps one current (30 days, renewed a week before it expires).
+   */
+  async #rootCrl(root: PkiRoot): Promise<boolean> {
+    if (!(await exists(this.#file('root.key')))) return false;
+    const next = root.crlNextUpdate ? new Date(root.crlNextUpdate) : null;
+    if (root.crlPem && next && next.getTime() - this.#now().getTime() > 7 * 86_400_000) return false;
+    const db = await this.#db();
+    const crlPem = await this.#makeCrl({
+      cert: this.#file('root.pem'),
+      key: this.#file('root.key'),
+      revoked: [],
+      number: root.crlNumber + 1,
+      days: 30,
+    });
+    await db.put(
+      db.dn(null, 'Root'),
+      'pki.root',
+      {
+        ...root,
+        crlPem,
+        crlNumber: root.crlNumber + 1,
+        crlNextUpdate: new Date(this.#now().getTime() + 30 * 86_400_000).toISOString(),
+      },
+      'OpenDC root CA',
+    );
+    return true;
+  }
+
+  /** This issuer's CRL: regenerated when its revocations changed or it expires within two days. */
+  async #crl(issuer: PkiIssuer): Promise<boolean> {
+    const db = await this.#db();
+    const revoked = (await db.list('Certificates', 'pki.cert', pkiCert)).filter(
+      (c) => c.issuerId === issuer.id && c.revoked,
+    );
+    const serials = revoked.map((c) => c.serial).sort();
+    const nextUpdate = issuer.crlNextUpdate ? new Date(issuer.crlNextUpdate) : null;
+    const fresh = nextUpdate && nextUpdate.getTime() - this.#now().getTime() > 2 * 86_400_000;
+    if (issuer.crlPem && fresh && serials.join(',') === [...issuer.crlSerials].sort().join(',')) return false;
+    const crlPem = await this.#makeCrl({
+      cert: this.#file('issuer.pem'),
+      key: this.#file('issuer.key'),
+      revoked,
+      number: issuer.crlNumber + 1,
+      days: 7,
     });
     await db.put(
       db.dn('Issuers', issuer.id),

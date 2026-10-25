@@ -113,7 +113,16 @@ const pem = z.string().max(16_384).startsWith('-----BEGIN ');
 const guid = z.string().regex(/^[0-9a-f-]{36}$/i);
 
 /** CN=Root,CN=PKI: the root certificate (nodes pin its fingerprint; this copy is for display and new nodes). */
-export const pkiRoot = z.object({ certPem: pem, fingerprint: z.string(), holderNodeGuid: guid, holder: z.string() });
+export const pkiRoot = z.object({
+  certPem: pem,
+  fingerprint: z.string(),
+  holderNodeGuid: guid,
+  holder: z.string(),
+  /** the root's CRL (revoked issuing CAs); verifiers need it for the whole chain */
+  crlPem: pem.nullable().default(null),
+  crlNumber: z.number().int().nonnegative().default(0),
+  crlNextUpdate: z.string().nullable().default(null),
+});
 /** CN=<issuer id>,CN=Issuers,CN=PKI: one issuing CA per writable DC, with its current CRL. */
 export const pkiIssuer = z.object({
   id: z.string(),

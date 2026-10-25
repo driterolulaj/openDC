@@ -23,7 +23,7 @@ import { apiMigrations } from './db.ts';
 import { ingestInbox } from './audit-inbox.ts';
 import { startNodeRpc } from './node-rpc.ts';
 import { PlatformObjects } from './directory/platform-objects.ts';
-import { pkiIssuer } from '@opendc/shared/pki';
+import { pkiIssuer, pkiRoot } from '@opendc/shared/pki';
 import { DirectoryAuth } from './directory.ts';
 import { ServiceLdap, type ServiceCredential } from './directory/ldap.ts';
 import { DirectoryService } from './directory/service.ts';
@@ -179,25 +179,36 @@ async function main(): Promise<void> {
   const nodeCert = credential('node-cert');
   if (facts && nodeKey?.length && nodeCert?.length) {
     const caFile = join(facts.paths.etc, 'pki', 'ca-bundle.pem');
-    const issuers = new PlatformObjects({
-      dir: () => {
-        if (!dir.service) throw new PlatformError('directory.not-configured');
-        return dir.service;
-      },
-      path: ['PKI', 'Issuers'],
-      kind: 'pki.issuer',
-      schemaVersion: 1,
-      data: pkiIssuer,
-      name: (i) => i.id,
-    });
-    try {
+    const store = <S extends import('zod').ZodType>(path: string[], kind: string, data: S) =>
+      new PlatformObjects({
+        dir: () => {
+          if (!dir.service) throw new PlatformError('directory.not-configured');
+          return dir.service;
+        },
+        path,
+        kind,
+        schemaVersion: 1,
+        data,
+        name: () => kind,
+      });
+    const roots = store(['PKI'], 'pki.root', pkiRoot);
+    const issuers = store(['PKI', 'Issuers'], 'pki.issuer', pkiIssuer);
+    // every CA's CRL, the root's included (Node checks the whole chain); never an empty list, which would
+    // switch revocation checking off: an error keeps the listener down or the previous context in place
+    const crls = async (): Promise<string[]> => {
+      const all = [...(await roots.list()), ...(await issuers.list())].flatMap((x) =>
+        x.data.crlPem ? [x.data.crlPem] : [],
+      );
+      if (!all.length) throw new Error('no CRLs published yet');
+      return all;
+    };
+    const start = async (): Promise<void> => {
       await startNodeRpc(
         {
           key: nodeKey,
           cert: nodeCert,
           ca: () => readFile(caFile, 'utf8'),
-          crls: async () =>
-            (await issuers.list().catch(() => [])).flatMap((i) => (i.data.crlPem ? [i.data.crlPem] : [])),
+          crls,
           node: async (guid) => {
             if (!dir.service) return null;
             const e = await dir.service.entryByGuid(guid, ['objectClass', 'userAccountControl', 'dNSHostName']);
@@ -211,9 +222,20 @@ async function main(): Promise<void> {
         { host, port: registry.get<number>('core.nodeRpc.port') },
       );
       api.app.log.info({ port: registry.get<number>('core.nodeRpc.port') }, 'node RPC listening');
-    } catch (e) {
-      api.app.log.warn({ err: e }, 'node RPC not started');
-    }
+    };
+    // in the background, once the directory answers and the CRLs are readable
+    void (async () => {
+      for (let attempt = 1; ; attempt++) {
+        try {
+          if (!dir.service) throw new Error('directory not ready');
+          await start();
+          return;
+        } catch (e) {
+          if (attempt === 1 || attempt % 10 === 0) api.app.log.warn({ err: e, attempt }, 'node RPC not started yet');
+          await new Promise((r) => setTimeout(r, 15_000));
+        }
+      }
+    })();
   }
 
   for (const sig of ['SIGTERM', 'SIGINT'] as const) {
