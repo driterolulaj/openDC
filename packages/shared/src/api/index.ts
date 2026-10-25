@@ -111,3 +111,4 @@ export const setupJobResponse = z.object({
 });
 export const SETUP_TOKEN_HEADER = 'x-setup-token';
 export * from './directory.ts';
+export * from './rbac.ts';

@@ -23,7 +23,8 @@
     "home": "Übersicht",
     "audit": "Audit-Log",
     "directory": "Verzeichnis",
-    "domain": "Domäne"
+    "domain": "Domäne",
+    "rbac": "Rollen"
   },
   "home": {
     "title": "Übersicht",
@@ -319,5 +320,28 @@
     "role-forestdns": "Master der Gesamtstruktur-DNS-Zonen"
   },
   "yes": "ja",
-  "no": "nein"
+  "no": "nein",
+  "rbac": {
+    "title": "Rollen und Berechtigungen",
+    "assignments": "Zuweisungen",
+    "roles": "Rollen",
+    "role": "Rolle",
+    "role-name": "Name",
+    "description": "Beschreibung",
+    "permissions": "Berechtigungen",
+    "principals": "Benutzer und Gruppen",
+    "scopes": "Wo (OUs)",
+    "whole-domain": "Gesamte Domäne",
+    "add-ou": "OU hinzufügen",
+    "new-role": "Neue Rolle",
+    "edit-role": "Rolle bearbeiten",
+    "edit": "Bearbeiten",
+    "new-assignment": "Rolle zuweisen",
+    "builtin": "integriert",
+    "tier0": "Tier-0-Rolle",
+    "tier0-hint": "Darf Tier-0-Berechtigungen haben und geschützte Objekte ändern (Domänen-Admins u. ä.). Sparsam vergeben.",
+    "scope-ou": "pro OU",
+    "scope-node": "pro Knoten",
+    "scope-global": "global"
+  }
 }

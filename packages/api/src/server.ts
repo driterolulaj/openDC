@@ -21,6 +21,8 @@ import { coreRoutes } from './routes/core.ts';
 import { setupRoutes } from './routes/setup.ts';
 import { directoryRoutes } from './routes/directory.ts';
 import { domainRoutes } from './routes/domain.ts';
+import { rbacRoutes } from './routes/rbac.ts';
+import { RbacStore } from './rbac/store.ts';
 import type { DirectoryService } from './directory/service.ts';
 
 export interface ApiDeps {
@@ -44,6 +46,8 @@ export interface ApiDeps {
   restartSelf?: () => void;
   /** The directory as the platform account; throws directory.not-configured until it is available. */
   directoryService?: () => DirectoryService;
+  /** Directory-stored RBAC (default: read through directoryService). */
+  rbacStore?: Pick<RbacStore, 'snapshot'> & Partial<RbacStore>;
 }
 
 export interface Api {
@@ -100,16 +104,44 @@ export async function buildApi(deps: ApiDeps): Promise<Api> {
   const sessions = new SessionStore(deps.db, { idleMs, absoluteMs, csrfKey: deps.csrfKey });
   const audit = new AuditLog(deps.db, deps.nodeId);
   const jobs = new JobRunner(deps.db);
+  const directory =
+    deps.directoryService ??
+    (() => {
+      throw new PlatformError('directory.not-configured');
+    });
+  const rbac = deps.rbacStore ?? new RbacStore(directory);
+  const known = new Set<string>(permissions.map((p) => p.name));
   const engines = new Map<string, RbacEngine>();
+  /** The engine for a domain: built-ins plus the directory-stored roles and assignments (snapshot). */
   const engineFor = (domainSid: string): RbacEngine => {
-    let e = engines.get(domainSid);
+    let snap: { version: number; roles: Role[]; assignments: Assignment[] } = {
+      version: 0,
+      roles: [],
+      assignments: [],
+    };
+    try {
+      snap = rbac.snapshot();
+    } catch {
+      // directory not configured yet: built-ins only
+    }
+    const key = `${domainSid}:${String(snap.version)}`;
+    let e = engines.get(key);
     if (!e) {
+      // a stored role that names a permission this version doesn't know keeps its other permissions
+      const roles = [...BUILTIN_ROLES, ...(deps.roles ?? []), ...snap.roles].map((r) => ({
+        ...r,
+        permissions: r.permissions.filter((p) => p === '*' || known.has(p)),
+      }));
+      const roleIds = new Set(roles.map((r) => r.id));
       e = new RbacEngine(
         permissions,
-        [...BUILTIN_ROLES, ...(deps.roles ?? [])],
-        [...builtinAssignments(domainSid), ...(deps.assignments ?? [])],
+        roles,
+        [...builtinAssignments(domainSid), ...(deps.assignments ?? []), ...snap.assignments].filter((a) =>
+          roleIds.has(a.roleId),
+        ),
       );
-      engines.set(domainSid, e);
+      engines.clear();
+      engines.set(key, e);
     }
     return e;
   };
@@ -184,11 +216,7 @@ export async function buildApi(deps: ApiDeps): Promise<Api> {
   });
 
   directoryRoutes(routes, {
-    directory:
-      deps.directoryService ??
-      (() => {
-        throw new PlatformError('directory.not-configured');
-      }),
+    directory,
     audit,
     agent: deps.agent,
     confirmKey: deps.csrfKey,
@@ -196,6 +224,7 @@ export async function buildApi(deps: ApiDeps): Promise<Api> {
   });
 
   domainRoutes(routes, { agent: deps.agent, audit, confirmKey: deps.csrfKey });
+  rbacRoutes(routes, { store: () => rbac as RbacStore, directory, audit });
 
   if (deps.webDir) {
     const site = new StaticSite(deps.webDir);

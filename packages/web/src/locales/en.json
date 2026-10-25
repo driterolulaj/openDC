@@ -23,7 +23,8 @@
     "home": "Overview",
     "audit": "Audit log",
     "directory": "Directory",
-    "domain": "Domain"
+    "domain": "Domain",
+    "rbac": "Roles"
   },
   "home": {
     "title": "Overview",
@@ -319,5 +320,28 @@
     "role-forestdns": "Forest DNS zones master"
   },
   "yes": "yes",
-  "no": "no"
+  "no": "no",
+  "rbac": {
+    "title": "Roles and permissions",
+    "assignments": "Assignments",
+    "roles": "Roles",
+    "role": "Role",
+    "role-name": "Name",
+    "description": "Description",
+    "permissions": "Permissions",
+    "principals": "Users and groups",
+    "scopes": "Where (OUs)",
+    "whole-domain": "Whole domain",
+    "add-ou": "Add OU",
+    "new-role": "New role",
+    "edit-role": "Edit role",
+    "edit": "Edit",
+    "new-assignment": "Assign a role",
+    "builtin": "built-in",
+    "tier0": "Tier-0 role",
+    "tier0-hint": "May hold tier-0 permissions and change protected objects (Domain Admins and the like). Grant sparingly.",
+    "scope-ou": "per OU",
+    "scope-node": "per node",
+    "scope-global": "global"
+  }
 }
