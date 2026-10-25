@@ -12,6 +12,7 @@ import { initI18n } from './i18n.ts';
 import { run } from './run.ts';
 import { moduleResources } from './resources.ts';
 import { terminalIo } from './terminal.ts';
+import { httpsTransport, readFileText } from './api-cli.ts';
 
 const DEFAULT_SOCKET = '/run/opendc/agent-cli.sock';
 
@@ -35,4 +36,14 @@ process.exitCode = await run(argv, {
   err: (s) => process.stderr.write(s + '\n'),
   user,
   io: terminalIo(process.env.OPENDC_SECRETS_DIR ?? '/etc/opendc/secrets'),
+  http: {
+    transport: httpsTransport,
+    env: process.env,
+    readFile: readFileText,
+    readStdin: async () => {
+      const chunks: Buffer[] = [];
+      for await (const c of process.stdin) chunks.push(c as Buffer);
+      return Buffer.concat(chunks).toString('utf8');
+    },
+  },
 });
