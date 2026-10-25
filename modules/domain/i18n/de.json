@@ -1,0 +1,185 @@
+{
+  "module": {
+    "title": "Domäne",
+    "description": "Domänen-Setup, Domänencontroller, FSMO-Rollen und Verzeichnisverwaltung."
+  },
+  "perm": {
+    "info-read": "Domäneninformationen, DCs, FSMO-Rollen und Funktionsebenen anzeigen",
+    "fsmo-manage": "FSMO-Rollen übertragen und übernehmen",
+    "level-raise": "Funktionsebene heraufstufen",
+    "users-read": "Benutzer anzeigen",
+    "users-write": "Benutzer bearbeiten",
+    "users-create": "Benutzer anlegen",
+    "users-delete": "Benutzer löschen",
+    "users-password": "Passwörter zurücksetzen und Benutzer entsperren",
+    "groups-read": "Gruppen anzeigen",
+    "groups-write": "Gruppen bearbeiten",
+    "groups-create": "Gruppen anlegen",
+    "groups-delete": "Gruppen löschen",
+    "groups-members": "Gruppenmitgliedschaften ändern",
+    "computers-read": "Computer anzeigen",
+    "computers-write": "Computer bearbeiten",
+    "computers-delete": "Computer löschen",
+    "contacts-read": "Kontakte anzeigen",
+    "contacts-write": "Kontakte anlegen, bearbeiten und löschen",
+    "ous-read": "OUs und Container anzeigen",
+    "ous-write": "OUs anlegen und bearbeiten",
+    "ous-delete": "OUs löschen",
+    "templates-manage": "Benutzervorlagen verwalten",
+    "password-policy-read": "Passwortrichtlinien anzeigen",
+    "password-policy-write": "Passwortrichtlinien ändern",
+    "search-share": "Gespeicherte Suchen teilen",
+    "rbac-read": "Konsolenrollen und Zuweisungen anzeigen",
+    "rbac-write": "Konsolenrollen und Zuweisungen ändern"
+  },
+  "setup": {
+    "check": {
+      "os-support": {
+        "pass": "{{os}} wird unterstützt.",
+        "warn": "{{os}} wird eingeschränkt unterstützt.",
+        "fail": "{{os}} wird für einen Domänencontroller nicht unterstützt.",
+        "fix": "Verwenden Sie Debian 12 (mit Backports), Debian 13 oder Ubuntu 24.04/26.04."
+      },
+      "samba-version": {
+        "pass": "Samba {{version}} erfüllt das Minimum {{min}}.",
+        "warn": "Samba {{version}}.",
+        "fail": "Samba {{version}} ist älter als das erforderliche {{min}} (oder nicht verfügbar).",
+        "fix": "Aktivieren Sie eine Paketquelle mit Samba {{min}} oder neuer (Debian 12: bookworm-backports)."
+      },
+      "not-provisioned": {
+        "pass": "Keine vorhandene Samba-Domänendatenbank.",
+        "warn": "",
+        "fail": "Es gibt bereits eine Samba-Domänendatenbank ({{path}}).",
+        "fix": "Verwenden Sie einen frischen Host oder entfernen Sie die alte Samba-Installation vollständig."
+      },
+      "hostname": {
+        "pass": "Hostname {{host}} ist gültig.",
+        "warn": "",
+        "fail": "Hostname \"{{host}}\" ist für einen DC nicht verwendbar ({{issue}}).",
+        "fix": "Verwenden Sie 1–15 Buchstaben, Ziffern oder Bindestriche, nicht nur Ziffern und keinen reservierten Namen."
+      },
+      "fqdn-domain": {
+        "pass": "{{fqdn}} liegt in der Domäne {{domain}}.",
+        "warn": "Die Domäne {{domain}} endet auf .local; das kollidiert mit Multicast-DNS (mDNS) auf Clients.",
+        "fail": "{{fqdn}} muss <host>.{{domain}} lauten, und die Domäne muss ein gültiger DNS-Name mit mindestens zwei Teilen sein ({{issue}}).",
+        "fix": "Wählen Sie eine Domäne, die Ihnen gehört (z. B. ad.example.com), und benennen Sie den Host <host>.<domäne>."
+      },
+      "netbios": {
+        "pass": "NetBIOS-Domänenname {{netbios}} ist gültig.",
+        "warn": "",
+        "fail": "NetBIOS-Domänenname \"{{netbios}}\" ist nicht verwendbar ({{issue}}).",
+        "fix": "Verwenden Sie höchstens 15 Buchstaben, Ziffern oder Bindestriche, verschieden vom Hostnamen."
+      },
+      "ip-assigned": {
+        "pass": "{{ip}} ist auf diesem Host konfiguriert.",
+        "warn": "",
+        "fail": "{{ip}} ist auf keiner Schnittstelle konfiguriert (gefunden: {{found}}).",
+        "fix": "Konfigurieren Sie zuerst die statische Adresse oder wählen Sie eine der genannten Adressen."
+      },
+      "ip-static": {
+        "pass": "{{ip}} auf {{iface}} ist statisch.",
+        "warn": "{{ip}} auf {{iface}} wurde per DHCP vergeben. Ein DC braucht eine Adresse, die sich nie ändert.",
+        "fail": "",
+        "fix": "Konfigurieren Sie eine statische Adresse oder eine DHCP-Reservierung, die sich nie ändert."
+      },
+      "port-53": {
+        "pass": "Port 53 (DNS) ist frei.",
+        "warn": "Port 53 wird vom lokalen Stub-Resolver belegt ({{processes}}); das Setup deaktiviert ihn.",
+        "fail": "Port 53 wird von {{processes}} belegt.",
+        "fix": "Beenden und deaktivieren Sie den anderen DNS-Server; der DC stellt DNS für die Domäne bereit."
+      },
+      "ports": {
+        "pass": "Die Ports eines Domänencontrollers sind frei.",
+        "warn": "",
+        "fail": "Vom DC benötigte Ports sind belegt: {{ports}}.",
+        "fix": "Beenden Sie die genannten Dienste (anderer LDAP-, Kerberos- oder SMB-Server) vor dem Setup."
+      },
+      "disk": {
+        "pass": "{{free}} GiB frei auf {{path}}.",
+        "warn": "Nur {{free}} GiB frei auf {{path}}; 5 GiB oder mehr werden empfohlen.",
+        "fail": "Nur {{free}} GiB frei auf {{path}}; mindestens 2 GiB sind nötig.",
+        "fix": "Geben Sie Speicherplatz frei oder vergrößern Sie das Volume."
+      },
+      "filesystem": {
+        "pass": "{{path}} liegt auf {{type}} (erweiterte Attribute und ACLs unterstützt).",
+        "warn": "{{path}} liegt auf {{type}}; Samba braucht erweiterte Attribute und POSIX-ACLs.",
+        "fail": "",
+        "fix": "Legen Sie /var/lib/samba auf ext4, XFS, Btrfs oder ZFS."
+      },
+      "memory": {
+        "pass": "{{memory}} GiB Arbeitsspeicher.",
+        "warn": "{{memory}} GiB Arbeitsspeicher; für einen DC werden 2 GiB oder mehr empfohlen.",
+        "fail": "{{memory}} GiB Arbeitsspeicher sind für einen DC zu wenig.",
+        "fix": "Geben Sie dem Host mindestens 2 GiB Arbeitsspeicher."
+      },
+      "mac": {
+        "pass": "Mandatory Access Control: {{kind}}.",
+        "warn": "SELinux ist aktiv; die Samba-DC-Richtlinie der Distribution kann den DC blockieren.",
+        "fail": "",
+        "fix": "Prüfen Sie nach dem Setup das SELinux-Audit-Log oder verwenden Sie den Container-Modus."
+      },
+      "time": {
+        "pass": "Die Uhr ist synchronisiert (Abweichung {{offset}} s von {{reference}}).",
+        "warn": "Die Uhr ist nicht synchronisiert (Abweichung {{offset}} s). Kerberos scheitert ab 5 Minuten Abweichung.",
+        "fail": "",
+        "fix": "Prüfen Sie chrony: chronyc tracking; erlauben Sie ausgehendes NTP (UDP 123)."
+      },
+      "dns-forwarder": {
+        "pass": "Upstream-DNS {{servers}} antwortet.",
+        "warn": "Upstream-DNS {{servers}} antwortet nicht; die Domäne kann bis dahin keine Internetnamen auflösen.",
+        "fail": "",
+        "fix": "Tragen Sie erreichbare DNS-Server (z. B. Router oder Provider) als Weiterleitungen ein."
+      },
+      "dc-reachable": {
+        "pass": "Domänencontroller {{dc}} ist erreichbar.",
+        "warn": "",
+        "fail": "Domänencontroller {{dc}} ist auf Port(s) {{ports}} nicht erreichbar.",
+        "fix": "Prüfen Sie Adresse, Routing und Firewalls zwischen diesem Host und {{dc}}."
+      },
+      "dc-dns": {
+        "pass": "{{dc}} löst die Domäne {{domain}} auf.",
+        "warn": "",
+        "fail": "{{dc}} löst _ldap._tcp.{{domain}} nicht auf; er ist kein DC dieser Domäne oder DNS ist defekt.",
+        "fix": "Geben Sie die Adresse eines DCs von {{domain}} ein und prüfen Sie dessen DNS-Dienst."
+      },
+      "dc-time": {
+        "pass": "Die Uhr weicht von {{dc}} um {{offset}} s ab.",
+        "warn": "Die Uhr weicht von {{dc}} um {{offset}} s ab (oder {{dc}} antwortet nicht auf NTP).",
+        "fail": "Die Uhr weicht von {{dc}} um {{offset}} s ab; Kerberos erlaubt höchstens 5 Minuten.",
+        "fix": "Synchronisieren Sie beide Hosts vor dem Beitritt mit chrony."
+      }
+    },
+    "issue": {
+      "empty": "leer",
+      "too-long": "zu lang",
+      "invalid-chars": "ungültige Zeichen",
+      "numeric": "nur Ziffern",
+      "reserved": "reservierter Name",
+      "single-label": "nur ein Teil",
+      "mdns-local": ".local",
+      "netbios-dot": "enthält einen Punkt",
+      "netbios-equals-host": "gleich dem Hostnamen"
+    },
+    "step": {
+      "hostname": "Hostname wird gesetzt",
+      "resolver": "DNS-Auflösung wird konfiguriert",
+      "packages": "Samba und chrony werden installiert",
+      "samba-units": "Reine Dateiserver-Dienste von Samba werden deaktiviert",
+      "provision": "Domäne wird eingerichtet",
+      "join": "Domänenbeitritt",
+      "admin-password": "Administrator-Passwort wird gesetzt",
+      "krb5": "Kerberos wird konfiguriert",
+      "start": "Domänencontroller wird gestartet",
+      "resolver-self": "DNS-Auflösung wird auf diesen DC umgestellt",
+      "dns": "Warten auf die DNS-Einträge der Domäne",
+      "time": "Zeitdienst wird konfiguriert",
+      "read-domain": "Domäne wird gelesen",
+      "platform": "OpenDC-Plattformobjekte werden angelegt",
+      "service-accounts": "Dienstkonten werden angelegt",
+      "secrets": "Dienst-Anmeldedaten werden gespeichert",
+      "config": "Knotenkonfiguration wird geschrieben",
+      "certificate": "Konsolenzertifikat wird erneuert",
+      "done": "Fertig"
+    }
+  }
+}

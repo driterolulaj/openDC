@@ -8,11 +8,13 @@ import { PlatformError } from '@opendc/shared';
 import type { NodeRole } from '@opendc/shared/manifest';
 import { exec as defaultExec, type Exec } from '../exec.ts';
 import { PosixFileActions } from '../posix/files.ts';
-import { SystemdServiceActions } from '../posix/systemd.ts';
+import { SystemdServiceActions, runTransient } from '../posix/systemd.ts';
+import { PosixHostActions } from '../posix/host.ts';
 import type {
   BinaryLocator,
   LogicalBinary,
   OsActions,
+  PackageActions,
   OsFacts,
   OsRelease,
   PlatformPaths,
@@ -50,18 +52,29 @@ const BIN_PACKAGES: Record<LogicalBinary, string> = {
   hostname: 'hostname',
   ip: 'iproute2',
   ss: 'iproute2',
+  ldbadd: 'ldb-tools',
+  ldbmodify: 'ldb-tools',
+  ldbsearch: 'ldb-tools',
+  hostnamectl: 'systemd',
+  'apt-get': 'apt',
+  'apt-cache': 'apt',
+  'systemd-run': 'systemd',
 };
 
 const PACKAGES: Record<string, string[]> = {
   'samba-dc': [
     'samba',
     'samba-ad-dc',
+    'samba-ad-provision',
     'winbind',
     'krb5-user',
     'libnss-winbind',
     'libpam-winbind',
     'ldb-tools',
     'smbclient',
+    'dnsutils',
+    'acl',
+    'attr',
   ],
   chrony: ['chrony'],
 };
@@ -69,7 +82,14 @@ const PACKAGES: Record<string, string[]> = {
 const UNITS: Record<string, string> = {
   'samba-ad-dc': 'samba-ad-dc.service',
   chrony: 'chrony.service',
+  smbd: 'smbd.service',
+  nmbd: 'nmbd.service',
+  winbind: 'winbind.service',
+  'systemd-resolved': 'systemd-resolved.service',
 };
+
+/** chrony on Debian/Ubuntu reads drop-ins from /etc/chrony/conf.d and runs as _chrony. */
+const CHRONY = { dropIn: '/etc/chrony/conf.d/opendc.conf', group: '_chrony', unit: 'chrony' };
 
 export interface DebianOptions {
   release: OsRelease;
@@ -275,17 +295,81 @@ class DebianSystem implements SystemActions {
   }
 }
 
+/** Parses `apt-cache policy <pkg>` -> { installed, candidate } ("(none)" -> null). */
+export function parseAptPolicy(text: string): { installed: string | null; candidate: string | null } {
+  const field = (re: RegExp): string | null => {
+    const v = re.exec(text)?.[1];
+    return v && v !== '(none)' ? v : null;
+  };
+  return { installed: field(/^\s*Installed:\s*(\S+)/m), candidate: field(/^\s*Candidate:\s*(\S+)/m) };
+}
+
+const APT_ENV = { DEBIAN_FRONTEND: 'noninteractive', DEBCONF_NONINTERACTIVE_SEEN: 'true' };
+
+class AptPackages implements PackageActions {
+  readonly #facts: DebianFacts;
+  readonly #exec: Exec;
+  constructor(facts: DebianFacts, exec: Exec) {
+    this.#facts = facts;
+    this.#exec = exec;
+  }
+
+  async install(names: readonly string[]): Promise<void> {
+    if (!names.length) return;
+    const apt = await this.#facts.binaries.resolve('apt-get');
+    const opts = ['-o', 'DPkg::Lock::Timeout=600', '-o', 'Dpkg::Options::=--force-confold'];
+    // dpkg must create setuid files and restart services, which the agent's own sandbox forbids
+    // (RestrictSUIDSGID=yes etc.), so apt runs as a transient unit outside it.
+    await runTransient(this.#exec, await this.#facts.binaries.resolve('systemd-run'), [apt, ...opts, '-qq', 'update'], {
+      env: APT_ENV,
+      timeoutMs: 600_000,
+    });
+    await runTransient(
+      this.#exec,
+      await this.#facts.binaries.resolve('systemd-run'),
+      [apt, ...opts, '-qq', 'install', '-y', '--', ...names],
+      { env: APT_ENV, timeoutMs: 1_800_000 },
+    );
+  }
+
+  async #policy(name: string): Promise<{ installed: string | null; candidate: string | null }> {
+    const r = await this.#exec(await this.#facts.binaries.resolve('apt-cache'), ['policy', '--', name], {
+      timeoutMs: 60_000,
+    });
+    return parseAptPolicy(r.stdout);
+  }
+
+  async installed(name: string): Promise<string | null> {
+    return (await this.#policy(name)).installed;
+  }
+
+  async candidate(name: string): Promise<string | null> {
+    return (await this.#policy(name)).candidate;
+  }
+}
+
 export function debianActions(opts: DebianOptions): OsActions {
   const facts = new DebianFacts(opts);
   const run = opts.exec ?? defaultExec;
+  const services = new SystemdServiceActions(
+    run,
+    () => facts.binaries.resolve('systemctl'),
+    (u) => facts.unitName(u),
+  );
   return {
     facts,
-    services: new SystemdServiceActions(
-      run,
-      () => facts.binaries.resolve('systemctl'),
-      (u) => facts.unitName(u),
-    ),
+    services,
     files: new PosixFileActions(facts.paths.managedRoots()),
     system: new DebianSystem(facts, run),
+    host: new PosixHostActions({
+      exec: run,
+      binaries: facts.binaries,
+      services,
+      resolverKind: () => facts.resolverKind(),
+      chrony: CHRONY,
+      ...(opts.root ? { root: opts.root } : {}),
+    }),
+    packages: new AptPackages(facts, run),
+    exec: run,
   };
 }

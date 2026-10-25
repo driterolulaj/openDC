@@ -64,7 +64,7 @@ test('permission, file and op rules', async () => {
     agentOperations: [
       { op: 'samba.tool', from: ['api'] },
       { op: 'file.writeManaged', from: ['api'] },
-      { op: 'samba.provision', from: ['cli'] },
+      { op: 'samba.demote', from: ['cli'] },
     ],
     managed: { files: [{ fileId: 'other.file', pathKey: 'x.y', owner: 'root', mode: '0644', comment: 'hash' }] },
   });
@@ -73,7 +73,7 @@ test('permission, file and op rules', async () => {
     'implies unknown demo.nope.read',
     'samba.tool is not in the catalogue',
     'file.writeManaged is not available on the api socket',
-    'samba.provision is catalogued (phase 2) but not implemented yet',
+    'samba.demote is catalogued (phase 4) but not implemented yet',
     'managed file other.file must start with "demo."',
   ];
   for (const e of expect)

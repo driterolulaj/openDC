@@ -39,6 +39,11 @@
       "types": "./src/db/index.ts",
       "development": "./src/db/index.ts",
       "default": "./dist/db/index.js"
+    },
+    "./domain": {
+      "types": "./src/domain/index.ts",
+      "development": "./src/domain/index.ts",
+      "default": "./dist/domain/index.js"
     }
   },
   "files": [

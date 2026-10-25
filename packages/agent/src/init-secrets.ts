@@ -6,6 +6,8 @@
  *   api-hmac          32 random bytes: session CSRF + typed-confirmation HMAC key (SECURITY.md §8)
  *   tls-cert/tls-key  self-signed console certificate for this host until the internal CA exists (Phase 3)
  *   ldap-ca.pem       the local Samba DC's CA, so the API verifies LDAPS against it (empty on non-DCs)
+ *   ldap-svc, ldap-watch  service-account credentials; empty placeholders until setup fills them
+ *   setup-token       one-time setup token while the node isn't part of a domain (printed to the journal)
  */
 import { randomBytes } from 'node:crypto';
 import { constants } from 'node:fs';
@@ -13,6 +15,8 @@ import { access, chmod, copyFile, mkdir, open, readFile, rm, writeFile } from 'n
 import { networkInterfaces } from 'node:os';
 import { join } from 'node:path';
 import { exec, type OsActions } from '@opendc/os';
+import { SetupToken } from './setup/token.ts';
+import { NodeStateFile } from './state.ts';
 
 async function exists(p: string): Promise<boolean> {
   return access(p, constants.F_OK).then(
@@ -107,4 +111,31 @@ export async function initSecrets(
     // Not a DC (or Samba not provisioned yet): an empty bundle means "system CAs" to the API.
     await writeFile(ldapCa, '', { mode: 0o600 });
   }
+
+  // LoadCredential= fails on a missing file, so the API's credentials exist (empty) before setup
+  for (const name of ['ldap-svc', 'ldap-watch']) {
+    const p = join(dir, name);
+    if (!(await exists(p))) await writeFile(p, '', { mode: 0o600 });
+  }
+
+  if (!(await new NodeStateFile(os.facts.paths.etc).read())) {
+    const token = await new SetupToken(dir).ensure();
+    const info = await os.system.info();
+    // printed on purpose: the console and the journal are how the installing admin receives it
+    log(`OpenDC setup token: ${token}`, {
+      wizard: `https://${info.fqdn}:8443/console/setup`,
+      cli: 'sudo opendc setup',
+    });
+  }
+}
+
+/** Forces a new self-signed console certificate (after setup changed the host name). */
+export async function renewConsoleCertificate(
+  os: OsActions,
+  log: (msg: string, extra?: Record<string, unknown>) => void,
+): Promise<void> {
+  const dir = os.facts.paths.secrets;
+  await rm(join(dir, 'tls-cert.pem'), { force: true });
+  await rm(join(dir, 'tls-key.pem'), { force: true });
+  await initSecrets(os, log);
 }

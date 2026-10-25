@@ -1,0 +1,185 @@
+{
+  "module": {
+    "title": "Domain",
+    "description": "Domain setup, domain controllers, FSMO roles and directory administration."
+  },
+  "perm": {
+    "info-read": "View domain information, DCs, FSMO roles and levels",
+    "fsmo-manage": "Transfer and seize FSMO roles",
+    "level-raise": "Raise the functional level",
+    "users-read": "View users",
+    "users-write": "Edit users",
+    "users-create": "Create users",
+    "users-delete": "Delete users",
+    "users-password": "Reset passwords and unlock users",
+    "groups-read": "View groups",
+    "groups-write": "Edit groups",
+    "groups-create": "Create groups",
+    "groups-delete": "Delete groups",
+    "groups-members": "Change group membership",
+    "computers-read": "View computers",
+    "computers-write": "Edit computers",
+    "computers-delete": "Delete computers",
+    "contacts-read": "View contacts",
+    "contacts-write": "Create, edit and delete contacts",
+    "ous-read": "View OUs and containers",
+    "ous-write": "Create and edit OUs",
+    "ous-delete": "Delete OUs",
+    "templates-manage": "Manage user templates",
+    "password-policy-read": "View password policies",
+    "password-policy-write": "Change password policies",
+    "search-share": "Share saved searches",
+    "rbac-read": "View console roles and assignments",
+    "rbac-write": "Change console roles and assignments"
+  },
+  "setup": {
+    "check": {
+      "os-support": {
+        "pass": "{{os}} is supported.",
+        "warn": "{{os}} has limited support.",
+        "fail": "{{os}} is not supported for a domain controller.",
+        "fix": "Use Debian 12 (with backports), Debian 13 or Ubuntu 24.04/26.04."
+      },
+      "samba-version": {
+        "pass": "Samba {{version}} meets the minimum {{min}}.",
+        "warn": "Samba {{version}}.",
+        "fail": "Samba {{version}} is older than the required {{min}} (or not available).",
+        "fix": "Enable a repository that provides Samba {{min}} or later (Debian 12: bookworm-backports)."
+      },
+      "not-provisioned": {
+        "pass": "No existing Samba domain database.",
+        "warn": "",
+        "fail": "A Samba domain database already exists ({{path}}).",
+        "fix": "Use a fresh host, or remove the old Samba installation completely."
+      },
+      "hostname": {
+        "pass": "Host name {{host}} is valid.",
+        "warn": "",
+        "fail": "Host name \"{{host}}\" is not usable for a DC ({{issue}}).",
+        "fix": "Use 1–15 letters, digits or hyphens, not only digits and not a reserved name."
+      },
+      "fqdn-domain": {
+        "pass": "{{fqdn}} lies in the domain {{domain}}.",
+        "warn": "The domain {{domain}} ends in .local, which clashes with multicast DNS (mDNS) on clients.",
+        "fail": "{{fqdn}} must be <host>.{{domain}}, and the domain must be a valid DNS name with at least two labels ({{issue}}).",
+        "fix": "Choose a domain you own (e.g. ad.example.com) and name the host <host>.<domain>."
+      },
+      "netbios": {
+        "pass": "NetBIOS domain name {{netbios}} is valid.",
+        "warn": "",
+        "fail": "NetBIOS domain name \"{{netbios}}\" is not usable ({{issue}}).",
+        "fix": "Use at most 15 letters, digits or hyphens, different from the host name."
+      },
+      "ip-assigned": {
+        "pass": "{{ip}} is configured on this host.",
+        "warn": "",
+        "fail": "{{ip}} is not configured on any interface (found: {{found}}).",
+        "fix": "Configure the static address first, or choose one of the listed addresses."
+      },
+      "ip-static": {
+        "pass": "{{ip}} on {{iface}} is static.",
+        "warn": "{{ip}} on {{iface}} was assigned by DHCP. A DC needs an address that never changes.",
+        "fail": "",
+        "fix": "Configure a static address, or a DHCP reservation that never changes."
+      },
+      "port-53": {
+        "pass": "Port 53 (DNS) is free.",
+        "warn": "Port 53 is used by the local stub resolver ({{processes}}); setup will disable it.",
+        "fail": "Port 53 is used by {{processes}}.",
+        "fix": "Stop and disable the other DNS server; the DC provides DNS for the domain."
+      },
+      "ports": {
+        "pass": "The ports of a domain controller are free.",
+        "warn": "",
+        "fail": "Ports needed by the DC are in use: {{ports}}.",
+        "fix": "Stop the listed services (another LDAP, Kerberos or SMB server) before setup."
+      },
+      "disk": {
+        "pass": "{{free}} GiB free on {{path}}.",
+        "warn": "Only {{free}} GiB free on {{path}}; 5 GiB or more is recommended.",
+        "fail": "Only {{free}} GiB free on {{path}}; at least 2 GiB are needed.",
+        "fix": "Free disk space or enlarge the volume."
+      },
+      "filesystem": {
+        "pass": "{{path}} is on {{type}} (extended attributes and ACLs supported).",
+        "warn": "{{path}} is on {{type}}; Samba needs extended attributes and POSIX ACLs.",
+        "fail": "",
+        "fix": "Put /var/lib/samba on ext4, XFS, Btrfs or ZFS."
+      },
+      "memory": {
+        "pass": "{{memory}} GiB memory.",
+        "warn": "{{memory}} GiB memory; 2 GiB or more is recommended for a DC.",
+        "fail": "{{memory}} GiB memory is too little for a DC.",
+        "fix": "Give the host at least 2 GiB of memory."
+      },
+      "mac": {
+        "pass": "Mandatory access control: {{kind}}.",
+        "warn": "SELinux is active; the distribution's Samba DC policy may block the DC.",
+        "fail": "",
+        "fix": "Check the SELinux audit log after setup, or use container mode."
+      },
+      "time": {
+        "pass": "The clock is synchronised (offset {{offset}} s from {{reference}}).",
+        "warn": "The clock is not synchronised (offset {{offset}} s). Kerberos fails beyond 5 minutes of skew.",
+        "fail": "",
+        "fix": "Check chrony: chronyc tracking; allow outbound NTP (UDP 123)."
+      },
+      "dns-forwarder": {
+        "pass": "Upstream DNS {{servers}} answers.",
+        "warn": "Upstream DNS {{servers}} doesn't answer; the domain can't resolve Internet names until it does.",
+        "fail": "",
+        "fix": "Enter reachable DNS servers (e.g. your router or provider) as forwarders."
+      },
+      "dc-reachable": {
+        "pass": "Domain controller {{dc}} is reachable.",
+        "warn": "",
+        "fail": "Domain controller {{dc}} is not reachable on port(s) {{ports}}.",
+        "fix": "Check the address, routing and firewalls between this host and {{dc}}."
+      },
+      "dc-dns": {
+        "pass": "{{dc}} resolves the domain {{domain}}.",
+        "warn": "",
+        "fail": "{{dc}} doesn't resolve _ldap._tcp.{{domain}}; it is not a DC of that domain or DNS is broken.",
+        "fix": "Enter the address of a DC of {{domain}} and check its DNS service."
+      },
+      "dc-time": {
+        "pass": "The clock differs from {{dc}} by {{offset}} s.",
+        "warn": "The clock differs from {{dc}} by {{offset}} s (or {{dc}} doesn't answer NTP).",
+        "fail": "The clock differs from {{dc}} by {{offset}} s; Kerberos allows at most 5 minutes.",
+        "fix": "Synchronise both hosts with chrony before joining."
+      }
+    },
+    "issue": {
+      "empty": "empty",
+      "too-long": "too long",
+      "invalid-chars": "invalid characters",
+      "numeric": "only digits",
+      "reserved": "reserved name",
+      "single-label": "single label",
+      "mdns-local": ".local",
+      "netbios-dot": "contains a dot",
+      "netbios-equals-host": "same as the host name"
+    },
+    "step": {
+      "hostname": "Setting the host name",
+      "resolver": "Configuring DNS resolution",
+      "packages": "Installing Samba and chrony",
+      "samba-units": "Disabling the file-server-only Samba services",
+      "provision": "Provisioning the domain",
+      "join": "Joining the domain",
+      "admin-password": "Setting the Administrator password",
+      "krb5": "Configuring Kerberos",
+      "start": "Starting the domain controller",
+      "resolver-self": "Pointing DNS resolution at this DC",
+      "dns": "Waiting for the domain's DNS records",
+      "time": "Configuring the time service",
+      "read-domain": "Reading the domain",
+      "platform": "Creating OpenDC platform objects",
+      "service-accounts": "Creating service accounts",
+      "secrets": "Storing service credentials",
+      "config": "Writing the node configuration",
+      "certificate": "Renewing the console certificate",
+      "done": "Done"
+    }
+  }
+}

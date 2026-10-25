@@ -12,6 +12,7 @@ export interface CallOptions {
   timeoutMs?: number;
   idempotencyKey?: string;
   confirmation?: string;
+  setupToken?: string;
   onProgress?: (p: Progress) => void;
 }
 
@@ -37,6 +38,7 @@ export class AgentClient {
         actor: opts.actor,
         ...(opts.idempotencyKey ? { idempotencyKey: opts.idempotencyKey } : {}),
         ...(opts.confirmation ? { confirmation: opts.confirmation } : {}),
+        ...(opts.setupToken ? { setupToken: opts.setupToken } : {}),
       },
     };
     const raw = await this.#roundTrip(id, op, JSON.stringify(request) + '\n', opts);

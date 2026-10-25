@@ -6,31 +6,53 @@ export const allowlist = {
     "api": [
       "file.readManaged",
       "registry.commitLock",
+      "samba.fsmo.show",
+      "samba.level.show",
+      "samba.status",
       "samba.version",
+      "service.restart",
       "service.status",
-      "system.info"
+      "setup.status",
+      "system.info",
+      "time.tracking"
     ],
     "watch": [
       "file.readManaged",
       "file.restorePrevious",
       "file.writeManaged",
       "registry.commitLock",
+      "samba.status",
       "service.reload",
       "service.status",
-      "system.info"
+      "system.info",
+      "time.tracking"
     ],
     "cli": [
       "file.readManaged",
       "file.restorePrevious",
       "file.writeManaged",
       "registry.commitLock",
+      "samba.fsmo.show",
+      "samba.join",
+      "samba.level.show",
+      "samba.provision",
+      "samba.status",
       "samba.version",
+      "service.disable",
+      "service.enable",
       "service.reload",
       "service.restart",
       "service.status",
+      "setup.preflight",
+      "setup.status",
       "system.info"
     ]
   },
+  "setup": [
+    "samba.join",
+    "samba.provision",
+    "setup.preflight"
+  ],
   "files": {
     "core.demo": {
       "module": "core",
@@ -62,6 +84,10 @@ export const allowlist = {
     }
   },
   "units": {
+    "chrony": [
+      "restart",
+      "status"
+    ],
     "opendc-api": [
       "restart",
       "status"
@@ -71,7 +97,12 @@ export const allowlist = {
       "status"
     ],
     "samba-ad-dc": [
-      "status"
+      "disable",
+      "enable",
+      "restart",
+      "start",
+      "status",
+      "stop"
     ]
   }
 } as const;

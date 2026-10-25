@@ -2,6 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PlatformError } from '@opendc/shared';
@@ -11,6 +12,8 @@ import { parseOsRelease, DebianFacts } from '@opendc/os';
 import { Allowlist, loadAllowlist, type AllowlistData } from './allowlist.ts';
 import { AgentServer, type LogLine } from './server.ts';
 import { CommitLock, summarize } from './ops.ts';
+import { NodeStateFile, SecretFiles } from './state.ts';
+import { SetupToken } from './setup/token.ts';
 
 const sha = (s: string): string => createHash('sha256').update(s).digest('hex');
 
@@ -46,6 +49,11 @@ function fakeOs(): { os: OsActions; files: Map<string, string>; calls: string[] 
       stop: async (u) => void calls.push(`stop ${u}`),
       restart: async (u) => void calls.push(`restart ${u}`),
       reload: async (u) => void calls.push(`reload ${u}`),
+      enable: async (u) => void calls.push(`enable ${u}`),
+      disable: async (u) => void calls.push(`disable ${u}`),
+      mask: async (u) => void calls.push(`mask ${u}`),
+      unmask: async (u) => void calls.push(`unmask ${u}`),
+      startAndWait: async (u) => void calls.push(`startAndWait ${u}`),
     },
     files: {
       writeManaged: async (p, c) => {
@@ -69,6 +77,9 @@ function fakeOs(): { os: OsActions; files: Map<string, string>; calls: string[] 
         cpus: 2,
       }),
     },
+    host: {} as OsActions['host'],
+    packages: {} as OsActions['packages'],
+    exec: async () => ({ stdout: '', stderr: '', exitCode: 0 }),
   };
   return { os, files, calls };
 }
@@ -79,9 +90,16 @@ const testAllowlist: AllowlistData = {
     watch: ['file.writeManaged', 'file.readManaged', 'service.reload'],
     cli: ['file.writeManaged', 'service.restart', 'service.status', 'samba.version', 'file.restorePrevious'],
   },
+  setup: [],
   files: { 'core.demo': { module: 'core', pathKey: 'opendc.demo', owner: 'root', mode: 0o644, comment: 'hash' } },
   units: { 'opendc-api': ['status', 'restart'], 'samba-ad-dc': ['status'] },
 };
+
+/** Node state, secrets and setup token in a fresh temp dir. */
+export function stateDeps(): { node: NodeStateFile; secrets: SecretFiles; token: SetupToken; dir: string } {
+  const dir = mkdtempSync(join(tmpdir(), 'opendc-agent-'));
+  return { node: new NodeStateFile(dir), secrets: new SecretFiles(dir), token: new SetupToken(dir), dir };
+}
 
 function agent(opts: { allowlist?: AllowlistData; confirmKey?: Buffer } = {}) {
   const fake = fakeOs();
@@ -92,6 +110,7 @@ function agent(opts: { allowlist?: AllowlistData; confirmKey?: Buffer } = {}) {
     role: 'dc',
     confirmKey: opts.confirmKey ?? null,
     log: (l) => logs.push(l),
+    ...stateDeps(),
   });
   return { server, logs, ...fake };
 }
@@ -298,7 +317,7 @@ test('typed confirmation: required, verified against args and actor', async () =
 
 test('the agent refuses to start with an allowlist naming unimplemented ops', () => {
   assert.throws(
-    () => new Allowlist({ ...testAllowlist, sockets: { ...testAllowlist.sockets, cli: ['samba.provision'] } }),
+    () => new Allowlist({ ...testAllowlist, sockets: { ...testAllowlist.sockets, cli: ['samba.demote'] } }),
     (e: unknown) => e instanceof PlatformError && e.code === 'agent.unknown-op',
   );
 });
@@ -356,4 +375,73 @@ test('end to end over a socket with the shared client, including the frame limit
   } finally {
     await new Promise<void>((r) => server.close(() => r()));
   }
+});
+
+test('setup operations on the api socket need the setup token, verified by the agent', async () => {
+  const deps = stateDeps();
+  const fake = fakeOs();
+  const allowlist: AllowlistData = {
+    ...testAllowlist,
+    sockets: { ...testAllowlist.sockets, api: testAllowlist.sockets.api.filter((o) => o !== 'system.info') },
+    setup: ['system.info'],
+  };
+  const server = new AgentServer({
+    os: fake.os,
+    allowlist: new Allowlist(allowlist),
+    role: 'managed-node',
+    confirmKey: null,
+    log: () => undefined,
+    ...deps,
+  });
+  const token = await deps.token.ensure();
+  assert.match(token, /^[a-z2-9]{5}(-[a-z2-9]{5}){4}$/);
+  assert.equal(errCode(await server.handleFrame('api', frame('system.info', {}))), 'setup.token-invalid');
+  assert.equal(
+    errCode(await server.handleFrame('api', frame('system.info', {}, { setupToken: 'wrong-token' }))),
+    'setup.token-invalid',
+  );
+  // tolerant of case and dashes, strict on content
+  const ok = parse(
+    await server.handleFrame('api', frame('system.info', {}, { setupToken: token.toUpperCase().replace(/-/g, ' ') })),
+  );
+  assert.equal(ok.error, undefined);
+  // the cli socket doesn't need it; once destroyed, the api socket is closed for setup ops
+  await deps.token.destroy();
+  assert.equal(
+    errCode(await server.handleFrame('api', frame('system.info', {}, { setupToken: token }))),
+    'setup.token-invalid',
+  );
+  assert.equal(await deps.token.verify(token), false);
+});
+
+test('secrets in arguments are redacted from the log summary', () => {
+  assert.deepEqual(summarize('samba.join', { domain: 'x.test', password: 'p', username: 'u' }), {
+    domain: 'x.test',
+    password: '[redacted]',
+    username: 'u',
+  });
+  assert.equal(
+    (summarize('samba.provision', { adminPassword: 'p' }) as { adminPassword: string }).adminPassword,
+    '[redacted]',
+  );
+});
+
+test('node state and secret files', async () => {
+  const deps = stateDeps();
+  assert.equal(await deps.node.read(), null);
+  await deps.node.write({
+    schemaVersion: 1,
+    role: 'primary-dc',
+    domain: 'x.test',
+    realm: 'X.TEST',
+    domainDn: 'DC=x,DC=test',
+    domainSid: 'S-1-5-21-1-2-3',
+    fqdn: 'dc1.x.test',
+    setupAt: new Date().toISOString(),
+  });
+  assert.equal(await deps.node.role(), 'primary-dc');
+  await deps.secrets.put('ldap-svc', 'one');
+  await deps.secrets.put('ldap-svc', 'two');
+  assert.equal((await deps.secrets.get('ldap-svc'))?.toString(), 'two');
+  await assert.rejects(deps.secrets.put('../escape', 'x'));
 });

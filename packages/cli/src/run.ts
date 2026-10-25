@@ -5,6 +5,7 @@ import { PlatformError, isPlatformError, platformVersion } from '@opendc/shared'
 import type { AgentClient } from '@opendc/shared/agent';
 import { Registry, RegistryService, type RegistryAgent, type TemplateEntry } from '@opendc/registry';
 import type { RegistryKeyDefinition } from '@opendc/shared/manifest';
+import { setupCommand, type SetupIo } from './setup.ts';
 
 export interface CliDeps {
   t: TFunction;
@@ -15,6 +16,7 @@ export interface CliDeps {
   out: (s: string) => void;
   err: (s: string) => void;
   user: string;
+  io: SetupIo;
 }
 
 /** Interprets a CLI value: JSON when it parses and validates, otherwise the raw string. */
@@ -57,6 +59,17 @@ export async function run(argv: string[], d: CliDeps): Promise<number> {
     if (!cmd || cmd === 'help' || argv.includes('--help')) {
       d.out(t('usage'));
       return cmd || argv.includes('--help') ? 0 : 2;
+    }
+    if (argv[0] === 'setup') {
+      return await setupCommand(argv.slice(1), {
+        t,
+        client: d.client,
+        io: d.io,
+        out: d.out,
+        err: d.err,
+        user: d.user,
+        json,
+      });
     }
     if (cmd === 'version') {
       emit({ version: platformVersion }, platformVersion);

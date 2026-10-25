@@ -7,10 +7,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { AgentClient } from '@opendc/shared/agent';
-import { AgentServer, loadAllowlist } from '@opendc/agent';
+import { AgentServer, NodeStateFile, SecretFiles, SetupToken, loadAllowlist } from '@opendc/agent';
 import type { OsActions, OsFacts } from '@opendc/os';
 import { agentPort } from '@opendc/registry';
 import { registryKeys, templates } from '@opendc/modules/generated/registry';
@@ -65,12 +66,16 @@ function memoryOs(): { os: OsActions; files: Map<string, string> } {
 
 test('opendc registry set/drift/commit through the agent socket', async () => {
   const mem = memoryOs();
+  const stateDir = mkdtempSync(join(tmpdir(), 'opendc-cli-state-'));
   const server = new AgentServer({
     os: mem.os,
     allowlist: loadAllowlist(),
     role: 'primary-dc',
     confirmKey: null,
     log: () => undefined,
+    node: new NodeStateFile(stateDir),
+    secrets: new SecretFiles(stateDir),
+    token: new SetupToken(stateDir),
   }).createServer('cli');
   const path =
     process.platform === 'win32'
@@ -90,6 +95,11 @@ test('opendc registry set/drift/commit through the agent socket', async () => {
       out: (s: string) => out.push(s),
       err: (s: string) => err.push(s),
       user: 'tester',
+      io: {
+        readSecret: async () => null,
+        readPassword: async () => '',
+        ask: async () => null,
+      },
     };
     const demo = '/mem/opendc.demo';
 

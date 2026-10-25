@@ -15,6 +15,7 @@ LoadCredential=tls-cert:/etc/opendc/secrets/tls-cert.pem
 LoadCredential=tls-key:/etc/opendc/secrets/tls-key.pem
 LoadCredential=ldap-ca:/etc/opendc/secrets/ldap-ca.pem
 LoadCredential=api-hmac:/etc/opendc/secrets/api-hmac
+LoadCredential=ldap-svc:/etc/opendc/secrets/ldap-svc
 StateDirectory=opendc/api
 StateDirectoryMode=0700
 Restart=on-failure

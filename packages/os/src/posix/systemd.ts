@@ -3,6 +3,36 @@
 import type { Exec } from '../exec.ts';
 import type { ServiceActions, ServiceStatus } from '../types.ts';
 
+/**
+ * Runs a command as a transient systemd service and waits for it (`systemd-run --wait --pipe`). Used for
+ * work that the agent's hardened sandbox must not do itself, such as package installation. The command's
+ * output is passed through; a non-zero exit fails like a direct exec.
+ */
+export async function runTransient(
+  exec: Exec,
+  systemdRun: string,
+  argv: readonly string[],
+  o: { env?: Record<string, string>; timeoutMs: number },
+): Promise<string> {
+  const env = Object.entries(o.env ?? {}).map(([k, v]) => `--setenv=${k}=${v}`);
+  const r = await exec(
+    systemdRun,
+    [
+      '--wait',
+      '--pipe',
+      '--collect',
+      '--quiet',
+      '--service-type=exec',
+      `--property=RuntimeMaxSec=${String(Math.ceil(o.timeoutMs / 1000))}`,
+      ...env,
+      '--',
+      ...argv,
+    ],
+    { timeoutMs: o.timeoutMs + 30_000 },
+  );
+  return r.stdout;
+}
+
 export function parseSystemctlShow(text: string): ServiceStatus {
   const kv = new Map<string, string>();
   for (const line of text.split('\n')) {
@@ -51,6 +81,33 @@ export class SystemdServiceActions implements ServiceActions {
 
   async #verb(verb: 'start' | 'stop' | 'restart' | 'reload', unit: string): Promise<void> {
     await this.#exec(await this.#systemctl(), [verb, '--no-block', '--', this.#unitName(unit)], { timeoutMs: 90_000 });
+  }
+
+  async enable(unit: string, now: boolean): Promise<void> {
+    await this.#exec(await this.#systemctl(), ['enable', ...(now ? ['--now'] : []), '--', this.#unitName(unit)], {
+      timeoutMs: 120_000,
+    });
+  }
+
+  async disable(unit: string, now: boolean): Promise<void> {
+    await this.#exec(await this.#systemctl(), ['disable', ...(now ? ['--now'] : []), '--', this.#unitName(unit)], {
+      timeoutMs: 120_000,
+      // disabling a unit that isn't installed is not an error for our purposes
+      okExitCodes: [0, 1, 5],
+    });
+  }
+
+  async mask(unit: string): Promise<void> {
+    await this.#exec(await this.#systemctl(), ['mask', '--', this.#unitName(unit)], { timeoutMs: 30_000 });
+  }
+
+  async unmask(unit: string): Promise<void> {
+    await this.#exec(await this.#systemctl(), ['unmask', '--', this.#unitName(unit)], { timeoutMs: 30_000 });
+  }
+
+  async startAndWait(unit: string, timeoutMs: number): Promise<void> {
+    // without --no-block systemctl waits for the start job to finish and fails if the unit fails
+    await this.#exec(await this.#systemctl(), ['start', '--', this.#unitName(unit)], { timeoutMs });
   }
 
   start(unit: string): Promise<void> {

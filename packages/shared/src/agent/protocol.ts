@@ -26,6 +26,8 @@ export const requestSchema = z.strictObject({
     idempotencyKey: z.string().max(128).optional(),
     /** Typed-confirmation token minted by the API (confirm.ts). */
     confirmation: z.string().max(4096).optional(),
+    /** One-time setup token for setup operations on the api socket (agent-operations.md §5). */
+    setupToken: z.string().max(256).optional(),
   }),
 });
 export type AgentRequest = z.infer<typeof requestSchema>;

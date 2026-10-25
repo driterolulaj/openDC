@@ -21,12 +21,15 @@ export type UnitAction = 'start' | 'stop' | 'restart' | 'reload' | 'enable' | 'd
 
 export interface AllowlistData {
   sockets: Record<AgentSocket, readonly string[]>;
+  /** Setup operations: also callable on the api socket with a valid setup token. */
+  setup: readonly string[];
   files: Record<string, ManagedFileEntry>;
   units: Record<string, readonly string[]>;
 }
 
 export class Allowlist {
   readonly #sockets: Record<AgentSocket, ReadonlySet<string>>;
+  readonly #setup: ReadonlySet<string>;
   readonly #files: ReadonlyMap<string, ManagedFileEntry>;
   readonly #units: ReadonlyMap<string, ReadonlySet<string>>;
 
@@ -36,10 +39,11 @@ export class Allowlist {
       watch: new Set(data.sockets.watch),
       cli: new Set(data.sockets.cli),
     };
+    this.#setup = new Set(data.setup);
     this.#files = new Map(Object.entries(data.files));
     this.#units = new Map(Object.entries(data.units).map(([u, a]) => [u, new Set(a)]));
     // The agent refuses to start if the allowlist names an operation it doesn't implement.
-    const missing = [...this.#sockets.api, ...this.#sockets.watch, ...this.#sockets.cli].filter(
+    const missing = [...this.#sockets.api, ...this.#sockets.watch, ...this.#sockets.cli, ...this.#setup].filter(
       (op) => !isImplementedOp(op),
     );
     if (missing.length) {
@@ -47,11 +51,19 @@ export class Allowlist {
     }
   }
 
-  /** The op if `socket` may call it; otherwise throws agent.op-not-allowed. */
-  op(socket: AgentSocket, op: string): ImplementedOp {
-    if (!this.#sockets[socket].has(op) || !isImplementedOp(op))
+  /**
+   * The op if `socket` may call it; otherwise throws agent.op-not-allowed. Setup operations are also allowed
+   * on the api socket when the request carried a valid setup token.
+   */
+  op(socket: AgentSocket, op: string, setupTokenValid = false): ImplementedOp {
+    const viaSetup = socket === 'api' && setupTokenValid && this.#setup.has(op);
+    if ((!this.#sockets[socket].has(op) && !viaSetup) || !isImplementedOp(op))
       throw new PlatformError('agent.op-not-allowed', { op, socket });
     return op;
+  }
+
+  isSetupOp(op: string): boolean {
+    return this.#setup.has(op);
   }
 
   file(fileId: string, socket: AgentSocket, op: string): ManagedFileEntry {

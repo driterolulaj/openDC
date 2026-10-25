@@ -13,3 +13,9 @@ if [ -d /run/systemd/system ]; then
   systemctl try-restart opendc-agent.service
   systemctl restart opendc-api.service opendc-watcher.service
 fi
+if [ ! -f /etc/opendc/node.json ] && [ -s /etc/opendc/secrets/setup-token ]; then
+  echo "OpenDC is installed but not set up yet."
+  echo "  Setup token: $(cat /etc/opendc/secrets/setup-token)"
+  echo "  Wizard:      https://$(hostname -f 2>/dev/null || hostname):8443/console/setup"
+  echo "  CLI:         sudo opendc setup --help"
+fi

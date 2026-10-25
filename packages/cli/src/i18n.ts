@@ -6,7 +6,7 @@ import { errorResources } from '@opendc/shared';
 const cli = {
   en: {
     usage:
-      'Usage: opendc <command>\n\n  registry get <key> [--explain]\n  registry set <key> <value> [--forced]\n  registry unset <key> [--forced]\n  registry list\n  registry describe <key>\n  registry commit [<key>...]\n  registry drift\n  agent info\n  version\n\nOptions: --json (machine-readable output), --socket <path>',
+      'Usage: opendc <command>\n\n  setup status | token\n  setup preflight primary-dc|dc --fqdn <fqdn> --ip <address> [--domain <dns domain>] [--netbios <name>] [--forwarder <ip>]... [--dc <dc>]\n  setup provision --fqdn <fqdn> --ip <address> [--domain <dns domain>] [--netbios <name>] [--forwarder <ip>]... [--ntp <server>]... [--ntp-allow <cidr>]... [--schema 2012_R2|2016] [--level 2008_R2|2012|2012_R2|2016] [--site <name>] [--id-base <n>] [--password-file <file>|-] [--confirm <domain>]\n  setup join --fqdn <fqdn> --ip <address> --dc <dc> [--domain <dns domain>] [--user <name>] [--password-file <file>|-] [--forwarder <ip>]... [--confirm <domain>]\n  registry get <key> [--explain]\n  registry set <key> <value> [--forced]\n  registry unset <key> [--forced]\n  registry list\n  registry describe <key>\n  registry commit [<key>...]\n  registry drift\n  agent info\n  version\n\nOptions: --json (machine-readable output), --socket <path>',
     'unknown-command': 'Unknown command "{{command}}". Run opendc --help.',
     'missing-arg': 'Missing argument: {{name}}.',
     explain: '{{key}} = {{value}}  (from {{layer}})',
@@ -29,10 +29,24 @@ const cli = {
     yes: 'yes',
     no: 'no',
     error: 'Error: {{message}}\nFix: {{fix}}',
+    'preflight-ok': "Pre-flight checks passed (warnings don't block setup).",
+    'preflight-failed': 'Pre-flight checks failed. Fix the [FAIL] items above, then run setup again.',
+    'setup-no-token': 'No setup token: this host is already set up, or opendc setup token was not run as root.',
+    'setup-status-done': 'Set up: {{fqdn}} is a {{role}} of {{domain}}.',
+    'setup-status-open':
+      'Not set up yet: {{fqdn}} ({{os}}), addresses {{addresses}}. Run opendc setup provision or join.',
+    'setup-need-root': 'opendc setup provision/join must run as root (sudo opendc setup ...).',
+    'setup-confirm': 'This changes the host irreversibly. Type the domain name ({{phrase}}) to continue: ',
+    'setup-confirm-mismatch': 'Confirmation did not match "{{phrase}}"; nothing was changed.',
+    'setup-password-prompt': 'Password for the domain Administrator: ',
+    'setup-join-password-prompt': 'Password of {{user}}: ',
+    'setup-provisioned':
+      'Domain {{domain}} is up. {{fqdn}} is its first DC. Log in at https://{{fqdn}}:8443/console/ as Administrator.',
+    'setup-joined': '{{fqdn}} joined {{domain}} as an additional DC.',
   },
   de: {
     usage:
-      'Aufruf: opendc <Befehl>\n\n  registry get <Schlüssel> [--explain]\n  registry set <Schlüssel> <Wert> [--forced]\n  registry unset <Schlüssel> [--forced]\n  registry list\n  registry describe <Schlüssel>\n  registry commit [<Schlüssel>...]\n  registry drift\n  agent info\n  version\n\nOptionen: --json (maschinenlesbare Ausgabe), --socket <Pfad>',
+      'Aufruf: opendc <Befehl>\n\n  setup status | token\n  setup preflight primary-dc|dc --fqdn <FQDN> --ip <Adresse> [--domain <DNS-Domäne>] [--netbios <Name>] [--forwarder <IP>]... [--dc <DC>]\n  setup provision --fqdn <FQDN> --ip <Adresse> [--domain <DNS-Domäne>] [--netbios <Name>] [--forwarder <IP>]... [--ntp <Server>]... [--ntp-allow <CIDR>]... [--schema 2012_R2|2016] [--level 2008_R2|2012|2012_R2|2016] [--site <Name>] [--id-base <n>] [--password-file <Datei>|-] [--confirm <Domäne>]\n  setup join --fqdn <FQDN> --ip <Adresse> --dc <DC> [--domain <DNS-Domäne>] [--user <Name>] [--password-file <Datei>|-] [--forwarder <IP>]... [--confirm <Domäne>]\n  registry get <Schlüssel> [--explain]\n  registry set <Schlüssel> <Wert> [--forced]\n  registry unset <Schlüssel> [--forced]\n  registry list\n  registry describe <Schlüssel>\n  registry commit [<Schlüssel>...]\n  registry drift\n  agent info\n  version\n\nOptionen: --json (maschinenlesbare Ausgabe), --socket <Pfad>',
     'unknown-command': 'Unbekannter Befehl "{{command}}". Siehe opendc --help.',
     'missing-arg': 'Fehlendes Argument: {{name}}.',
     explain: '{{key}} = {{value}}  (aus {{layer}})',
@@ -55,6 +69,23 @@ const cli = {
     yes: 'ja',
     no: 'nein',
     error: 'Fehler: {{message}}\nAbhilfe: {{fix}}',
+    'preflight-ok': 'Vorabprüfungen bestanden (Warnungen blockieren das Setup nicht).',
+    'preflight-failed':
+      'Vorabprüfungen fehlgeschlagen. Beheben Sie die [FAIL]-Punkte oben und starten Sie das Setup erneut.',
+    'setup-no-token':
+      'Kein Setup-Token: Dieser Host ist bereits eingerichtet, oder opendc setup token lief nicht als root.',
+    'setup-status-done': 'Eingerichtet: {{fqdn}} ist ein {{role}} von {{domain}}.',
+    'setup-status-open':
+      'Noch nicht eingerichtet: {{fqdn}} ({{os}}), Adressen {{addresses}}. Führen Sie opendc setup provision oder join aus.',
+    'setup-need-root': 'opendc setup provision/join muss als root laufen (sudo opendc setup ...).',
+    'setup-confirm':
+      'Dies verändert den Host unumkehrbar. Geben Sie zur Bestätigung den Domänennamen ({{phrase}}) ein: ',
+    'setup-confirm-mismatch': 'Die Bestätigung stimmt nicht mit "{{phrase}}" überein; nichts wurde geändert.',
+    'setup-password-prompt': 'Passwort für den Domänen-Administrator: ',
+    'setup-join-password-prompt': 'Passwort von {{user}}: ',
+    'setup-provisioned':
+      'Die Domäne {{domain}} läuft. {{fqdn}} ist ihr erster DC. Anmeldung unter https://{{fqdn}}:8443/console/ als Administrator.',
+    'setup-joined': '{{fqdn}} ist {{domain}} als weiterer DC beigetreten.',
   },
 };
 

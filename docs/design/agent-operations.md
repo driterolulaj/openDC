@@ -94,8 +94,8 @@ Legend for sockets: **A** = api, **W** = watch, **C** = cli. Risk: R = read, W =
 | `samba.status` | — | AWC | R | 2 |
 | `samba.version` | — | AWC | R | 1 |
 | `samba.testparm` | — | AC | R | 2 |
-| `samba.provision` | `realm, netbiosDomain, dnsBackend: SAMBA_INTERNAL|BIND9_DLZ, baseSchema: 2012_R2|2016, functionalLevel, adminPasswordSecretId, hostIp, siteName, useRfc2307: true` | C (+API during setup wizard via one-time setup token) | T0 ✔c | 2 |
-| `samba.join` | `role: DC|RODC|MEMBER, realm, dcHost, credentialsSecretId, siteName, dnsBackend` | C (+setup token) | T0 ✔c | 2 / 4 |
+| `samba.provision` | `fqdn, hostIp, domain, netbiosDomain, adminPassword, dnsForwarders[], ntpServers[], ntpAllow[], baseSchema: 2012_R2|2016, functionalLevel, dnsBackend: SAMBA_INTERNAL, siteName, idBase` (`packages/shared/src/domain/setup.ts`) | C (+API during setup wizard via one-time setup token) | T0 ✔c | 2 |
+| `samba.join` | `fqdn, hostIp, domain, dcHost, username, password, dnsForwarders[], ntpServers[], ntpAllow[], siteName` (writable DC; RODC/member in Phase 4) | C (+setup token) | T0 ✔c | 2 / 4 |
 | `samba.demote` | `removeOtherDead?: dsaGuid, credentialsSecretId?` | AC | T0 ✔c | 4 |
 | `samba.fsmo.show` | — | AWC | R | 2 |
 | `samba.fsmo.transfer` | `roles[]` | AC | T0 ✔c | 2 |
@@ -124,6 +124,19 @@ Legend for sockets: **A** = api, **W** = watch, **C** = cli. Risk: R = read, W =
 | `samba.keytab.export` | `principal (allowlisted SPN pattern), keytabSecretId` | AC | T0 | 3 / 5 |
 | `samba.containerImage.install` | `imageRef@digest` (from signed release metadata only) | C | T0 | 6 |
 | `smb.reloadConfig` | — | WC | W | 6 |
+
+Phase 2 notes on provisioning and join (amended 2026-10-25, for review):
+- The initial Administrator password (provision) and the joining account's password (join) are passed **in the
+  request**, redacted from every log, instead of the planned `adminPasswordSecretId`/`credentialsSecretId`.
+  There is no operation to store a caller-supplied secret, and the passwords are needed exactly once. They
+  reach Samba on stdin (an LDIF `unicodePwd` change against the local `sam.ldb`) or in the environment
+  (`PASSWD` for `samba-tool domain join`), never in argv.
+- One operation does the whole sequence (host name, resolver, the `samba-dc` package set, Samba units,
+  provision/join, Kerberos, start, DNS check, chrony with `ntpsigndsocket`, platform objects, service accounts,
+  secrets, registry and `node.json`), reporting progress per step. It's idempotent: a failed run can simply be
+  repeated. `system.setHostname` and `resolver.configure` remain catalogued for later standalone use.
+- Packages are installed by a transient systemd unit (`systemd-run --wait`), because dpkg must create setuid
+  files and the agent's own unit has `RestrictSUIDSGID=yes`.
 
 ### 3.4 DNS (Samba internal or BIND9_DLZ)
 | Op | Args | Sock | Risk | Phase |
@@ -211,6 +224,12 @@ Uses Kea's Unix control socket directly, which works across Kea 2.x and 3.x with
 | `realm.joinLinux` | `realm, dcHost, credentialsSecretId, mode: sssd|winbind` (managed nodes) | C | W | 4 |
 | `fleet.connect / fleet.disconnect` | `fleetUrl, enrollmentToken` | AC | W ✔c | 7 |
 
+### 3.11 Setup (added in Phase 2)
+| Op | Args | Sock | Risk | Phase |
+|---|---|---|---|---|
+| `setup.status` | — (with the setup token on the api socket, reports whether it is valid) | AC | R | 2 |
+| `setup.preflight` | `role: primary-dc|dc, fqdn, hostIp, domain, netbiosDomain?, dnsForwarders[], dcHost?` | C (+setup token) | R | 2 |
+
 ## 4. Allowlist generation
 `npm run gen` intersects each module's `agentOperations` (with `from` sockets) with the catalogue above and
 writes `packages/agent/src/generated/allowlist.ts`:
@@ -233,3 +252,10 @@ Before the domain exists there are no users or RBAC. `opendc setup` (the CLI as 
 uses a **one-time setup token** printed to the console and journal at install time
 (`/etc/opendc/secrets/setup-token`, 0600). The wizard must present it. It unlocks the setup-only operations
 marked "+setup token", and it's destroyed once provisioning or join completes.
+
+Implementation (Phase 2): `opendc-agent --init-secrets` creates the token while `/etc/opendc/node.json` doesn't
+exist (25 characters from an alphabet without look-alikes, about 116 bits). The package's post-install script
+prints it; `sudo opendc setup token` shows it again. Catalogue entries flagged `setup: true` are compiled into
+the allowlist's `setup` list: the agent accepts them on the api socket only when the request carries a token
+that matches the file (SHA-256 compared in constant time; case, blanks and dashes ignored). The API never sees
+the file; it forwards the `X-Setup-Token` header.

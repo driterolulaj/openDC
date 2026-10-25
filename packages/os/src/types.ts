@@ -68,7 +68,14 @@ export type LogicalBinary =
   | 'journalctl'
   | 'hostname'
   | 'ip'
-  | 'ss';
+  | 'ss'
+  | 'ldbadd'
+  | 'ldbmodify'
+  | 'ldbsearch'
+  | 'hostnamectl'
+  | 'apt-get'
+  | 'apt-cache'
+  | 'systemd-run';
 
 export interface BinaryLocator {
   /** Absolute path, or throws PlatformError(os.binary-missing) naming the package to install. */
@@ -111,6 +118,13 @@ export interface ServiceActions {
   stop(unit: string): Promise<void>;
   restart(unit: string): Promise<void>;
   reload(unit: string): Promise<void>;
+  enable(unit: string, now: boolean): Promise<void>;
+  disable(unit: string, now: boolean): Promise<void>;
+  /** Prevents a unit from being started at all (distro Samba file-server units on a DC). */
+  mask(unit: string): Promise<void>;
+  unmask(unit: string): Promise<void>;
+  /** Starts the unit and waits until systemd reports it active (or fails). */
+  startAndWait(unit: string, timeoutMs: number): Promise<void>;
 }
 
 export interface WriteResult {
@@ -148,9 +162,62 @@ export interface SystemActions {
   info(): Promise<SystemInfo>;
 }
 
+export interface InterfaceAddress {
+  iface: string;
+  family: 'inet' | 'inet6';
+  address: string;
+  prefix: number;
+  /** Assigned by DHCP/SLAAC (lease lifetime), not configured statically. */
+  dynamic: boolean;
+}
+
+export interface ListeningSocket {
+  proto: 'tcp' | 'udp';
+  address: string;
+  port: number;
+  process: string | null;
+}
+
+export interface TimeSync {
+  synchronized: boolean;
+  /** System clock offset from the reference in seconds (positive = fast). */
+  offsetSec: number | null;
+  reference: string | null;
+}
+
+/**
+ * Host configuration and facts that need root or know distro specifics (setup and pre-flight). The files
+ * these methods write are fixed system files, never caller-supplied paths.
+ */
+export interface HostActions {
+  /** Sets the static hostname to the first label of `fqdn` and maps `fqdn` to `ip` in /etc/hosts. */
+  setHostname(fqdn: string, ip: string): Promise<{ changed: boolean }>;
+  /** Writes the stub resolver configuration; `freePort53` also stops a local stub resolver on port 53. */
+  configureResolver(o: { nameservers: string[]; searchDomains: string[]; freePort53: boolean }): Promise<void>;
+  addresses(): Promise<InterfaceAddress[]>;
+  listening(): Promise<ListeningSocket[]>;
+  filesystem(path: string): Promise<{ type: string; freeBytes: number }>;
+  timeSync(): Promise<TimeSync>;
+  /** Writes the chrony drop-in for a DC (MS-SNTP signing via Samba's ntp_signd socket). */
+  configureTimeServer(o: { signdSocketDir: string; allow: string[]; upstream: string[] }): Promise<void>;
+}
+
+export interface PackageActions {
+  /** Installs distro packages non-interactively. Names come from manifest package sets, never from callers. */
+  install(names: readonly string[]): Promise<void>;
+  /** Installed version, or null. */
+  installed(name: string): Promise<string | null>;
+  /** Version the package manager would install, or null when no repository offers it. */
+  candidate(name: string): Promise<string | null>;
+}
+
 export interface OsActions {
   readonly facts: OsFacts;
   readonly services: ServiceActions;
   readonly files: FileActions;
   readonly system: SystemActions;
+  readonly host: HostActions;
+  readonly packages: PackageActions;
+  /** Starts a process (argv only); exposed for typed operations that build their own argv (samba-tool). */
+  readonly exec: import('./exec.ts').Exec;
 }

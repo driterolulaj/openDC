@@ -4,6 +4,7 @@
  * against (ADR-0011). Browser-safe: no Node imports in this subtree.
  */
 import { z } from 'zod';
+import { joinArgs, provisionArgs } from '../domain/setup.ts';
 
 export const errorBody = z.object({
   code: z.string(),
@@ -91,3 +92,21 @@ export const jobParams = z.strictObject({ id: z.uuid() });
 
 export const health = z.object({ status: z.literal('ok'), version: z.string() });
 export const empty = z.object({});
+
+// ---- Setup (Phase 2): the wizard's API, authorised by the one-time setup token (header X-Setup-Token)
+export {
+  preflightArgs as setupPreflightRequest,
+  preflightResult as setupPreflightResponse,
+  setupState as setupStatusResponse,
+} from '../domain/setup.ts';
+
+/** The typed confirmation: the user types the domain name (confirmationPhrase). */
+const confirmField = { confirm: z.string().max(253) };
+export const setupProvisionRequest = provisionArgs.extend(confirmField);
+export const setupJoinRequest = joinArgs.extend(confirmField);
+export const setupJobParams = z.strictObject({ id: z.uuid() });
+export const setupJobResponse = z.object({
+  job,
+  events: z.array(z.object({ n: z.number(), kind: z.string(), data: z.unknown() })),
+});
+export const SETUP_TOKEN_HEADER = 'x-setup-token';

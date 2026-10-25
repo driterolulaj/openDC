@@ -217,10 +217,15 @@ function render(root: string, mods: Loaded[]): Map<string, string> {
 
   // agent allowlist: pure data
   const sockets: Record<AgentSocket, Set<string>> = { api: new Set(), watch: new Set(), cli: new Set() };
+  // setup operations a module uses are also callable on the api socket with the setup token
+  const setup = new Set<string>();
   const managedFiles: Record<string, unknown> = {};
   const managedUnits: Record<string, Set<string>> = {};
   for (const { manifest: m } of mods) {
-    for (const use of m.agentOperations ?? []) for (const s of use.from) sockets[s].add(use.op);
+    for (const use of m.agentOperations ?? []) {
+      for (const s of use.from) sockets[s].add(use.op);
+      if (isCatalogued(use.op) && (catalogue[use.op] as { setup?: true }).setup) setup.add(use.op);
+    }
     for (const f of m.managed?.files ?? []) {
       managedFiles[f.fileId] = {
         module: m.id,
@@ -240,6 +245,7 @@ function render(root: string, mods: Loaded[]): Map<string, string> {
     p('packages/agent/src/generated/allowlist.ts'),
     `${HEADER}\nexport const allowlist = ${ts({
       sockets: { api: sorted(sockets.api), watch: sorted(sockets.watch), cli: sorted(sockets.cli) },
+      setup: sorted(setup),
       files: Object.fromEntries(Object.entries(managedFiles).sort(([a], [b]) => a.localeCompare(b))),
       units: Object.fromEntries(
         Object.entries(managedUnits)

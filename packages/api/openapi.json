@@ -884,6 +884,741 @@
           }
         }
       }
+    },
+    "/api/v1/setup/jobs/{id}": {
+      "get": {
+        "operationId": "getSetupJob",
+        "summary": "State and progress of a setup job (setup token while it runs)",
+        "tags": [
+          "setup"
+        ],
+        "x-opendc-auth": "public",
+        "security": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "job": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string"
+                        },
+                        "actor": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "running",
+                            "succeeded",
+                            "failed"
+                          ]
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "updatedAt": {
+                          "type": "string"
+                        },
+                        "result": {},
+                        "error": {}
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "actor",
+                        "status",
+                        "createdAt",
+                        "updatedAt",
+                        "result",
+                        "error"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "n": {
+                            "type": "number"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "data": {}
+                        },
+                        "required": [
+                          "n",
+                          "kind",
+                          "data"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "job",
+                    "events"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/setup/join": {
+      "post": {
+        "operationId": "startSetupJoin",
+        "summary": "Join this host to an existing domain as an additional DC (setup token, typed confirmation)",
+        "tags": [
+          "setup"
+        ],
+        "x-opendc-auth": "public",
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fqdn": {
+                    "type": "string",
+                    "maxLength": 253
+                  },
+                  "hostIp": {
+                    "type": "string",
+                    "format": "ipv4",
+                    "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])$"
+                  },
+                  "dnsForwarders": {
+                    "maxItems": 2,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "ipv4",
+                      "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])$"
+                    }
+                  },
+                  "ntpServers": {
+                    "default": [],
+                    "maxItems": 4,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 253,
+                      "pattern": "^[A-Za-z0-9.-]+$"
+                    }
+                  },
+                  "ntpAllow": {
+                    "default": [],
+                    "maxItems": 16,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^(\\d{1,3}\\.){3}\\d{1,3}\\/(\\d|[12]\\d|3[0-2])$"
+                    }
+                  },
+                  "domain": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "dcHost": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "ipv4",
+                        "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])$"
+                      },
+                      {
+                        "type": "string",
+                        "maxLength": 253
+                      }
+                    ]
+                  },
+                  "username": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "siteName": {
+                    "default": "Default-First-Site-Name",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 63,
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9-]*$"
+                  },
+                  "confirm": {
+                    "type": "string",
+                    "maxLength": 253
+                  }
+                },
+                "required": [
+                  "fqdn",
+                  "hostIp",
+                  "dnsForwarders",
+                  "domain",
+                  "dcHost",
+                  "username",
+                  "password",
+                  "confirm"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "actor": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "running",
+                        "succeeded",
+                        "failed"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "result": {},
+                    "error": {}
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "actor",
+                    "status",
+                    "createdAt",
+                    "updatedAt",
+                    "result",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/setup/preflight": {
+      "post": {
+        "operationId": "runSetupPreflight",
+        "summary": "Pre-flight checks for provisioning or joining (setup token)",
+        "tags": [
+          "setup"
+        ],
+        "x-opendc-auth": "public",
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "primary-dc",
+                      "dc"
+                    ]
+                  },
+                  "fqdn": {
+                    "type": "string",
+                    "maxLength": 253
+                  },
+                  "hostIp": {
+                    "type": "string",
+                    "maxLength": 45
+                  },
+                  "domain": {
+                    "type": "string",
+                    "maxLength": 253
+                  },
+                  "netbiosDomain": {
+                    "type": "string",
+                    "maxLength": 32
+                  },
+                  "dnsForwarders": {
+                    "default": [],
+                    "maxItems": 2,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 45
+                    }
+                  },
+                  "dcHost": {
+                    "type": "string",
+                    "maxLength": 253
+                  }
+                },
+                "required": [
+                  "role",
+                  "fqdn",
+                  "hostIp",
+                  "domain"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "checks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "os-support",
+                              "samba-version",
+                              "not-provisioned",
+                              "hostname",
+                              "fqdn-domain",
+                              "netbios",
+                              "ip-assigned",
+                              "ip-static",
+                              "port-53",
+                              "ports",
+                              "disk",
+                              "filesystem",
+                              "memory",
+                              "mac",
+                              "time",
+                              "dns-forwarder",
+                              "dc-reachable",
+                              "dc-dns",
+                              "dc-time"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "pass",
+                              "warn",
+                              "fail"
+                            ]
+                          },
+                          "params": {
+                            "type": "object",
+                            "propertyNames": {
+                              "type": "string"
+                            },
+                            "additionalProperties": {
+                              "type": [
+                                "string",
+                                "number"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "status",
+                          "params"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "checks",
+                    "ok"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/setup/provision": {
+      "post": {
+        "operationId": "startSetupProvision",
+        "summary": "Provision a new domain with this host as its first DC (setup token, typed confirmation)",
+        "tags": [
+          "setup"
+        ],
+        "x-opendc-auth": "public",
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fqdn": {
+                    "type": "string",
+                    "maxLength": 253
+                  },
+                  "hostIp": {
+                    "type": "string",
+                    "format": "ipv4",
+                    "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])$"
+                  },
+                  "dnsForwarders": {
+                    "maxItems": 2,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "ipv4",
+                      "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])$"
+                    }
+                  },
+                  "ntpServers": {
+                    "default": [],
+                    "maxItems": 4,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 253,
+                      "pattern": "^[A-Za-z0-9.-]+$"
+                    }
+                  },
+                  "ntpAllow": {
+                    "default": [],
+                    "maxItems": 16,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^(\\d{1,3}\\.){3}\\d{1,3}\\/(\\d|[12]\\d|3[0-2])$"
+                    }
+                  },
+                  "domain": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "netbiosDomain": {
+                    "type": "string",
+                    "maxLength": 15
+                  },
+                  "adminPassword": {
+                    "type": "string",
+                    "maxLength": 256
+                  },
+                  "baseSchema": {
+                    "default": "2016",
+                    "type": "string",
+                    "enum": [
+                      "2016",
+                      "2012_R2"
+                    ]
+                  },
+                  "functionalLevel": {
+                    "default": "2008_R2",
+                    "type": "string",
+                    "enum": [
+                      "2012",
+                      "2016",
+                      "2008_R2",
+                      "2012_R2"
+                    ]
+                  },
+                  "dnsBackend": {
+                    "default": "SAMBA_INTERNAL",
+                    "type": "string",
+                    "const": "SAMBA_INTERNAL"
+                  },
+                  "siteName": {
+                    "default": "Default-First-Site-Name",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 63,
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9-]*$"
+                  },
+                  "idBase": {
+                    "default": 100000,
+                    "type": "integer",
+                    "minimum": 1000,
+                    "maximum": 2000000000
+                  },
+                  "confirm": {
+                    "type": "string",
+                    "maxLength": 253
+                  }
+                },
+                "required": [
+                  "fqdn",
+                  "hostIp",
+                  "dnsForwarders",
+                  "domain",
+                  "netbiosDomain",
+                  "adminPassword",
+                  "confirm"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "actor": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "running",
+                        "succeeded",
+                        "failed"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "result": {},
+                    "error": {}
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "actor",
+                    "status",
+                    "createdAt",
+                    "updatedAt",
+                    "result",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/setup/status": {
+      "get": {
+        "operationId": "getSetupStatus",
+        "summary": "Whether this node is set up; host details only with a valid setup token",
+        "tags": [
+          "setup"
+        ],
+        "x-opendc-auth": "public",
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "provisioned": {
+                      "type": "boolean"
+                    },
+                    "role": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "domain": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "tokenValid": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "hostname": {
+                      "type": "string"
+                    },
+                    "fqdn": {
+                      "type": "string"
+                    },
+                    "os": {
+                      "type": "string"
+                    },
+                    "addresses": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "iface": {
+                            "type": "string"
+                          },
+                          "address": {
+                            "type": "string"
+                          },
+                          "prefix": {
+                            "type": "number"
+                          },
+                          "dynamic": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "iface",
+                          "address",
+                          "prefix",
+                          "dynamic"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "nameservers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "provisioned",
+                    "role",
+                    "domain",
+                    "tokenValid",
+                    "hostname",
+                    "fqdn",
+                    "os",
+                    "addresses",
+                    "nameservers"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

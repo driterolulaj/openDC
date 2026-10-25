@@ -2,14 +2,17 @@
 # Directory watcher and registry renderer (unprivileged, ADR-0004, SECURITY.md §6).
 [Unit]
 Description=OpenDC watcher
-After=network-online.target opendc-agent-watch.socket samba-ad-dc.service
+After=network-online.target opendc-agent-watch.socket samba-ad-dc.service opendc-secrets-init.service
 Wants=network-online.target opendc-agent-watch.socket
+Requires=opendc-secrets-init.service
 
 [Service]
 Type=simple
 User=_opendc-watch
 Group=_opendc-watch
 ExecStart=/usr/lib/opendc/node/bin/node --disable-warning=ExperimentalWarning /usr/lib/opendc/app/node_modules/@opendc/watcher/dist/main.js
+LoadCredential=ldap-watch:/etc/opendc/secrets/ldap-watch
+LoadCredential=ldap-ca:/etc/opendc/secrets/ldap-ca.pem
 StateDirectory=opendc/watcher
 StateDirectoryMode=0700
 Restart=on-failure

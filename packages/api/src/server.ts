@@ -18,6 +18,7 @@ import { BUILTIN_ROLES, builtinAssignments } from './rbac/builtin.ts';
 import { RouteTable } from './http/route.ts';
 import { StaticSite } from './http/static.ts';
 import { coreRoutes } from './routes/core.ts';
+import { setupRoutes } from './routes/setup.ts';
 
 export interface ApiDeps {
   db: PlatformDb;
@@ -36,6 +37,8 @@ export interface ApiDeps {
   /** Directory-stored roles/assignments (Phase 2); merged with the built-ins. */
   roles?: Role[];
   assignments?: Assignment[];
+  /** Restarts this process after setup; default: ask the agent to restart opendc-api. */
+  restartSelf?: () => void;
 }
 
 export interface Api {
@@ -154,6 +157,25 @@ export async function buildApi(deps: ApiDeps): Promise<Api> {
     engineFor,
     idleMs,
     absoluteMs,
+  });
+
+  setupRoutes(routes, {
+    agent: deps.agent,
+    jobs,
+    audit,
+    confirmKey: deps.csrfKey,
+    restartSelf:
+      deps.restartSelf ??
+      (() => {
+        // after the job result is stored and the wizard had a chance to read it
+        setTimeout(() => {
+          void deps.agent
+            ?.call('service.restart', { unit: 'opendc-api' }, { actor: { name: 'setup', via: 'api' } })
+            .catch((e: unknown) => {
+              app.log.error({ err: e }, 'restart after setup failed');
+            });
+        }, 3000).unref();
+      }),
   });
 
   if (deps.webDir) {

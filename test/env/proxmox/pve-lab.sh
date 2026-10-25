@@ -255,6 +255,8 @@ cmd_up() {
       tpl="$(template_id "$image" "$idx")"
       [[ -n "$(vm_line "$tpl")" ]] || cmd_templates
       log "cloning $name ($id) from $tpl on $node"
+      # a new clone has new host keys; forget any earlier VM with this address
+      ssh-keygen -q -f "$KNOWN_HOSTS" -R "$ip" 2>/dev/null || true
       pvesh create "/nodes/$node/qemu/$tpl/clone" --newid "$id" --name "$name" --full 0 >/dev/null
       pvesh set "/nodes/$node/qemu/$id/config" --tags "$LAB_TAG;topo-$topo" --cores "$cores" --memory "$mem" \
         --ciuser "$LAB_CIUSER" --sshkeys "$keys" --ipconfig0 "ip=$ip/$LAB_PREFIX,gw=$LAB_GW" \
@@ -297,7 +299,7 @@ cmd_down() {
     log "destroying $name ($id) on $node"
     pvesh create "/nodes/$node/qemu/$id/status/stop" >/dev/null 2>&1 || true
     pvesh delete "/nodes/$node/qemu/$id" --purge 1 --destroy-unreferenced-disks 1 >/dev/null
-    ssh-keygen -q -f "$KNOWN_HOSTS" -R "$(cut -d' ' -f4 <(topology_rows "$1" | awk -v n="$name" '$1 == n'))" 2>/dev/null || true
+    ssh-keygen -q -f "$KNOWN_HOSTS" -R "$(topology_rows "$1" | awk -v n="$name" '$1 == n { print $4 }')" 2>/dev/null || true
   done
 }
 

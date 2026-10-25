@@ -3,10 +3,12 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import core_core_en from '../../../../modules/core/i18n/en.json';
 import core_core_de from '../../../../modules/core/i18n/de.json';
+import domain_domain_en from '../../../../modules/domain/i18n/en.json';
+import domain_domain_de from '../../../../modules/domain/i18n/de.json';
 
 export const moduleI18n = {
-  en: { "core": core_core_en },
-  de: { "core": core_core_de },
+  en: { "core": core_core_en, "domain": domain_domain_en },
+  de: { "core": core_core_de, "domain": domain_domain_de },
 };
 
 export interface GeneratedRoute {

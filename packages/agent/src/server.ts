@@ -16,6 +16,7 @@ import {
   errorResponse,
   isCatalogued,
   ops,
+  progressFrame,
   requestSchema,
   resultResponse,
   verifyConfirmation,
@@ -25,6 +26,8 @@ import type { AgentSocket, NodeRole } from '@opendc/shared/manifest';
 import type { OsActions } from '@opendc/os';
 import type { Allowlist } from './allowlist.ts';
 import { CommitLock, implementations, summarize, timeouts, type OpContext } from './ops.ts';
+import type { SetupToken } from './setup/token.ts';
+import type { NodeStateFile, SecretFiles } from './state.ts';
 
 export interface LogLine {
   level: 'info' | 'warn' | 'error';
@@ -40,6 +43,9 @@ export interface AgentDeps {
   confirmKey: Buffer | null;
   log: (line: LogLine) => void;
   locks?: CommitLock;
+  node: NodeStateFile;
+  secrets: SecretFiles;
+  token: SetupToken;
 }
 
 const MAX_CONNECTIONS = 64;
@@ -47,10 +53,16 @@ const MAX_CONNECTIONS = 64;
 export class AgentServer {
   readonly #deps: AgentDeps;
   readonly #locks: CommitLock;
+  #role: NodeRole;
 
   constructor(deps: AgentDeps) {
     this.#deps = deps;
     this.#locks = deps.locks ?? new CommitLock();
+    this.#role = deps.role;
+  }
+
+  get role(): NodeRole {
+    return this.#role;
   }
 
   /** A net.Server bound to nothing yet; the caller listens on a path or an inherited fd. */
@@ -63,12 +75,14 @@ export class AgentServer {
   }
 
   #handle(socket: AgentSocket, conn: Socket): void {
-    conn.setTimeout(10 * 60_000, () => conn.destroy());
+    // long enough for the slowest operation (provision/join) between two progress frames
+    conn.setTimeout(65 * 60_000, () => conn.destroy());
     const reader = new FrameReader(
       (line) => {
-        void this.handleFrame(socket, line).then((out) => {
-          if (!conn.destroyed) conn.write(out);
-        });
+        const notify = (frame: string): void => {
+          if (!conn.destroyed) conn.write(frame);
+        };
+        void this.handleFrame(socket, line, notify).then(notify);
       },
       () => {
         const body = new PlatformError('agent.protocol', { reason: 'frame larger than 4 MiB' }).toBody();
@@ -82,8 +96,12 @@ export class AgentServer {
     conn.on('error', () => undefined);
   }
 
-  /** Handles one frame and returns the response frame. Exposed for tests. */
-  async handleFrame(socket: AgentSocket, line: string): Promise<string> {
+  /** Handles one frame and returns the response frame; `notify` receives progress frames. Exposed for tests. */
+  async handleFrame(
+    socket: AgentSocket,
+    line: string,
+    notify: (frame: string) => void = () => undefined,
+  ): Promise<string> {
     const started = Date.now();
     let parsed: unknown;
     try {
@@ -114,7 +132,7 @@ export class AgentServer {
     }
     const r: AgentRequest = req.data;
     try {
-      const result = await this.#dispatch(socket, r);
+      const result = await this.#dispatch(socket, r, notify);
       this.#deps.log({
         level: 'info',
         msg: 'op ok',
@@ -138,10 +156,14 @@ export class AgentServer {
     }
   }
 
-  async #dispatch(socket: AgentSocket, r: AgentRequest): Promise<unknown> {
+  async #dispatch(socket: AgentSocket, r: AgentRequest, notify: (frame: string) => void): Promise<unknown> {
     const { method, params } = r;
     if (!isCatalogued(method)) throw new PlatformError('agent.unknown-op', { op: method, version: params.v });
-    const op = this.#deps.allowlist.op(socket, method);
+    const setupTokenValid = params.setupToken ? await this.#deps.token.verify(params.setupToken) : false;
+    if (socket === 'api' && this.#deps.allowlist.isSetupOp(method) && !setupTokenValid) {
+      throw new PlatformError('setup.token-invalid');
+    }
+    const op = this.#deps.allowlist.op(socket, method, setupTokenValid);
     const def = ops[op];
     if (params.v !== def.v) throw new PlatformError('agent.unknown-op', { op: method, version: params.v });
     const args = def.args.safeParse(params.args);
@@ -169,8 +191,18 @@ export class AgentServer {
       allowlist: this.#deps.allowlist,
       socket,
       requestId: r.id,
-      role: this.#deps.role,
+      role: this.#role,
       locks: this.#locks,
+      node: this.#deps.node,
+      secrets: this.#deps.secrets,
+      token: this.#deps.token,
+      setupTokenValid,
+      progress: (step, percent) => {
+        notify(progressFrame({ id: r.id, step, ...(percent === undefined ? {} : { percent }) }));
+      },
+      setRole: (role) => {
+        this.#role = role;
+      },
     };
     const timeoutMs = timeouts[op] ?? 60_000;
     const impl = implementations[op] as (a: unknown, c: OpContext) => Promise<unknown>;
@@ -208,7 +240,10 @@ export class AgentServer {
         }).toBody();
     this.#deps.log({
       level:
-        isPlatformError(e) && (e.code === 'agent.op-not-allowed' || e.code === 'agent.confirmation-invalid')
+        isPlatformError(e) &&
+        (e.code === 'agent.op-not-allowed' ||
+          e.code === 'agent.confirmation-invalid' ||
+          e.code === 'setup.token-invalid')
           ? 'warn'
           : 'error',
       msg: 'op failed',

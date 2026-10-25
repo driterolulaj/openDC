@@ -11,6 +11,7 @@ import { registryKeys, templates } from '@opendc/modules/generated/registry';
 import { initI18n } from './i18n.ts';
 import { run } from './run.ts';
 import { moduleResources } from './resources.ts';
+import { terminalIo } from './terminal.ts';
 
 const DEFAULT_SOCKET = '/run/opendc/agent-cli.sock';
 
@@ -33,4 +34,5 @@ process.exitCode = await run(argv, {
   out: (s) => process.stdout.write(s + '\n'),
   err: (s) => process.stderr.write(s + '\n'),
   user,
+  io: terminalIo(process.env.OPENDC_SECRETS_DIR ?? '/etc/opendc/secrets'),
 });

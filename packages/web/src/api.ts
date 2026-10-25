@@ -28,11 +28,13 @@ export interface RequestOptions<S extends z.ZodType> {
   body?: unknown;
   schema: S;
   signal?: AbortSignal;
+  /** Extra request headers (e.g. the setup token). */
+  headers?: Record<string, string>;
 }
 
 export async function api<S extends z.ZodType>(path: string, opts: RequestOptions<S>): Promise<z.output<S>> {
   const method = opts.method ?? 'GET';
-  const headers: Record<string, string> = { accept: 'application/json' };
+  const headers: Record<string, string> = { ...opts.headers, accept: 'application/json' };
   if (opts.body !== undefined) headers['content-type'] = 'application/json';
   if (method !== 'GET' && csrfToken) headers['x-csrf-token'] = csrfToken;
   const res = await fetch(`/api/v1${path}`, {

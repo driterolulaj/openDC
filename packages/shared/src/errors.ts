@@ -433,6 +433,61 @@ const catalogue = {
       fix: 'Behandeln Sie das als mögliche Manipulation: Sichern Sie {{path}} und vergleichen Sie mit der Kopie eines anderen DCs.',
     },
   },
+  'setup.token-invalid': {
+    http: 401,
+    en: {
+      message: 'The setup token is missing or wrong.',
+      fix: 'Copy the token from the installation output or run "sudo opendc setup token" on the host.',
+    },
+    de: {
+      message: 'Das Setup-Token fehlt oder ist falsch.',
+      fix: 'Übernehmen Sie das Token aus der Installationsausgabe oder führen Sie "sudo opendc setup token" auf dem Host aus.',
+    },
+  },
+  'setup.already-provisioned': {
+    http: 409,
+    en: {
+      message: 'This host is already part of domain {{domain}}; setup is closed.',
+      fix: 'Log in to the console with a domain account. To start over, use a fresh host.',
+    },
+    de: {
+      message: 'Dieser Host gehört bereits zur Domäne {{domain}}; das Setup ist abgeschlossen.',
+      fix: 'Melden Sie sich mit einem Domänenkonto an der Konsole an. Für einen Neuanfang verwenden Sie einen frischen Host.',
+    },
+  },
+  'setup.preflight-failed': {
+    http: 412,
+    en: {
+      message: 'Pre-flight checks failed: {{checks}}.',
+      fix: 'Fix the failed checks shown in the setup report, then run setup again.',
+    },
+    de: {
+      message: 'Vorabprüfungen fehlgeschlagen: {{checks}}.',
+      fix: 'Beheben Sie die im Setup-Bericht gezeigten Fehler und starten Sie das Setup erneut.',
+    },
+  },
+  'setup.step-failed': {
+    http: 500,
+    en: {
+      message: 'Setup step "{{step}}" failed: {{reason}}',
+      fix: 'Fix the cause and run setup again; completed steps are skipped. Details: journalctl -u opendc-agent.',
+    },
+    de: {
+      message: 'Setup-Schritt "{{step}}" fehlgeschlagen: {{reason}}',
+      fix: 'Beheben Sie die Ursache und starten Sie das Setup erneut; erledigte Schritte werden übersprungen. Details: journalctl -u opendc-agent.',
+    },
+  },
+  'samba.not-provisioned': {
+    http: 409,
+    en: {
+      message: 'This host is not a domain controller yet.',
+      fix: 'Run the setup wizard or "opendc setup" first.',
+    },
+    de: {
+      message: 'Dieser Host ist noch kein Domänencontroller.',
+      fix: 'Führen Sie zuerst den Setup-Assistenten oder "opendc setup" aus.',
+    },
+  },
 } as const satisfies Record<string, ErrorDefinition>;
 
 export type ErrorCode = keyof typeof catalogue;

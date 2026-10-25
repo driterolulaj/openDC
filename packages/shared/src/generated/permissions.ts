@@ -40,6 +40,223 @@ export const permissions = [
     "implies": [
       "core.registry.read"
     ]
+  },
+  {
+    "module": "domain",
+    "name": "domain.computers.delete",
+    "title": "domain:perm.computers-delete",
+    "scope": "ou",
+    "implies": [
+      "domain.computers.read"
+    ]
+  },
+  {
+    "module": "domain",
+    "name": "domain.computers.read",
+    "title": "domain:perm.computers-read",
+    "scope": "ou"
+  },
+  {
+    "module": "domain",
+    "name": "domain.computers.write",
+    "title": "domain:perm.computers-write",
+    "scope": "ou",
+    "implies": [
+      "domain.computers.read"
+    ]
+  },
+  {
+    "module": "domain",
+    "name": "domain.contacts.read",
+    "title": "domain:perm.contacts-read",
+    "scope": "ou"
+  },
+  {
+    "module": "domain",
+    "name": "domain.contacts.write",
+    "title": "domain:perm.contacts-write",
+    "scope": "ou",
+    "implies": [
+      "domain.contacts.read"
+    ]
+  },
+  {
+    "module": "domain",
+    "name": "domain.fsmo.manage",
+    "title": "domain:perm.fsmo-manage",
+    "scope": "global",
+    "tier0": true,
+    "implies": [
+      "domain.info.read"
+    ]
+  },
+  {
+    "module": "domain",
+    "name": "domain.groups.create",
+    "title": "domain:perm.groups-create",
+    "scope": "ou",
+    "implies": [
+      "domain.groups.write"
+    ]
+  },
+  {
+    "module": "domain",
+    "name": "domain.groups.delete",
+    "title": "domain:perm.groups-delete",
+    "scope": "ou",
+    "implies": [
+      "domain.groups.read"
+    ]
+  },
+  {
+    "module": "domain",
+    "name": "domain.groups.members",
+    "title": "domain:perm.groups-members",
+    "scope": "ou",
+    "implies": [
+      "domain.groups.read"
+    ]
+  },
+  {
+    "module": "domain",
+    "name": "domain.groups.read",
+    "title": "domain:perm.groups-read",
+    "scope": "ou"
+  },
+  {
+    "module": "domain",
+    "name": "domain.groups.write",
+    "title": "domain:perm.groups-write",
+    "scope": "ou",
+    "implies": [
+      "domain.groups.read"
+    ]
+  },
+  {
+    "module": "domain",
+    "name": "domain.info.read",
+    "title": "domain:perm.info-read",
+    "scope": "global"
+  },
+  {
+    "module": "domain",
+    "name": "domain.level.raise",
+    "title": "domain:perm.level-raise",
+    "scope": "global",
+    "tier0": true,
+    "implies": [
+      "domain.info.read"
+    ]
+  },
+  {
+    "module": "domain",
+    "name": "domain.ous.delete",
+    "title": "domain:perm.ous-delete",
+    "scope": "ou",
+    "implies": [
+      "domain.ous.read"
+    ]
+  },
+  {
+    "module": "domain",
+    "name": "domain.ous.read",
+    "title": "domain:perm.ous-read",
+    "scope": "ou"
+  },
+  {
+    "module": "domain",
+    "name": "domain.ous.write",
+    "title": "domain:perm.ous-write",
+    "scope": "ou",
+    "implies": [
+      "domain.ous.read"
+    ]
+  },
+  {
+    "module": "domain",
+    "name": "domain.passwordPolicy.read",
+    "title": "domain:perm.password-policy-read",
+    "scope": "global"
+  },
+  {
+    "module": "domain",
+    "name": "domain.passwordPolicy.write",
+    "title": "domain:perm.password-policy-write",
+    "scope": "global",
+    "tier0": true,
+    "implies": [
+      "domain.passwordPolicy.read"
+    ]
+  },
+  {
+    "module": "domain",
+    "name": "domain.rbac.read",
+    "title": "domain:perm.rbac-read",
+    "scope": "global"
+  },
+  {
+    "module": "domain",
+    "name": "domain.rbac.write",
+    "title": "domain:perm.rbac-write",
+    "scope": "global",
+    "tier0": true,
+    "implies": [
+      "domain.rbac.read"
+    ]
+  },
+  {
+    "module": "domain",
+    "name": "domain.search.share",
+    "title": "domain:perm.search-share",
+    "scope": "global"
+  },
+  {
+    "module": "domain",
+    "name": "domain.templates.manage",
+    "title": "domain:perm.templates-manage",
+    "scope": "global"
+  },
+  {
+    "module": "domain",
+    "name": "domain.users.create",
+    "title": "domain:perm.users-create",
+    "scope": "ou",
+    "implies": [
+      "domain.users.write"
+    ]
+  },
+  {
+    "module": "domain",
+    "name": "domain.users.delete",
+    "title": "domain:perm.users-delete",
+    "scope": "ou",
+    "implies": [
+      "domain.users.read"
+    ]
+  },
+  {
+    "module": "domain",
+    "name": "domain.users.password",
+    "title": "domain:perm.users-password",
+    "scope": "ou",
+    "implies": [
+      "domain.users.read"
+    ]
+  },
+  {
+    "module": "domain",
+    "name": "domain.users.read",
+    "title": "domain:perm.users-read",
+    "scope": "ou"
+  },
+  {
+    "module": "domain",
+    "name": "domain.users.write",
+    "title": "domain:perm.users-write",
+    "scope": "ou",
+    "implies": [
+      "domain.users.read"
+    ]
   }
 ] as const;
 

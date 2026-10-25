@@ -1,0 +1,89 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { addRecord, first, modifyRecord, parseLdif, unicodePwd } from './ldif.ts';
+import { parseFsmoShow, parseLevelShow, parseSmbConfGlobal } from './info.ts';
+import { domainHeadAces } from './platform.ts';
+import { networkOf } from './provision.ts';
+
+test('LDIF records encode unsafe values as base64 and reject bad attribute names', () => {
+  const add = addRecord('CN=a b,DC=x', { objectClass: ['top', 'user'], description: ': looks like ldif\n-' });
+  assert.match(add, /^dn: CN=a b,DC=x\nchangetype: add\nobjectClass: top\nobjectClass: user\ndescription:: /);
+  assert.ok(!add.includes('looks like'), 'the dangerous value is base64-encoded');
+  const pwd = modifyRecord('CN=u,DC=x', [{ op: 'replace', attr: 'unicodePwd', values: [unicodePwd('Pässword1')] }]);
+  assert.match(pwd, /replace: unicodePwd\nunicodePwd:: [A-Za-z0-9+/=]+\n-\n\n$/);
+  assert.equal(
+    Buffer.from(pwd.split('unicodePwd:: ')[1]?.split('\n')[0] ?? '', 'base64').toString('utf16le'),
+    '"Pässword1"',
+  );
+  assert.throws(() => addRecord('CN=x', { 'bad name': 'v' }));
+  // a DN that starts with a space is encoded too
+  assert.match(addRecord(' CN=x', { cn: 'x' }), /^dn:: /);
+});
+
+test('ldbsearch output parsing: folding, base64, comments, several records', () => {
+  const text = [
+    '# record 1',
+    'dn: CN=Administrator,CN=Users,DC=x',
+    'objectSid: S-1-5-21-1-2-3-500',
+    'description:: w6TDtsO8',
+    'nTSecurityDescriptor: O:BAG:BAD:AI(A;;RP;;;AU)(OA;CI;CCDC;bf967aba-0de6-11d0-a2',
+    ' 85-00aa003049e2;;S-1-5-21-1-2-3-1103)',
+    '',
+    '# record 2',
+    'dn: CN=Guest,CN=Users,DC=x',
+    'member: a',
+    'member: b',
+    '',
+    '# returned 2 records',
+  ].join('\n');
+  const [a, b] = parseLdif(text);
+  assert.equal(a?.dn, 'CN=Administrator,CN=Users,DC=x');
+  assert.equal(first(a, 'objectSid'), 'S-1-5-21-1-2-3-500');
+  assert.equal(first(a, 'description'), 'äöü');
+  assert.ok(first(a, 'nTSecurityDescriptor')?.includes('S-1-5-21-1-2-3-1103'), 'unfolded');
+  assert.deepEqual(b?.attrs.get('member'), ['a', 'b']);
+  assert.equal(first(null, 'x'), null);
+});
+
+test('delegation ACEs cover the five administered classes for create/delete and full control', () => {
+  const aces = domainHeadAces('S-1-5-21-1-2-3-1103');
+  assert.equal(aces.match(/\(OA;CI;CCDC;/g)?.length, 5);
+  assert.equal(aces.match(/\(OA;CIIO;GA;;/g)?.length, 5);
+  assert.ok(!aces.includes('(A;'), 'no unrestricted allow on the domain head');
+});
+
+test('samba-tool output parsers', () => {
+  const fsmo = parseFsmoShow(
+    [
+      'SchemaMasterRole owner: CN=NTDS Settings,CN=DC1,CN=Servers,CN=Default-First-Site-Name,CN=Sites,CN=Configuration,DC=x',
+      'PdcEmulationMasterRole owner: CN=NTDS Settings,CN=DC2,CN=Servers,CN=Default-First-Site-Name,CN=Sites,CN=Configuration,DC=x',
+      'something else',
+    ].join('\n'),
+  );
+  assert.deepEqual(
+    fsmo.map((r) => [r.role, r.ownerServer]),
+    [
+      ['schema', 'DC1'],
+      ['pdc', 'DC2'],
+    ],
+  );
+  assert.deepEqual(
+    parseLevelShow(
+      'Domain and forest function level for domain x\n\nForest function level: (Windows) 2008 R2\nDomain function level: (Windows) 2008 R2\nLowest function level of a DC: (Windows) 2016\n',
+    ),
+    { forest: '2008 R2', domain: '2008 R2', lowestDc: '2016' },
+  );
+  const conf = parseSmbConfGlobal(
+    '# x\n[global]\n\tnetbios name = DC1\n\trealm = EXAMPLE.COM\n\tserver   role = active directory domain controller\n[sysvol]\n\tpath = /x\n',
+  );
+  assert.equal(conf.get('realm'), 'EXAMPLE.COM');
+  assert.equal(conf.get('server role'), 'active directory domain controller');
+  assert.equal(conf.get('path'), undefined);
+});
+
+test('networkOf derives the CIDR of an interface address', () => {
+  assert.equal(networkOf('10.97.10.11', 24), '10.97.10.0/24');
+  assert.equal(networkOf('192.168.5.130', 25), '192.168.5.128/25');
+  assert.equal(networkOf('172.16.3.4', 0), '0.0.0.0/0');
+});

@@ -19,6 +19,8 @@ export interface ExecOptions {
   /** Exit codes that count as success (default [0]). */
   okExitCodes?: number[];
   cwd?: string;
+  /** Extra variables on top of the fixed environment (e.g. PASSWD for Samba tools, never argv). */
+  env?: Record<string, string>;
 }
 
 export const SAFE_PATH = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin';
@@ -35,7 +37,7 @@ export const exec: Exec = (binary, argv, opts = {}) => {
       [...argv],
       {
         shell: false,
-        env: { PATH: SAFE_PATH, LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8' },
+        env: { ...opts.env, PATH: SAFE_PATH, LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8' },
         timeout: opts.timeoutMs ?? 60_000,
         maxBuffer: opts.maxBytes ?? 16 * 1024 * 1024,
         windowsHide: true,
@@ -56,7 +58,8 @@ export const exec: Exec = (binary, argv, opts = {}) => {
             {
               binary,
               exitCode: killed ? 'timeout' : String(code),
-              stderr: (stderr || (err?.message ?? '')).trim().slice(0, 500),
+              // the cause is usually at the end (tools log progress first)
+              stderr: (stderr || (err?.message ?? '')).trim().slice(-600),
             },
             { cause: err },
           ),

@@ -5,6 +5,14 @@
  * are rejected (ADR-0006 §3).
  */
 import { z } from 'zod';
+import {
+  joinArgs,
+  preflightArgs,
+  preflightResult,
+  provisionArgs,
+  provisionResult,
+  setupState,
+} from '../domain/setup.ts';
 
 const MAX_MANAGED_FILE_BYTES = 1024 * 1024;
 
@@ -12,6 +20,9 @@ const fileId = z.string().regex(/^[a-z][a-z0-9-]*(?:\.[a-zA-Z0-9-]+)+$/, 'fileId
 const unitId = z.string().regex(/^[a-z][a-z0-9@._-]{0,127}$/, 'logical unit id');
 const sha256 = z.string().regex(/^[0-9a-f]{64}$/);
 const empty = z.strictObject({});
+const unitResult = z.object({ unit: z.string() });
+const fsmoRoles = ['schema', 'naming', 'pdc', 'rid', 'infrastructure', 'domaindns', 'forestdns'] as const;
+export const fsmoRole = z.enum(fsmoRoles);
 
 export const ops = {
   'system.info': {
@@ -49,6 +60,54 @@ export const ops = {
   'service.stop': { v: 1, args: z.strictObject({ unit: unitId }), result: z.object({ unit: z.string() }) },
   'service.restart': { v: 1, args: z.strictObject({ unit: unitId }), result: z.object({ unit: z.string() }) },
   'service.reload': { v: 1, args: z.strictObject({ unit: unitId }), result: z.object({ unit: z.string() }) },
+  'service.enable': {
+    v: 1,
+    args: z.strictObject({ unit: unitId, now: z.boolean().default(true) }),
+    result: unitResult,
+  },
+  'service.disable': {
+    v: 1,
+    args: z.strictObject({ unit: unitId, now: z.boolean().default(true) }),
+    result: unitResult,
+  },
+  'setup.status': { v: 1, args: empty, result: setupState },
+  'setup.preflight': { v: 1, args: preflightArgs, result: preflightResult },
+  'samba.provision': { v: 1, args: provisionArgs, result: provisionResult },
+  'samba.join': { v: 1, args: joinArgs, result: provisionResult },
+  'samba.status': {
+    v: 1,
+    args: empty,
+    result: z.object({
+      installed: z.boolean(),
+      version: z.string().nullable(),
+      provisioned: z.boolean(),
+      serverRole: z.string().nullable(),
+      realm: z.string().nullable(),
+      netbiosDomain: z.string().nullable(),
+      active: z.string(),
+    }),
+  },
+  'samba.fsmo.show': {
+    v: 1,
+    args: empty,
+    result: z.object({
+      roles: z.array(z.object({ role: fsmoRole, ownerDn: z.string(), ownerServer: z.string().nullable() })),
+    }),
+  },
+  'samba.level.show': {
+    v: 1,
+    args: empty,
+    result: z.object({
+      forest: z.string().nullable(),
+      domain: z.string().nullable(),
+      lowestDc: z.string().nullable(),
+    }),
+  },
+  'time.tracking': {
+    v: 1,
+    args: empty,
+    result: z.object({ synchronized: z.boolean(), offsetSec: z.number().nullable(), reference: z.string().nullable() }),
+  },
   'file.writeManaged': {
     v: 1,
     args: z.strictObject({
@@ -91,6 +150,8 @@ export const ops = {
 
 export type ImplementedOp = keyof typeof ops;
 export type OpArgs<O extends ImplementedOp> = z.input<(typeof ops)[O]['args']>;
+/** Arguments after validation (defaults applied), as the agent's implementations receive them. */
+export type OpParsedArgs<O extends ImplementedOp> = z.output<(typeof ops)[O]['args']>;
 export type OpResult<O extends ImplementedOp> = z.output<(typeof ops)[O]['result']>;
 
 export function isImplementedOp(op: string): op is ImplementedOp {

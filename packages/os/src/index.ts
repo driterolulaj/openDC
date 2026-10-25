@@ -7,10 +7,20 @@ import type { OsActions, OsFacts, OsRelease } from './types.ts';
 
 export * from './types.ts';
 export { parseOsRelease, adapterFor, readOsRelease } from './release.ts';
-export { exec, SAFE_PATH, type Exec, type ExecResult } from './exec.ts';
-export { MIN_DC_SAMBA, parseSambaVersion, DebianFacts } from './debian/index.ts';
+export { exec, SAFE_PATH, type Exec, type ExecResult, type ExecOptions } from './exec.ts';
+export { MIN_DC_SAMBA, parseSambaVersion, parseAptPolicy, DebianFacts } from './debian/index.ts';
 export { PosixFileActions, PREV_SUFFIX } from './posix/files.ts';
-export { parseSystemctlShow } from './posix/systemd.ts';
+export { parseSystemctlShow, runTransient } from './posix/systemd.ts';
+export {
+  PosixHostActions,
+  writeSystemFile,
+  rewriteHosts,
+  parseIpAddr,
+  parseSs,
+  parseChronyTracking,
+  groupId,
+  SYSTEM_FILE_HEADER,
+} from './posix/host.ts';
 
 function unsupported(release: OsRelease): never {
   throw new PlatformError('os.unsupported', {
