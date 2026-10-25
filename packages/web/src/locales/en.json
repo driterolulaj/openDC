@@ -296,6 +296,7 @@
     "save-search": "Save search",
     "selected_one": "{{count}} object selected",
     "selected_other": "{{count}} objects selected",
+    "fill-posix-ids": "Fill in POSIX IDs",
     "add-to-group": "Add to group",
     "clear-selection": "Clear selection",
     "bulk-done": "Done: {{done}} changed, {{failed}} failed (see the audit log for details).",

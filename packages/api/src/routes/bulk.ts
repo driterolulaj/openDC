@@ -27,6 +27,7 @@ import {
 import type { PlatformDb } from '@opendc/shared/db';
 import { childDn } from '@opendc/shared/ldap';
 import { z } from 'zod';
+import type { AgentClient } from '@opendc/shared/agent';
 import type { Entry } from 'ldapts';
 import type { AuditLog } from '../audit.ts';
 import type { JobRunner } from '../jobs.ts';
@@ -60,6 +61,8 @@ export interface BulkDeps {
   audit: AuditLog;
   engineFor(domainSid: string): RbacEngine;
   templates: UserTemplates;
+  /** The agent on this DC (bulk POSIX IDs); null without one. */
+  agent?: Pick<AgentClient, 'call'> | null;
 }
 
 const searchData = z.object({
@@ -345,6 +348,7 @@ export function bulkRoutes(t: RouteTable, d: BulkDeps): void {
       const guids = [...new Set(c.body.guids)];
       const job = d.jobs.start('directory.bulk', { name: c.user.username, sid: c.user.sid }, async (progress) => {
         const items: { guid: string; name: string; ok: boolean; error: string | null }[] = [];
+        const posix: { guid: string; name: string }[] = [];
         let n = 0;
         for (const guid of guids) {
           let name = guid;
@@ -399,6 +403,14 @@ export function bulkRoutes(t: RouteTable, d: BulkDeps): void {
                 await dir.modify(e.dn, mods);
                 break;
               }
+              case 'fillPosixIds':
+                if (type !== 'user' && type !== 'group')
+                  throw new PlatformError('directory.unsupported', { what: `POSIX IDs for ${type}` });
+                need(perm('write'), e.dn);
+                // done in batches by the agent after the checks (below)
+                posix.push({ guid, name });
+                n++;
+                continue;
               case 'addToGroup':
               case 'removeFromGroup':
                 if (!groupEntry) throw new PlatformError('validation.invalid', { issues: 'group' });
@@ -421,6 +433,26 @@ export function bulkRoutes(t: RouteTable, d: BulkDeps): void {
           n++;
           if (n % 25 === 0 || n === guids.length)
             progress({ step: 'objects', percent: Math.round((n / guids.length) * 100) });
+        }
+        const agent = d.agent;
+        for (let i = 0; i < posix.length; i += 500) {
+          const part = posix.slice(i, i + 500);
+          try {
+            if (!agent) throw new PlatformError('agent.unreachable', { socket: 'api', reason: 'no agent' });
+            const { results } = await agent.call(
+              'directory.posixIds.fill',
+              { guids: part.map((p) => p.guid) },
+              { actor: { name: c.user.username, sid: c.user.sid, via: 'api' }, timeoutMs: 600_000 },
+            );
+            const byGuid = new Map(results.map((r) => [r.guid.toLowerCase(), r]));
+            for (const p of part) {
+              const r = byGuid.get(p.guid.toLowerCase());
+              items.push({ guid: p.guid, name: p.name, ok: !r?.error, error: r?.error ?? (r ? null : 'internal') });
+            }
+          } catch (e) {
+            for (const p of part)
+              items.push({ guid: p.guid, name: p.name, ok: false, error: isPlatformError(e) ? e.code : 'internal' });
+          }
         }
         const failed = items.filter((i) => !i.ok).length;
         d.audit.append({

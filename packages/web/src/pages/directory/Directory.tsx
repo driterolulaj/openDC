@@ -279,6 +279,14 @@ export default function Directory() {
                     <Button size="xs" variant="default" onClick={() => setBulkMode('group')}>
                       {t('dir.add-to-group')}
                     </Button>
+                    <Button
+                      size="xs"
+                      variant="default"
+                      loading={bulk.isPending}
+                      onClick={() => bulk.mutate({ kind: 'fillPosixIds' })}
+                    >
+                      {t('dir.fill-posix-ids')}
+                    </Button>
                     <Button size="xs" color="red" variant="light" onClick={() => setBulkMode('delete')}>
                       {t('dir.delete')}
                     </Button>

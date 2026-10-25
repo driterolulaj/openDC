@@ -245,7 +245,7 @@ export async function buildApi(deps: ApiDeps): Promise<Api> {
 
   domainRoutes(routes, { agent: deps.agent, audit, confirmKey: deps.csrfKey });
   rbacRoutes(routes, { store: () => rbac as RbacStore, directory, audit });
-  bulkRoutes(routes, { directory, db: deps.db, jobs, audit, engineFor, templates });
+  bulkRoutes(routes, { directory, db: deps.db, jobs, audit, engineFor, templates, agent: deps.agent });
   watcherRoutes(routes, { statusPath: deps.watcherStatusPath ?? null });
   accountRoutes(routes, {
     sessions,

@@ -92,6 +92,8 @@ export const bulkRequest = z.strictObject({
     }),
     z.strictObject({ kind: z.literal('addToGroup'), group: z.uuid() }),
     z.strictObject({ kind: z.literal('removeFromGroup'), group: z.uuid() }),
+    /** RFC2307 IDs (idBase + RID) for users and groups that have none (ADR-0018, Q22). */
+    z.strictObject({ kind: z.literal('fillPosixIds') }),
   ]),
 });
 export type BulkRequest = z.input<typeof bulkRequest>;
