@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import '@mantine/core/styles.css';
 import './i18n.ts';
-import { StrictMode, Suspense, lazy } from 'react';
+import { StrictMode, Suspense, lazy, useMemo, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Center, Loader, MantineProvider, createTheme } from '@mantine/core';
+import { Center, Loader, MantineProvider } from '@mantine/core';
+import { consoleTheme, cssVariablesResolver } from './theme.ts';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { createBrowserRouter } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
@@ -19,8 +20,10 @@ const Login = lazy(() => import('./pages/Login.tsx'));
 const Home = lazy(() => import('./pages/Home.tsx'));
 const Audit = lazy(() => import('./pages/Audit.tsx'));
 const Setup = lazy(() => import('./pages/Setup.tsx'));
+const Directory = lazy(() => import('./pages/directory/Directory.tsx'));
+const ObjectView = lazy(() => import('./pages/directory/ObjectView.tsx'));
+const Domain = lazy(() => import('./pages/Domain.tsx'));
 
-const theme = createTheme({ primaryColor: 'blue', defaultRadius: 'sm' });
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
 
 function Spinner() {
@@ -39,6 +42,9 @@ const router = createBrowserRouter(
       children: [
         { index: true, element: <Home /> },
         { path: 'audit', element: <Audit /> },
+        { path: 'directory', element: <Directory /> },
+        { path: 'directory/:guid', element: <ObjectView /> },
+        { path: 'domain', element: <Domain /> },
         ...moduleRoutes.filter((r) => r.area === 'console').map((r) => ({ path: r.path, element: <r.component /> })),
       ],
     },
@@ -71,17 +77,28 @@ function Root() {
   );
 }
 
+/** The Mantine provider with a theme that follows the console language (accessible names). */
+function ThemedProvider({ children }: { children: ReactNode }) {
+  const { t, i18n } = useTranslation();
+  const theme = useMemo(() => consoleTheme(t('app.close')), [t, i18n.language]);
+  return (
+    <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver} defaultColorScheme="auto">
+      {children}
+    </MantineProvider>
+  );
+}
+
 const el = document.getElementById('root');
 if (el) {
   createRoot(el).render(
     <StrictMode>
-      <MantineProvider theme={theme} defaultColorScheme="auto">
+      <ThemedProvider>
         <QueryClientProvider client={queryClient}>
           <SessionProvider>
             <Root />
           </SessionProvider>
         </QueryClientProvider>
-      </MantineProvider>
+      </ThemedProvider>
     </StrictMode>,
   );
 }

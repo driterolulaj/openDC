@@ -20,6 +20,10 @@ import { registryKeys } from '@opendc/modules/generated/registry';
 import { detectFacts } from '@opendc/os';
 import { apiMigrations } from './db.ts';
 import { DirectoryAuth } from './directory.ts';
+import { ServiceLdap, type ServiceCredential } from './directory/ldap.ts';
+import { DirectoryService } from './directory/service.ts';
+import { PlatformError } from '@opendc/shared';
+import { sidFromBytes } from '@opendc/shared/ldap';
 import { buildApi } from './server.ts';
 
 const dev = process.env.OPENDC_DEV === '1';
@@ -79,6 +83,30 @@ async function main(): Promise<void> {
     ...(baseDn ? { baseDn } : {}),
   });
 
+  // The platform account (ADR-0012 tier 1): {dn, sam, password} written by setup; empty before setup.
+  let svc: ServiceCredential | null = null;
+  try {
+    const raw = credential('ldap-svc')?.toString('utf8') ?? process.env.OPENDC_LDAP_SVC ?? '';
+    if (raw.trim()) svc = JSON.parse(raw) as ServiceCredential;
+  } catch {
+    svc = null;
+  }
+  const ldap = new ServiceLdap({
+    urls,
+    caPem,
+    credential: svc,
+    ...(tlsServerName ? { tlsServerName } : {}),
+  });
+  const dir: { service: DirectoryService | null } = { service: null };
+  const initDirectory = async (): Promise<void> => {
+    if (!svc || !baseDn) return;
+    const [head] = await ldap.search(baseDn, { scope: 'base', attributes: ['objectSid'] });
+    const sidBuf = head?.objectSid;
+    const sid = Buffer.isBuffer(sidBuf) ? sidFromBytes(sidBuf) : null;
+    if (!sid) throw new Error(`${baseDn} has no objectSid`);
+    dir.service = new DirectoryService(ldap, { domainDn: baseDn, domainSid: sid });
+  };
+
   const cert = credential('tls-cert');
   const key = credential('tls-key');
   if (!dev && (!cert || !key))
@@ -103,7 +131,25 @@ async function main(): Promise<void> {
     validateResponses: dev,
     https: dev ? null : { key: key ?? '', cert: cert ?? '' },
     logger: { level: process.env.OPENDC_LOG_LEVEL ?? 'info' },
+    directoryService: () => {
+      if (!dir.service) {
+        void initDirectory().catch(() => undefined);
+        throw new PlatformError('directory.not-configured');
+      }
+      return dir.service;
+    },
   });
+  // connect in the background (the DC may still be starting); retried on demand above
+  void (async () => {
+    for (let i = 0; i < 30 && svc !== null && dir.service === null; i++) {
+      try {
+        await initDirectory();
+      } catch (e) {
+        api.app.log.warn({ err: e }, 'directory not reachable yet');
+        await new Promise((r) => setTimeout(r, 5000));
+      }
+    }
+  })();
 
   const host = dev ? '127.0.0.1' : registry.get<string>('core.api.listenHost');
   const port = Number(process.env.OPENDC_PORT ?? registry.get<number>('core.api.listenPort'));

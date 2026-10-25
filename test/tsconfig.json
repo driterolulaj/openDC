@@ -8,5 +8,5 @@
     "incremental": false,
     "allowImportingTsExtensions": true
   },
-  "include": ["env/*.ts"]
+  "include": ["env/*.ts", "e2e/*.ts"]
 }

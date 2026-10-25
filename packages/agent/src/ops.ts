@@ -10,6 +10,8 @@ import type { Allowlist } from './allowlist.ts';
 import { join as joinDomain, provision } from './samba/provision.ts';
 import { fsmoShow, levelShow, sambaStatus } from './samba/info.ts';
 import { runSdPropIfPdc } from './samba/sdprop.ts';
+import { modifyProtected } from './samba/protected.ts';
+import { fsmoSeize, fsmoTransfer, levelRaise } from './samba/fsmo.ts';
 import { SambaLocal } from './samba/local.ts';
 import { preflight } from './setup/preflight.ts';
 import { renewConsoleCertificate } from './init-secrets.ts';
@@ -46,6 +48,9 @@ export const timeouts: Partial<Record<ImplementedOp, number>> = {
   'samba.fsmo.show': 60_000,
   'samba.level.show': 60_000,
   'samba.sdprop.run': 300_000,
+  'samba.fsmo.transfer': 1_800_000,
+  'samba.fsmo.seize': 1_800_000,
+  'samba.level.raise': 600_000,
 };
 
 /** In-memory registry commit lock. Registry commits are short; a holder that vanished expires. */
@@ -184,6 +189,11 @@ export const implementations: Impls = {
   'samba.status': async (_args, ctx) => sambaStatus(ctx.os),
   'samba.fsmo.show': async (_args, ctx) => fsmoShow(ctx.os),
   'samba.level.show': async (_args, ctx) => levelShow(ctx.os),
+  'samba.fsmo.transfer': async (args, ctx) => fsmoTransfer(ctx.os, new SambaLocal(ctx.os), args),
+  'samba.fsmo.seize': async (args, ctx) => fsmoSeize(ctx.os, new SambaLocal(ctx.os), args),
+  'samba.level.raise': async (args, ctx) => levelRaise(ctx.os, new SambaLocal(ctx.os), args),
+  'samba.protectedObject.modify': async (args, ctx) =>
+    modifyProtected(new SambaLocal(ctx.os), args, (await ctx.os.system.info()).hostname),
   'samba.sdprop.run': async (_args, ctx) =>
     runSdPropIfPdc(new SambaLocal(ctx.os), (await ctx.os.system.info()).hostname),
   'time.tracking': async (_args, ctx) => ctx.os.host.timeSync(),
@@ -237,5 +247,14 @@ export function summarize(op: string, args: unknown): Record<string, unknown> {
 const SECRET_KEYS = new Set(['password', 'adminPassword', 'newPassword', 'secret', 'token']);
 
 function redact(a: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(a).map(([k, v]) => [k, SECRET_KEYS.has(k) ? '[redacted]' : v]));
+  return Object.fromEntries(
+    Object.entries(a).map(([k, v]) => [
+      k,
+      SECRET_KEYS.has(k)
+        ? '[redacted]'
+        : v && typeof v === 'object' && !Array.isArray(v)
+          ? redact(v as Record<string, unknown>)
+          : v,
+    ]),
+  );
 }

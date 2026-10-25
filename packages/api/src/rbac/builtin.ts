@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Built-in roles (ROADMAP Phase 2 lists Domain Admin / Helpdesk / Read-only Auditor). Phase 1 binds only
- * "Domain Admin" to the AD admin groups; directory-stored roles and assignments (CN=RBAC) arrive with the
- * Phase 2 RBAC UI and are merged in by the caller.
+ * Built-in roles (ROADMAP Phase 2): Domain Admin, Helpdesk (read, password reset and unlock), Read-only
+ * Auditor. Only "Domain Admin" is bound automatically (to the AD admin groups); the others are assigned in
+ * the RBAC console (CN=RBAC) and merged in by the caller.
  */
 import { PROTECTED_BUILTIN_SIDS, WELL_KNOWN_RIDS } from '@opendc/shared/ldap';
 import type { Assignment, Role } from './engine.ts';
@@ -12,14 +12,38 @@ export const BUILTIN_ROLES: readonly Role[] = [
   {
     id: 'builtin.auditor',
     name: 'Read-only Auditor',
-    permissions: ['core.console.access', 'core.audit.read', 'core.jobs.read', 'core.node.info', 'core.registry.read'],
+    permissions: [
+      'core.console.access',
+      'core.audit.read',
+      'core.jobs.read',
+      'core.node.info',
+      'core.registry.read',
+      'domain.info.read',
+      'domain.users.read',
+      'domain.groups.read',
+      'domain.computers.read',
+      'domain.contacts.read',
+      'domain.ous.read',
+      'domain.passwordPolicy.read',
+      'domain.rbac.read',
+    ],
     tier0: false,
     builtin: true,
   },
   {
     id: 'builtin.helpdesk',
     name: 'Helpdesk',
-    permissions: ['core.console.access', 'core.jobs.read'],
+    permissions: [
+      'core.console.access',
+      'core.jobs.read',
+      'domain.info.read',
+      'domain.users.read',
+      'domain.users.password',
+      'domain.groups.read',
+      'domain.computers.read',
+      'domain.contacts.read',
+      'domain.ous.read',
+    ],
     tier0: false,
     builtin: true,
   },

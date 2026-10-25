@@ -21,6 +21,37 @@ const unitId = z.string().regex(/^[a-z][a-z0-9@._-]{0,127}$/, 'logical unit id')
 const sha256 = z.string().regex(/^[0-9a-f]{64}$/);
 const empty = z.strictObject({});
 const unitResult = z.object({ unit: z.string() });
+/** Attributes a tier-0 attribute edit may touch (samba.protectedObject.modify). */
+export const protectedEditableAttributes = [
+  'description',
+  'displayName',
+  'givenName',
+  'sn',
+  'mail',
+  'telephoneNumber',
+  'mobile',
+  'title',
+  'department',
+  'company',
+  'physicalDeliveryOfficeName',
+] as const;
+const protectedChange = z.discriminatedUnion('kind', [
+  z.strictObject({
+    kind: z.literal('password'),
+    password: z.string().min(1).max(256),
+    mustChange: z.boolean(),
+    unlock: z.boolean(),
+  }),
+  z.strictObject({ kind: z.literal('enable') }),
+  z.strictObject({ kind: z.literal('disable') }),
+  z.strictObject({ kind: z.literal('unlock') }),
+  z.strictObject({ kind: z.literal('memberAdd'), memberGuids: z.array(z.uuid()).min(1).max(100) }),
+  z.strictObject({ kind: z.literal('memberRemove'), memberGuids: z.array(z.uuid()).min(1).max(100) }),
+  z.strictObject({
+    kind: z.literal('attributes'),
+    values: z.partialRecord(z.enum(protectedEditableAttributes), z.string().max(1024).nullable()),
+  }),
+]);
 const fsmoRoles = ['schema', 'naming', 'pdc', 'rid', 'infrastructure', 'domaindns', 'forestdns'] as const;
 export const fsmoRole = z.enum(fsmoRoles);
 
@@ -94,6 +125,30 @@ export const ops = {
       roles: z.array(z.object({ role: fsmoRole, ownerDn: z.string(), ownerServer: z.string().nullable() })),
     }),
   },
+  'samba.fsmo.transfer': {
+    v: 1,
+    args: z.strictObject({ roles: z.array(fsmoRole).min(1).max(7) }),
+    result: z.object({ roles: z.array(z.object({ role: fsmoRole, ownerServer: z.string().nullable() })) }),
+  },
+  'samba.fsmo.seize': {
+    v: 1,
+    args: z.strictObject({
+      roles: z.array(fsmoRole).min(1).max(7),
+      /** Seize even if the current holder answers (otherwise a transfer is tried first). */
+      force: z.boolean().default(false),
+    }),
+    result: z.object({ roles: z.array(z.object({ role: fsmoRole, ownerServer: z.string().nullable() })) }),
+  },
+  'samba.level.raise': {
+    v: 1,
+    args: z
+      .strictObject({
+        domain: z.enum(['2008_R2', '2012', '2012_R2', '2016']).optional(),
+        forest: z.enum(['2008_R2', '2012', '2012_R2', '2016']).optional(),
+      })
+      .refine((a) => a.domain !== undefined || a.forest !== undefined, 'domain or forest'),
+    result: z.object({ forest: z.string().nullable(), domain: z.string().nullable(), lowestDc: z.string().nullable() }),
+  },
   'samba.level.show': {
     v: 1,
     args: empty,
@@ -102,6 +157,11 @@ export const ops = {
       domain: z.string().nullable(),
       lowestDc: z.string().nullable(),
     }),
+  },
+  'samba.protectedObject.modify': {
+    v: 1,
+    args: z.strictObject({ targetGuid: z.uuid(), change: protectedChange }),
+    result: z.object({ dn: z.string(), sdprop: z.number() }),
   },
   'samba.sdprop.run': {
     v: 1,

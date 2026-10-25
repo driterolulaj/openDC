@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { AppShell, Button, Group, NavLink as MantineNavLink, Stack, Text, Title } from '@mantine/core';
-import { NavLink, Outlet } from 'react-router';
+import { NavLink, Outlet, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { empty } from '@opendc/shared/api';
@@ -11,6 +11,8 @@ import { LanguageSwitch } from './LanguageSwitch.tsx';
 /** Navigation entries, each shown only with its permission (the server enforces regardless). */
 const NAV = [
   { to: '/', label: 'nav.home', permission: 'core.console.access' },
+  { to: '/directory', label: 'nav.directory', permission: 'domain.users.read' },
+  { to: '/domain', label: 'nav.domain', permission: 'domain.info.read' },
   { to: '/audit', label: 'nav.audit', permission: 'core.audit.read' },
 ] as const;
 
@@ -18,6 +20,8 @@ export default function Layout() {
   const { t } = useTranslation();
   const { session, has, refresh } = useSession();
   const qc = useQueryClient();
+  const { pathname } = useLocation();
+  const isActive = (to: string): boolean => (to === '/' ? pathname === '/' : pathname.startsWith(to));
 
   async function logout(): Promise<void> {
     await api('/session', { method: 'DELETE', schema: empty }).catch(() => undefined);
@@ -47,7 +51,7 @@ export default function Layout() {
       <AppShell.Navbar p="xs" component="nav" aria-label={t('app.name')}>
         <Stack gap={2}>
           {NAV.filter((n) => has(n.permission)).map((n) => (
-            <MantineNavLink key={n.to} component={NavLink} to={n.to} end label={t(n.label)} />
+            <MantineNavLink key={n.to} component={NavLink} to={n.to} active={isActive(n.to)} label={t(n.label)} />
           ))}
         </Stack>
       </AppShell.Navbar>

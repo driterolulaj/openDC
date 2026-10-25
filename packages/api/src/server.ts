@@ -19,6 +19,9 @@ import { RouteTable } from './http/route.ts';
 import { StaticSite } from './http/static.ts';
 import { coreRoutes } from './routes/core.ts';
 import { setupRoutes } from './routes/setup.ts';
+import { directoryRoutes } from './routes/directory.ts';
+import { domainRoutes } from './routes/domain.ts';
+import type { DirectoryService } from './directory/service.ts';
 
 export interface ApiDeps {
   db: PlatformDb;
@@ -39,6 +42,8 @@ export interface ApiDeps {
   assignments?: Assignment[];
   /** Restarts this process after setup; default: ask the agent to restart opendc-api. */
   restartSelf?: () => void;
+  /** The directory as the platform account; throws directory.not-configured until it is available. */
+  directoryService?: () => DirectoryService;
 }
 
 export interface Api {
@@ -177,6 +182,20 @@ export async function buildApi(deps: ApiDeps): Promise<Api> {
         }, 3000).unref();
       }),
   });
+
+  directoryRoutes(routes, {
+    directory:
+      deps.directoryService ??
+      (() => {
+        throw new PlatformError('directory.not-configured');
+      }),
+    audit,
+    agent: deps.agent,
+    confirmKey: deps.csrfKey,
+    engineFor,
+  });
+
+  domainRoutes(routes, { agent: deps.agent, audit, confirmKey: deps.csrfKey });
 
   if (deps.webDir) {
     const site = new StaticSite(deps.webDir);

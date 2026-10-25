@@ -477,6 +477,74 @@ const catalogue = {
       fix: 'Beheben Sie die Ursache und starten Sie das Setup erneut; erledigte Schritte werden übersprungen. Details: journalctl -u opendc-agent.',
     },
   },
+  'directory.not-configured': {
+    http: 503,
+    en: {
+      message: 'This node has no directory service account yet.',
+      fix: 'Complete the setup (wizard or opendc setup), then restart opendc-api.',
+    },
+    de: {
+      message: 'Dieser Knoten hat noch kein Verzeichnis-Dienstkonto.',
+      fix: 'Schließen Sie das Setup ab (Assistent oder opendc setup) und starten Sie opendc-api neu.',
+    },
+  },
+  'directory.access-denied': {
+    http: 403,
+    en: {
+      message: 'The directory refused the change to {{what}}.',
+      fix: "The object may be protected (tier 0) or outside the delegation of the platform account. Use a tier-0 role, or check the object's permissions.",
+    },
+    de: {
+      message: 'Das Verzeichnis hat die Änderung an {{what}} abgelehnt.',
+      fix: 'Das Objekt ist vielleicht geschützt (Tier 0) oder liegt außerhalb der Delegation des Plattformkontos. Verwenden Sie eine Tier-0-Rolle oder prüfen Sie die Berechtigungen des Objekts.',
+    },
+  },
+  'directory.exists': {
+    http: 409,
+    en: { message: '{{what}} already exists.', fix: 'Choose another name.' },
+    de: { message: '{{what}} existiert bereits.', fix: 'Wählen Sie einen anderen Namen.' },
+  },
+  'directory.password-rejected': {
+    http: 422,
+    en: {
+      message: "The password doesn't meet the password policy of {{what}}.",
+      fix: 'Use a longer password with upper and lower case, digits and symbols that was not used recently and does not contain the user name.',
+    },
+    de: {
+      message: 'Das Passwort erfüllt die Passwortrichtlinie für {{what}} nicht.',
+      fix: 'Verwenden Sie ein längeres Passwort mit Groß- und Kleinbuchstaben, Ziffern und Sonderzeichen, das nicht kürzlich verwendet wurde und den Benutzernamen nicht enthält.',
+    },
+  },
+  'directory.not-empty': {
+    http: 409,
+    en: {
+      message: '{{what}} is not empty.',
+      fix: 'Move or delete the objects in it first, or delete it recursively.',
+    },
+    de: {
+      message: '{{what}} ist nicht leer.',
+      fix: 'Verschieben oder löschen Sie zuerst die enthaltenen Objekte, oder löschen Sie rekursiv.',
+    },
+  },
+  'directory.invalid': {
+    http: 400,
+    en: { message: 'The directory rejected the value: {{reason}}.', fix: 'Correct the value and try again.' },
+    de: {
+      message: 'Das Verzeichnis hat den Wert abgelehnt: {{reason}}.',
+      fix: 'Korrigieren Sie den Wert und versuchen Sie es erneut.',
+    },
+  },
+  'directory.unsupported': {
+    http: 422,
+    en: {
+      message: '{{what}} is not possible from the console.',
+      fix: 'Use RSAT or samba-tool as a Domain Admin for this change.',
+    },
+    de: {
+      message: '{{what}} ist über die Konsole nicht möglich.',
+      fix: 'Verwenden Sie für diese Änderung RSAT oder samba-tool als Domänen-Administrator.',
+    },
+  },
   'samba.not-provisioned': {
     http: 409,
     en: {

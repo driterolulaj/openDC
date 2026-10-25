@@ -46,7 +46,10 @@ const SECRET_KEY = /pass(word)?|pwd|secret|token|credential|private|unicodePwd|k
 export function redact(v: unknown): unknown {
   if (Array.isArray(v)) return v.map(redact);
   if (v && typeof v === 'object') {
-    return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, SECRET_KEY.test(k) ? '[redacted]' : redact(x)]));
+    // flags such as mustChangePassword: true carry no secret
+    return Object.fromEntries(
+      Object.entries(v).map(([k, x]) => [k, SECRET_KEY.test(k) && typeof x !== 'boolean' ? '[redacted]' : redact(x)]),
+    );
   }
   return v;
 }

@@ -115,6 +115,18 @@ export class PlatformBootstrap {
       displayName: 'OpenDC settings',
       'msDS-Settings': `opendc:v1:${JSON.stringify(envelope)}`,
     });
+    // RFC2307 GIDs for the default primary group and Domain Admins (ADR-0018: idBase + RID)
+    const idBase = typeof settings.idBase === 'number' ? settings.idBase : 100_000;
+    const domainSid = first(await this.#s.get(this.#domainDn, ['objectSid']), 'objectSid');
+    for (const rid of [512, 513]) {
+      const [g] = domainSid
+        ? await this.#s.search(this.#domainDn, 'sub', eq('objectSid', `${domainSid}-${String(rid)}`), ['gidNumber'])
+        : [];
+      if (g && !first(g, 'gidNumber'))
+        await this.#s.modify(
+          modifyRecord(g.dn, [{ op: 'replace', attr: 'gidNumber', values: [String(idBase + rid)] }]),
+        );
+    }
     const groupDn = childDn(this.serviceOu, 'CN', PLATFORM_GROUP);
     const created = await this.#ensure(groupDn, {
       objectClass: 'group',

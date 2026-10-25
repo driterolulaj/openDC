@@ -110,3 +110,4 @@ export const setupJobResponse = z.object({
   events: z.array(z.object({ n: z.number(), kind: z.string(), data: z.unknown() })),
 });
 export const SETUP_TOKEN_HEADER = 'x-setup-token';
+export * from './directory.ts';
