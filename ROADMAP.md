@@ -125,10 +125,12 @@ are updated.
 ---
 
 ## Phase 3: Network services
-- [ ] Watcher: DirSync/USN follower, per-DC checkpoints, full resync, handler quarantine, metrics.
-- [ ] POSIX IDs for users and groups created outside OpenDC: watcher handler and a bulk action (ADR-0018, Q22).
-- [ ] Policies module: policy types, links, enforced/priority, effective-policy viewer; registry `domain-policy`
-  layer; OU-linked password policies through shadow groups + PSOs.
+- [x] Watcher: DirSync/USN follower, per-DC checkpoints, full resync, handler quarantine, metrics. *DirSync only
+  (the uSNChanged fallback isn't needed on Samba 4.22); the watch account may read tombstones (Q24, pending).*
+- [x] POSIX IDs for users and groups created outside OpenDC: watcher handler and a bulk action (ADR-0018, Q22).
+- [x] Policies module: policy types, links, enforced/priority, effective-policy viewer; registry `domain-policy`
+  layer; OU-linked password policies through shadow groups + PSOs. *Types so far: password, registry; DHCP
+  policies arrive with Kea, the others with their phases.*
 - [ ] DNS: zones (forward/reverse), records, auto-PTR, aging/scavenging, forwarders, DNS diagnostics (SRV,
   `_msdcs`, delegation); spike agent vs LDAP record writes.
 - [ ] Kea DHCPv4/v6: subnets, pools, reservations, options from directory + DHCP policies; config-test before swap;
@@ -142,9 +144,15 @@ are updated.
    (same site), with no Kea restart beyond `config-reload`.
 2. Killing the watcher mid-batch and restarting it reaches the same end state (idempotency test). Failing over
    the watcher's home DC triggers a full resync, logged and metered.
+   *Idempotency met: watcher killed (SIGKILL) at 20/150 users, all 150 filled after the restart, no duplicate
+   IDs, one audit entry each. Failover: unit-tested; the lab check follows with the member running Kea.*
 3. The effective-policy viewer matches the resolver unit tests on a 5-level OU fixture with enforced links.
+   **Met:** the fixture (`packages/shared/src/policy/fixture.ts`) built in the lab; the viewer's order equals the
+   unit test's, group and node-role filters included.
 4. A user moved into an OU with a stricter password policy gets that PSO (`msDS-ResultantPSO`) within one watcher
    cycle.
+   **Met:** PSO after 6.5 s (5 s poll), gone 6.3 s after moving out; a 13-character password is refused inside the
+   16-character OU and accepted outside.
 5. Console, LDAPS and node certificates are issued by the internal CA, renew automatically in a time-shifted
    test, and a revoked node certificate is refused on node RPC.
 6. DNS diagnostics detect a deliberately deleted `_ldap._tcp` SRV record and suggest the fix.
