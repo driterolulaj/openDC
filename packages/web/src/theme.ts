@@ -15,25 +15,41 @@ import {
   type VariantColorsResolver,
 } from '@mantine/core';
 
+/**
+ * Shade 9 of these palettes stays under 4.5:1 against white (green 4.4, orange 4.3, yellow/lime far less), and
+ * light variants put the text on a tint of the color. Darker values of the same hue (5.5-6:1 on the tint).
+ */
+const DEEP: Partial<Record<string, string>> = {
+  green: '#237032',
+  orange: '#a63c06',
+  yellow: '#8a5a00',
+  lime: '#4d6b00',
+  teal: '#0b6b5b',
+  cyan: '#0b6680',
+};
+const deep = (c: string): string => DEEP[c] ?? `var(--mantine-color-${c}-9)`;
+
 const variantColorResolver: VariantColorsResolver = (input) => {
   const r = defaultVariantColorsResolver(input);
   const parsed = parseThemeColor({ color: input.color ?? input.theme.primaryColor, theme: input.theme });
   if (!parsed.isThemeColor) return r;
   const c = parsed.color;
-  // filled: white text needs shade 9 (shade 6 is about 3.5:1 for red and blue)
+  // filled: white text needs shade 9 (shade 6 is about 3.5:1 for red and blue) or darker
   if (input.variant === 'filled') {
-    if (c === 'yellow' || c === 'lime') return r;
-    return { ...r, background: `var(--mantine-color-${c}-9)`, hover: `var(--mantine-color-${c}-8)` };
+    return {
+      ...r,
+      background: deep(c),
+      hover: DEEP[c] ? deep(c) : `var(--mantine-color-${c}-8)`,
+      color: 'var(--mantine-color-white)',
+    };
   }
   if (input.variant !== 'light' && input.variant !== 'outline') return r;
   return {
     ...r,
-    color: `light-dark(var(--mantine-color-${c}-9), var(--mantine-color-${c}-2))`,
+    color: `light-dark(${deep(c)}, var(--mantine-color-${c}-2))`,
     // the default light hover (shade 2) leaves shade-9 text at 4:1
     ...(input.variant === 'light' ? { hover: `light-dark(var(--mantine-color-${c}-1), ${r.hover})` } : {}),
-    ...(input.variant === 'outline'
-      ? { border: `1px solid light-dark(var(--mantine-color-${c}-8), var(--mantine-color-${c}-3))` }
-      : {}),
+    ...(input.variant === 'outline' ? { border: `1px solid light-dark(${deep(c)}, var(--mantine-color-${c}-3))` } : {}),
   };
 };
 

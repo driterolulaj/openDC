@@ -14,3 +14,4 @@ packaging/.cache/
 packaging/out/
 .opendc-dev/
 .e2e-results/
+.e2e-state/

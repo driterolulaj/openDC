@@ -11,9 +11,13 @@ export const adminPassword = (): string => {
   return pw;
 };
 
-// ---- TOTP for test accounts (the secret is captured at enrolment and kept for this test run) ----
+/** The account the suite signs in with (a Domain Admin; its second factor is enrolled on first use). */
+export const adminUser = (): string => process.env.OPENDC_ADMIN_USER ?? 'Administrator';
 
-const STATE = join(import.meta.dirname, '../../.e2e-results/totp.json');
+// ---- TOTP for test accounts (the secret is captured at enrolment and kept across runs) ----
+
+// not in .e2e-results: Playwright empties its output directory at the start of every run
+const STATE = join(import.meta.dirname, '../../.e2e-state/totp.json');
 type TotpState = Record<string, { secret: string; lastStep: number }>;
 const readState = (): TotpState => (existsSync(STATE) ? (JSON.parse(readFileSync(STATE, 'utf8')) as TotpState) : {});
 const writeState = (s: TotpState): void => {
@@ -67,7 +71,7 @@ function remember(user: string, secret: string): void {
 }
 
 /** Signs in; enrols an authenticator first if the role requires one; answers the code prompt. */
-export async function login(page: Page, user = 'Administrator', password = adminPassword()): Promise<void> {
+export async function login(page: Page, user = adminUser(), password = adminPassword()): Promise<void> {
   await page.goto('console/');
   await page.getByLabel('User name').fill(user);
   await page.getByRole('textbox', { name: 'Password', exact: true }).fill(password);
