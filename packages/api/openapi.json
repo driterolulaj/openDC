@@ -15784,6 +15784,191 @@
           }
         }
       }
+    },
+    "/api/v1/watcher": {
+      "get": {
+        "operationId": "getWatcherStatus",
+        "summary": "This node's directory watcher: DC, leader, handlers, failures, quarantine, resyncs",
+        "tags": [
+          "nodes"
+        ],
+        "x-opendc-auth": {
+          "permission": "core.node.info"
+        },
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "updatedAt": {
+                              "type": "string"
+                            },
+                            "dc": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "leader": {
+                              "type": "boolean"
+                            },
+                            "connected": {
+                              "type": "boolean"
+                            },
+                            "lastError": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "passes": {
+                              "type": "number"
+                            },
+                            "handlers": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "module": {
+                                    "type": "string"
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "state": {
+                                    "type": "string",
+                                    "enum": [
+                                      "ok",
+                                      "failing",
+                                      "quarantined",
+                                      "standby",
+                                      "pending"
+                                    ]
+                                  },
+                                  "dc": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "lastSuccessAt": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "lastError": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "failures": {
+                                    "type": "number"
+                                  },
+                                  "events": {
+                                    "type": "number"
+                                  },
+                                  "resyncs": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "module",
+                                  "id",
+                                  "state",
+                                  "dc",
+                                  "lastSuccessAt",
+                                  "lastError",
+                                  "failures",
+                                  "events",
+                                  "resyncs"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "updatedAt",
+                            "dc",
+                            "leader",
+                            "connected",
+                            "lastError",
+                            "passes",
+                            "handlers"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/watcher/metrics": {
+      "get": {
+        "operationId": "getWatcherMetrics",
+        "summary": "The watcher status in Prometheus text format",
+        "tags": [
+          "nodes"
+        ],
+        "x-opendc-auth": {
+          "permission": "core.node.info"
+        },
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Server-sent events",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

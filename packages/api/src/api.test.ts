@@ -368,3 +368,77 @@ test('static console: files, SPA fallback, no traversal', async () => {
 function dirname(p: string): string {
   return join(p, '..');
 }
+
+test('watcher status and metrics; audit entries from the watcher inbox', async () => {
+  const { mkdtempSync, writeFileSync, readdirSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const path = await import('node:path');
+  const join = (...p: string[]) => path.join(...p);
+  const { ingestInbox } = await import('./audit-inbox.ts');
+  const dir = mkdtempSync(join(tmpdir(), 'odc-watch-'));
+  const statusPath = join(dir, 'status.json');
+  const a = await api({ watcherStatusPath: statusPath });
+  const { cookie } = await login(a, 'admin', 'Secret-1');
+  const get = (url: string) =>
+    a.app.inject({ method: 'GET', url, cookies: { '__Host-opendc_sid': cookie?.value ?? '' } });
+
+  assert.deepEqual((await get('/api/v1/watcher')).json(), { status: null });
+  assert.equal((await get('/api/v1/watcher/metrics')).statusCode, 503);
+  const status = {
+    updatedAt: '2026-10-25T10:00:00.000Z',
+    dc: 'dc1.example.test',
+    leader: true,
+    connected: true,
+    lastError: null,
+    passes: 7,
+    handlers: [
+      {
+        module: 'domain',
+        id: 'posix-ids',
+        state: 'quarantined',
+        dc: 'CN=NTDS Settings,CN=DC1',
+        lastSuccessAt: null,
+        lastError: 'boom',
+        failures: 5,
+        events: 3,
+        resyncs: 2,
+      },
+    ],
+  };
+  writeFileSync(statusPath, JSON.stringify(status));
+  assert.equal((await get('/api/v1/watcher')).json<{ status: { passes: number } }>().status.passes, 7);
+  const m = await get('/api/v1/watcher/metrics');
+  assert.equal(m.statusCode, 200);
+  assert.match(m.body, /opendc_watcher_resyncs_total\{handler="posix-ids"\} 2/);
+  assert.match(m.body, /opendc_watcher_handler_quarantined\{handler="posix-ids"\} 1/);
+
+  const inbox = join(dir, 'inbox');
+  (await import('node:fs')).mkdirSync(inbox);
+  const entry = {
+    ts: '2026-10-25T10:00:00.000Z',
+    actor: 'opendc-watcher@dc1',
+    action: 'directory.posix-ids.fill',
+    result: 'success',
+    targetGuid: '6f9619ff-8b86-d011-b42d-00c04fc964ff',
+    targetDn: 'CN=bob,CN=Users,DC=example,DC=test',
+    after: { uidNumber: 101234 },
+  };
+  writeFileSync(join(inbox, '000000000000001-a.json'), JSON.stringify(entry));
+  writeFileSync(join(inbox, '.000000000000002-b.json'), JSON.stringify(entry)); // still being written
+  writeFileSync(join(inbox, '000000000000003-c.json'), JSON.stringify({ ...entry, actor: 'mallory' }));
+  writeFileSync(join(inbox, '000000000000004-d.json'), 'x'.repeat(70 * 1024));
+  const warnings: string[] = [];
+  assert.equal(
+    ingestInbox(inbox, a.audit, (_l, msg, extra) => warnings.push(`${msg} ${String(extra.file)}`)),
+    1,
+  );
+  assert.deepEqual(readdirSync(inbox), ['.000000000000002-b.json']);
+  assert.equal(warnings.length, 2);
+  const last = a.audit.list({ limit: 1 })[0];
+  assert.equal(last?.actor, 'opendc-watcher@dc1');
+  assert.deepEqual(last?.after, { uidNumber: 101234 });
+  assert.equal(
+    ingestInbox(join(dir, 'missing'), a.audit, () => undefined),
+    0,
+  );
+});

@@ -10,6 +10,7 @@ import type { AgentClient } from '@opendc/shared/agent';
 import type { PlatformDb } from '@opendc/shared/db';
 import { empty } from '@opendc/shared/api';
 import { AuditLog } from './audit.ts';
+import { watcherRoutes } from './routes/watcher.ts';
 import type { AuthenticatedUser } from './directory.ts';
 import { JobRunner } from './jobs.ts';
 import { SESSION_COOKIE, SessionStore, type Session } from './sessions.ts';
@@ -58,6 +59,8 @@ export interface ApiDeps {
   tokens?: Pick<TokenStore, 'create' | 'verify' | 'listFor' | 'revoke'>;
   /** Directory-stored RBAC (default: read through directoryService). */
   rbacStore?: Pick<RbacStore, 'snapshot'> & Partial<RbacStore>;
+  /** The watcher's status file (OS paths.watcherStatus); null in development. */
+  watcherStatusPath?: string | null;
 }
 
 export interface Api {
@@ -243,6 +246,7 @@ export async function buildApi(deps: ApiDeps): Promise<Api> {
   domainRoutes(routes, { agent: deps.agent, audit, confirmKey: deps.csrfKey });
   rbacRoutes(routes, { store: () => rbac as RbacStore, directory, audit });
   bulkRoutes(routes, { directory, db: deps.db, jobs, audit, engineFor, templates });
+  watcherRoutes(routes, { statusPath: deps.watcherStatusPath ?? null });
   accountRoutes(routes, {
     sessions,
     audit,

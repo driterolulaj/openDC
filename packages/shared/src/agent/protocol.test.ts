@@ -69,7 +69,7 @@ test('wire helpers produce frames the schemas accept', () => {
 test('every implemented op is in the catalogue and belongs to a phase already built', () => {
   for (const op of Object.keys(ops)) {
     assert.ok(isCatalogued(op), op);
-    assert.ok(catalogue[op].phase <= 2, op);
+    assert.ok(catalogue[op].phase <= 3, op);
   }
   assert.ok(!isCatalogued('samba.tool'));
 });

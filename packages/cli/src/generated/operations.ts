@@ -448,6 +448,30 @@ export const operations = [
     "auth": "session"
   },
   {
+    "operationId": "getWatcherMetrics",
+    "method": "GET",
+    "path": "/api/v1/watcher/metrics",
+    "tag": "nodes",
+    "summary": "The watcher status in Prometheus text format",
+    "pathParams": [],
+    "queryParams": [],
+    "body": false,
+    "stream": true,
+    "auth": "core.node.info"
+  },
+  {
+    "operationId": "getWatcherStatus",
+    "method": "GET",
+    "path": "/api/v1/watcher",
+    "tag": "nodes",
+    "summary": "This node's directory watcher: DC, leader, handlers, failures, quarantine, resyncs",
+    "pathParams": [],
+    "queryParams": [],
+    "body": false,
+    "stream": false,
+    "auth": "core.node.info"
+  },
+  {
     "operationId": "health",
     "method": "GET",
     "path": "/api/v1/health",

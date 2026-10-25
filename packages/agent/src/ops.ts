@@ -9,6 +9,7 @@ import type { Allowlist } from './allowlist.ts';
 import { join as joinDomain, provision } from './samba/provision.ts';
 import { fsmoShow, levelShow, sambaStatus } from './samba/info.ts';
 import { runSdPropIfPdc } from './samba/sdprop.ts';
+import { fillPosixIds } from './samba/posix.ts';
 import { modifyProtected } from './samba/protected.ts';
 import { fsmoSeize, fsmoTransfer, levelRaise } from './samba/fsmo.ts';
 import { setPolicy, showPolicies } from './samba/password-policy.ts';
@@ -201,6 +202,7 @@ export const implementations: Impls = {
   'samba.level.raise': async (args, ctx) => levelRaise(ctx.os, new SambaLocal(ctx.os), args),
   'samba.protectedObject.modify': async (args, ctx) =>
     modifyProtected(new SambaLocal(ctx.os), args, (await ctx.os.system.info()).hostname),
+  'directory.posixIds.fill': async (args, ctx) => fillPosixIds(new SambaLocal(ctx.os), args.guid),
   'samba.passwordPolicy.show': async (_args, ctx) => showPolicies(new SambaLocal(ctx.os)),
   'samba.passwordPolicy.set': async (args, ctx) => setPolicy(new SambaLocal(ctx.os), args),
   'samba.sdprop.run': async (_args, ctx) =>

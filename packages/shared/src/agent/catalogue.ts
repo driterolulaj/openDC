@@ -78,6 +78,8 @@ export const catalogue = {
   'samba.protectedObject.modify': { sockets: [A], risk: 'tier0', confirm: 'typed', phase: 2 },
   // Samba has no SDProp; OpenDC protects tier-0 objects itself (agent-operations.md §3.3, Phase 2 note)
   'samba.sdprop.run': { sockets: [A, C], risk: 'write', phase: 2 },
+  // RFC2307 IDs for objects created outside OpenDC (ADR-0018, Q22): watcher handler and bulk action
+  'directory.posixIds.fill': { sockets: [A, W, C], risk: 'write', phase: 3 },
   // PSOs and the default policy aren't readable/writable by the delegated account (Phase 2)
   'samba.passwordPolicy.show': { sockets: [A, C], risk: 'read', phase: 2 },
   'samba.passwordPolicy.set': { sockets: [A, C], risk: 'tier0', phase: 2 },

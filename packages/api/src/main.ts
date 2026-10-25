@@ -19,6 +19,7 @@ import { Registry, parseLayer } from '@opendc/registry';
 import { registryKeys } from '@opendc/modules/generated/registry';
 import { detectFacts } from '@opendc/os';
 import { apiMigrations } from './db.ts';
+import { ingestInbox } from './audit-inbox.ts';
 import { DirectoryAuth } from './directory.ts';
 import { ServiceLdap, type ServiceCredential } from './directory/ldap.ts';
 import { DirectoryService } from './directory/service.ts';
@@ -132,6 +133,7 @@ async function main(): Promise<void> {
     validateResponses: dev,
     https: dev ? null : { key: key ?? '', cert: cert ?? '' },
     logger: { level: process.env.OPENDC_LOG_LEVEL ?? 'info' },
+    watcherStatusPath: facts?.paths.watcherStatus ?? null,
     directoryService: () => {
       if (!dir.service) {
         void initDirectory().catch(() => undefined);
@@ -151,6 +153,16 @@ async function main(): Promise<void> {
       }
     }
   })();
+
+  // audit entries from the watcher (ADR-0013 inbox)
+  if (facts) {
+    const inbox = facts.paths.auditInbox;
+    const ingest = (): void => {
+      ingestInbox(inbox, api.audit, (level, msg, extra) => api.app.log[level](extra, msg));
+    };
+    ingest();
+    setInterval(ingest, 10_000).unref();
+  }
 
   const host = dev ? '127.0.0.1' : registry.get<string>('core.api.listenHost');
   const port = Number(process.env.OPENDC_PORT ?? registry.get<number>('core.api.listenPort'));

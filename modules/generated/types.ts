@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /** Shapes of the generated module tables (written by `npm run gen`; this file is hand-written). */
-import type { RoleSelector, TemplateFunction } from '@opendc/shared/manifest';
+import type { RoleSelector, TemplateFunction, WatchHandler } from '@opendc/shared/manifest';
 
 export type CommentStyle = 'hash' | 'semicolon' | 'slash' | 'xml' | 'json-field' | 'none';
 
@@ -28,12 +28,13 @@ export interface GeneratedApiModule {
 export interface GeneratedWatcher {
   module: string;
   id: string;
-  handler: unknown;
+  handler: WatchHandler;
   base: string;
   scope: 'base' | 'one' | 'sub';
   filter: string;
   attributes: string[];
   roles: RoleSelector[];
+  leader?: boolean;
   timeoutMs?: number;
   debounceMs?: number;
 }

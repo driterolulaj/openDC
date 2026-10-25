@@ -47,6 +47,10 @@ export interface PlatformPaths {
   lib: string;
   state: string;
   run: string;
+  /** The watcher's status snapshot (JSON, no secrets), readable by the API. */
+  watcherStatus: string;
+  /** Audit entries from services without the audit DB (the watcher), ingested by the API (ADR-0013). */
+  auditInbox: string;
   /** Resolve a manifest pathKey to an absolute path; throws PlatformError(os.unknown-path-key). */
   managedFile(pathKey: string): string;
   /** Roots that managed writes must stay inside after realpath(). Never includes the secrets dir. */

@@ -164,6 +164,15 @@ export const ops = {
     args: z.strictObject({ targetGuid: z.uuid(), change: protectedChange }),
     result: z.object({ dn: z.string(), sdprop: z.number() }),
   },
+  'directory.posixIds.fill': {
+    v: 1,
+    args: z.strictObject({ guid: z.uuid() }),
+    result: z.object({
+      dn: z.string(),
+      set: z.object({ uidNumber: z.number().optional(), gidNumber: z.number().optional() }),
+      skipped: z.string().nullable(),
+    }),
+  },
   'samba.passwordPolicy.show': { v: 1, args: empty, result: passwordPolicies },
   'samba.passwordPolicy.set': { v: 1, args: passwordPolicyChange, result: passwordPolicies },
   'samba.sdprop.run': {

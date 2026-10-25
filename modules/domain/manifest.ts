@@ -97,6 +97,7 @@ export default {
     { op: 'time.tracking', from: ['api', 'watch'] },
     { op: 'samba.sdprop.run', from: ['api', 'cli'] },
     { op: 'samba.protectedObject.modify', from: ['api'] },
+    { op: 'directory.posixIds.fill', from: ['api', 'watch', 'cli'] },
     { op: 'samba.fsmo.transfer', from: ['api', 'cli'] },
     { op: 'samba.fsmo.seize', from: ['api', 'cli'] },
     { op: 'samba.level.raise', from: ['api', 'cli'] },
@@ -117,5 +118,19 @@ export default {
       { id: 'ldap-watch', kind: 'password', rotateDays: 30 },
     ],
   },
+  watchers: [
+    {
+      // users and groups created outside OpenDC get idBase + RID (ADR-0018, Q22); the leader writes
+      id: 'posix-ids',
+      base: '',
+      scope: 'sub',
+      filter: '(|(&(objectCategory=person)(objectClass=user)(!(uidNumber=*)))(&(objectClass=group)(!(gidNumber=*))))',
+      attributes: ['whenCreated'],
+      roles: ['writable-dc'],
+      leader: true,
+      entry: './watchers/posix-ids.ts',
+      timeoutMs: 300_000,
+    },
+  ],
   i18n: { namespaces: ['domain'] },
 } satisfies ModuleManifest;

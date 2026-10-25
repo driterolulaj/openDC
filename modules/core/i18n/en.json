@@ -21,6 +21,7 @@
     "directory-tls-server-name": "Name to verify in the DC certificate. Empty means: the host from the URL.",
     "session-idle": "Minutes of inactivity before a console session ends.",
     "session-absolute": "Hours after login when a console session ends regardless of activity.",
-    "session-require-totp": "Users with a tier-0 role must set up an authenticator app (second factor)."
+    "session-require-totp": "Users with a tier-0 role must set up an authenticator app (second factor).",
+    "watcher-poll-seconds": "How often the watcher asks its domain controller for directory changes (seconds)."
   }
 }

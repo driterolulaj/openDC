@@ -30,6 +30,8 @@ function fakeOs(): { os: OsActions; files: Map<string, string>; calls: string[] 
       state: '/var/lib/opendc',
       run: '/run/opendc',
       managedFile: (k: string) => `/managed/${k}`,
+      watcherStatus: '/run/opendc-watcher/status.json',
+      auditInbox: '/var/lib/opendc/audit-inbox',
       managedRoots: () => ['/managed'],
     },
     samba: {

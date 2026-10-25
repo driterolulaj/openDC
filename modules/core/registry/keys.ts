@@ -80,4 +80,12 @@ export const keys: RegistryKeyDefinition[] = [
     description: 'core:keys.session-require-totp',
     policySettable: true,
   },
+  {
+    name: 'core.watcher.pollSeconds',
+    schema: z.number().int().min(1).max(300),
+    default: 5,
+    description: 'core:keys.watcher-poll-seconds',
+    policySettable: false,
+    effect: 'restart',
+  },
 ];

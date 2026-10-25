@@ -121,3 +121,4 @@ export * from './directory.ts';
 export * from './rbac.ts';
 export * from './bulk.ts';
 export * from './account.ts';
+export * from './watcher.ts';

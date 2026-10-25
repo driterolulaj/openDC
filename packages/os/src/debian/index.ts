@@ -143,6 +143,8 @@ export class DebianFacts implements OsFacts {
       lib: p('usr/lib/opendc'),
       state: p('var/lib/opendc'),
       run: p('run/opendc'),
+      watcherStatus: p('run/opendc-watcher/status.json'),
+      auditInbox: p('var/lib/opendc/audit-inbox'),
       managedFile(pathKey: string): string {
         const path = managed[pathKey];
         if (!path) throw new PlatformError('os.unknown-path-key', { pathKey, os });

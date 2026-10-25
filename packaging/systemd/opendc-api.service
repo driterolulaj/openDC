@@ -18,6 +18,8 @@ LoadCredential=api-hmac:/etc/opendc/secrets/api-hmac
 LoadCredential=ldap-svc:/etc/opendc/secrets/ldap-svc
 StateDirectory=opendc/api
 StateDirectoryMode=0700
+# ingests and removes the watcher's audit entries (ADR-0013 inbox)
+ReadWritePaths=/var/lib/opendc/audit-inbox
 Restart=on-failure
 RestartSec=2
 UMask=0077

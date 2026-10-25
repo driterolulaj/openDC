@@ -4,6 +4,7 @@
 export const allowlist = {
   "sockets": {
     "api": [
+      "directory.posixIds.fill",
       "file.readManaged",
       "registry.commitLock",
       "samba.fsmo.seize",
@@ -24,6 +25,7 @@ export const allowlist = {
       "time.tracking"
     ],
     "watch": [
+      "directory.posixIds.fill",
       "file.readManaged",
       "file.restorePrevious",
       "file.writeManaged",
@@ -35,6 +37,7 @@ export const allowlist = {
       "time.tracking"
     ],
     "cli": [
+      "directory.posixIds.fill",
       "file.readManaged",
       "file.restorePrevious",
       "file.writeManaged",

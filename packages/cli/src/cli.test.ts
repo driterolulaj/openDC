@@ -28,6 +28,8 @@ function memoryOs(): { os: OsActions; files: Map<string, string> } {
     release: { id: 'debian', idLike: [], versionId: '13', prettyName: 'Debian GNU/Linux 13 (trixie)', arch: 'x86_64' },
     paths: {
       managedFile: (k: string) => `/mem/${k}`,
+      watcherStatus: '/run/opendc-watcher/status.json',
+      auditInbox: '/var/lib/opendc/audit-inbox',
       managedRoots: () => ['/mem'],
       etc: '/etc/opendc',
       secrets: '',

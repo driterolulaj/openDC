@@ -130,6 +130,8 @@ const watcherHandler = z.strictObject({
   filter: z.string().startsWith('('),
   attributes: z.array(z.string()),
   roles: z.array(roleSelector).min(1),
+  /** Runs only on the DC that holds the PDC emulator role (ADR-0017), e.g. handlers that write shared state. */
+  leader: z.boolean().optional(),
   entry: entryPath,
   timeoutMs: z.number().int().positive().optional(),
   debounceMs: z.number().int().nonnegative().optional(),
