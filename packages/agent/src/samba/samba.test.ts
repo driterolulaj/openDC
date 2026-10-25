@@ -104,5 +104,5 @@ test('SDProp: protected DACL from AdminSDHolder, and the match is order-insensit
     .join('')}`;
   assert.ok(daclMatches(reordered, dacl));
   assert.ok(!daclMatches(stored.replace('D:PAI', 'D:AI'), dacl), 'not protected');
-  assert.ok(!daclMatches(`${stored}`.replace(';;;AU)', ';;;AU)(A;;GA;;;S-1-5-21-1-2-3-1103)'), dacl), 'extra ACE');
+  assert.ok(!daclMatches(stored.replace(';;;AU)', ';;;AU)(A;;GA;;;S-1-5-21-1-2-3-1103)'), dacl), 'extra ACE');
 });
