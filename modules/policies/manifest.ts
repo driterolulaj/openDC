@@ -45,7 +45,8 @@ export default {
       base: '',
       scope: 'sub',
       filter: '(|(&(objectCategory=person)(objectClass=user))(objectClass=organizationalUnit))',
-      attributes: ['objectClass'],
+      // DirSync reports an object only when a listed attribute changed; a move changes `name` (and parentGUID)
+      attributes: ['name'],
       roles: ['writable-dc'],
       leader: true,
       entry: './watchers/password-policy-users.ts',

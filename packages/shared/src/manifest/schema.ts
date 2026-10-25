@@ -128,6 +128,10 @@ const watcherHandler = z.strictObject({
   base: z.string(),
   scope: z.enum(['base', 'one', 'sub']),
   filter: z.string().startsWith('('),
+  /**
+   * DirSync semantics: an object is delivered only when one of these attributes changed (plus creation and
+   * deletion). A move changes `name`; list `name` to see moves. The event carries only the changed attributes.
+   */
   attributes: z.array(z.string()),
   roles: z.array(roleSelector).min(1),
   /** Runs only on the DC that holds the PDC emulator role (ADR-0017), e.g. handlers that write shared state. */
