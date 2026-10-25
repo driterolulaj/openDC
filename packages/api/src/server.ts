@@ -25,6 +25,9 @@ import { rbacRoutes } from './routes/rbac.ts';
 import { RbacStore } from './rbac/store.ts';
 import { bulkRoutes } from './routes/bulk.ts';
 import { UserTemplates } from './directory/templates.ts';
+import { TotpStore } from './mfa.ts';
+import { TokenStore } from './tokens.ts';
+import { accountRoutes } from './routes/account.ts';
 import type { DirectoryService } from './directory/service.ts';
 
 export interface ApiDeps {
@@ -48,6 +51,11 @@ export interface ApiDeps {
   restartSelf?: () => void;
   /** The directory as the platform account; throws directory.not-configured until it is available. */
   directoryService?: () => DirectoryService;
+  /** Users holding a tier-0 role must enrol a second factor (ADR-0020; registry core.session.requireTotpForTier0). */
+  requireTotpForTier0?: boolean;
+  /** Second factors and API tokens (default: stored in the directory). */
+  totp?: Pick<TotpStore, 'enrolled' | 'begin' | 'confirm' | 'check' | 'remove'>;
+  tokens?: Pick<TokenStore, 'create' | 'verify' | 'listFor' | 'revoke'>;
   /** Directory-stored RBAC (default: read through directoryService). */
   rbacStore?: Pick<RbacStore, 'snapshot'> & Partial<RbacStore>;
 }
@@ -112,6 +120,9 @@ export async function buildApi(deps: ApiDeps): Promise<Api> {
       throw new PlatformError('directory.not-configured');
     });
   const rbac = deps.rbacStore ?? new RbacStore(directory);
+  const totp = deps.totp ?? new TotpStore(directory);
+  const tokens = deps.tokens ?? new TokenStore(directory);
+  const REAUTH_MINUTES = 5;
   const known = new Set<string>(permissions.map((p) => p.name));
   const engines = new Map<string, RbacEngine>();
   /** The engine for a domain: built-ins plus the directory-stored roles and assignments (snapshot). */
@@ -191,6 +202,8 @@ export async function buildApi(deps: ApiDeps): Promise<Api> {
     sessions,
     audit,
     jobs,
+    totp,
+    requireTotpForTier0: deps.requireTotpForTier0 ?? true,
     directory: deps.directory,
     agent: deps.agent,
     engineFor,
@@ -230,6 +243,14 @@ export async function buildApi(deps: ApiDeps): Promise<Api> {
   domainRoutes(routes, { agent: deps.agent, audit, confirmKey: deps.csrfKey });
   rbacRoutes(routes, { store: () => rbac as RbacStore, directory, audit });
   bulkRoutes(routes, { directory, db: deps.db, jobs, audit, engineFor, templates });
+  accountRoutes(routes, {
+    sessions,
+    audit,
+    totp,
+    tokens,
+    directory: deps.directory,
+    engineFor,
+  });
 
   if (deps.webDir) {
     const site = new StaticSite(deps.webDir);
@@ -267,7 +288,28 @@ export async function buildApi(deps: ApiDeps): Promise<Api> {
   }
 
   routes.mount(app, {
-    session: (req) => sessions.get(req.cookies[SESSION_COOKIE]),
+    session: async (req) => {
+      const cookie = sessions.get(req.cookies[SESSION_COOKIE]);
+      if (cookie) return cookie;
+      const auth = req.headers.authorization;
+      if (!auth || !/^Bearer /i.test(auth)) return null;
+      const tok = await tokens.verify(auth.slice(7));
+      if (!tok) throw new PlatformError('auth.token-invalid');
+      const now = Date.now();
+      const s: Session = {
+        ...tok.data.user,
+        idHash: `token:${tok.id}`,
+        createdAt: Date.parse(tok.data.createdAt),
+        lastSeen: now,
+        groupsAt: Date.parse(tok.data.createdAt),
+        ip: req.ip,
+        authAt: 0,
+        mfaSetupRequired: false,
+        via: 'token',
+        tokenPermissions: tok.data.permissions,
+      };
+      return s;
+    },
     checkOrigin: (req) => {
       const origin = req.headers.origin;
       const host = req.headers.host;
@@ -284,8 +326,20 @@ export async function buildApi(deps: ApiDeps): Promise<Api> {
       const token = req.headers['x-csrf-token'];
       if (!sessions.checkCsrf(id, typeof token === 'string' ? token : undefined)) throw new PlatformError('auth.csrf');
     },
-    can: (s, permission, target) =>
-      engineFor(s.domainSid).can({ sid: s.sid, groupSids: s.groupSids }, permission, target),
+    can: (s, permission, target) => {
+      if (s.via === 'token') {
+        // tokens: never tier-0 permissions, and only the subset the token was created with
+        const meta = engineFor(s.domainSid).meta(permission);
+        if (meta.tier0 || (s.tokenPermissions && !s.tokenPermissions.includes(permission)))
+          return { allow: false as const, reason: 'no-permission' };
+      }
+      return engineFor(s.domainSid).can({ sid: s.sid, groupSids: s.groupSids }, permission, target);
+    },
+    tier0: (s) => {
+      if (s.via === 'token') throw new PlatformError('auth.tier0-required', { target: 'API token' });
+      if (Date.now() - s.authAt > REAUTH_MINUTES * 60_000)
+        throw new PlatformError('auth.reauth-required', { minutes: REAUTH_MINUTES });
+    },
     denied: (req, s, permission, reason) => {
       audit.append({
         actor: s.username,

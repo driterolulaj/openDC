@@ -73,4 +73,11 @@ export const keys: RegistryKeyDefinition[] = [
     description: 'core:keys.session-absolute',
     policySettable: true,
   },
+  {
+    name: 'core.session.requireTotpForTier0',
+    schema: z.boolean(),
+    default: true,
+    description: 'core:keys.session-require-totp',
+    policySettable: true,
+  },
 ];

@@ -17,7 +17,9 @@
     "username-hint": "z. B. alice, alice@example.com oder EXAMPLE\\alice",
     "password": "Passwort",
     "submit": "Anmelden",
-    "failed": "Anmeldung fehlgeschlagen"
+    "failed": "Anmeldung fehlgeschlagen",
+    "totp": "Authenticator-Code",
+    "totp-hint": "6 Ziffern aus Ihrer App oder ein Wiederherstellungscode."
   },
   "nav": {
     "home": "Übersicht",
@@ -25,7 +27,8 @@
     "directory": "Verzeichnis",
     "domain": "Domäne",
     "rbac": "Rollen",
-    "passwordPolicies": "Passwortrichtlinien"
+    "passwordPolicies": "Passwortrichtlinien",
+    "account": "Konto"
   },
   "home": {
     "title": "Übersicht",
@@ -430,5 +433,35 @@
     "edit": "Vorlage bearbeiten",
     "name": "Name",
     "placeholders": "Werte können {firstname}, {lastname}, {sam} und {domain} enthalten, z. B. Mail {firstname}.{lastname}@example.com."
+  },
+  "acc": {
+    "title": "Konto von {{name}}",
+    "totp": "Zweiter Faktor (Authenticator-App)",
+    "totp-on": "Eine Authenticator-App ist eingerichtet. Anmeldungen und Tier-0-Aktionen verlangen ihren Code.",
+    "totp-off": "Kein zweiter Faktor eingerichtet. Für jeden Administrator empfohlen.",
+    "totp-required": "Ihre Rolle ist Tier 0: Ein zweiter Faktor ist Pflicht.",
+    "totp-start": "Authenticator-App einrichten",
+    "totp-remove": "Entfernen",
+    "totp-secret": "Geheimnis",
+    "totp-secret-help": "Tragen Sie dieses Geheimnis in eine Authenticator-App ein (TOTP, 6 Ziffern, 30 Sekunden) und geben Sie den angezeigten Code ein. Das Geheimnis wird nur jetzt angezeigt.",
+    "totp-uri": "Oder importieren Sie diesen Link in eine App, die otpauth://-Links akzeptiert:",
+    "totp-code": "Authenticator-Code",
+    "totp-confirm": "Bestätigen",
+    "totp-done": "Die Authenticator-App ist eingerichtet.",
+    "recovery-help": "Wiederherstellungscodes: Jeder funktioniert einmal, falls Sie das Gerät verlieren. Bewahren Sie sie sicher auf; sie werden nur jetzt angezeigt.",
+    "mfa-title": "Zweiten Faktor einrichten",
+    "mfa-help": "Ihre Rolle verwaltet die Domäne (Tier 0) und braucht daher zusätzlich zum Passwort eine Authenticator-App. Richten Sie eine ein, um fortzufahren.",
+    "reauth-title": "Bestätigen Sie, dass Sie es sind",
+    "reauth-help": "Diese Aktion ändert Tier-0-Objekte. Bestätigen Sie Ihr Passwort (und den Authenticator-Code), um fortzufahren.",
+    "reauth-submit": "Bestätigen",
+    "tokens": "API-Tokens",
+    "tokens-help": "Tokens erlauben dem opendc-CLI und Skripten, in Ihrem Namen zu handeln (Authorization: Bearer). Sie haben nie Tier-0-Rechte.",
+    "token": "Token",
+    "token-name": "Name",
+    "token-days": "Gültig (Tage)",
+    "token-create": "Token erstellen",
+    "token-created": "Token erstellt. Kopieren Sie es jetzt: Es wird nur einmal angezeigt.",
+    "token-expires": "Läuft ab",
+    "token-revoke": "Widerrufen"
   }
 }

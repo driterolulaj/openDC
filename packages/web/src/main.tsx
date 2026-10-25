@@ -26,6 +26,8 @@ const Import = lazy(() => import('./pages/directory/Import.tsx'));
 const Templates = lazy(() => import('./pages/directory/Templates.tsx'));
 const Domain = lazy(() => import('./pages/Domain.tsx'));
 const Rbac = lazy(() => import('./pages/Rbac.tsx'));
+const Account = lazy(() => import('./pages/Account.tsx'));
+const MfaSetupPage = lazy(() => import('./pages/Account.tsx').then((m) => ({ default: m.MfaSetupPage })));
 const PasswordPolicies = lazy(() => import('./pages/PasswordPolicies.tsx'));
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
@@ -52,6 +54,7 @@ const router = createBrowserRouter(
         { path: 'directory/:guid', element: <ObjectView /> },
         { path: 'domain', element: <Domain /> },
         { path: 'rbac', element: <Rbac /> },
+        { path: 'account', element: <Account /> },
         { path: 'password-policies', element: <PasswordPolicies /> },
         ...moduleRoutes.filter((r) => r.area === 'console').map((r) => ({ path: r.path, element: <r.component /> })),
       ],
@@ -74,6 +77,7 @@ function App() {
   if (loading) return <Spinner />;
   if (error) return <ErrorView error={error} />;
   if (!session) return <Login />;
+  if (session.mfaSetupRequired) return <MfaSetupPage />;
   return <RouterProvider router={router} />;
 }
 

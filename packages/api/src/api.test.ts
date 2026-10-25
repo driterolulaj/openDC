@@ -85,6 +85,15 @@ async function api(extra: Partial<ApiDeps> = {}) {
     absoluteHours: 12,
     webDir: null,
     validateResponses: true,
+    // the second-factor policy has its own tests (mfa.test.ts)
+    requireTotpForTier0: false,
+    totp: {
+      enrolled: async () => false,
+      begin: async () => '',
+      confirm: async () => null,
+      check: async () => false,
+      remove: async () => undefined,
+    },
     ...extra,
   });
   await a.app.ready();

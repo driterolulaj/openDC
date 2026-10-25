@@ -17,7 +17,9 @@
     "username-hint": "e.g. alice, alice@example.com or EXAMPLE\\alice",
     "password": "Password",
     "submit": "Sign in",
-    "failed": "Sign-in failed"
+    "failed": "Sign-in failed",
+    "totp": "Authenticator code",
+    "totp-hint": "6 digits from your app, or a recovery code."
   },
   "nav": {
     "home": "Overview",
@@ -25,7 +27,8 @@
     "directory": "Directory",
     "domain": "Domain",
     "rbac": "Roles",
-    "passwordPolicies": "Password policies"
+    "passwordPolicies": "Password policies",
+    "account": "Account"
   },
   "home": {
     "title": "Overview",
@@ -430,5 +433,35 @@
     "edit": "Edit template",
     "name": "Name",
     "placeholders": "Values may use {firstname}, {lastname}, {sam} and {domain}, e.g. mail {firstname}.{lastname}@example.com."
+  },
+  "acc": {
+    "title": "Account of {{name}}",
+    "totp": "Second factor (authenticator app)",
+    "totp-on": "An authenticator app is set up. Sign-ins and tier-0 actions ask for its code.",
+    "totp-off": "No second factor is set up. It is recommended for every administrator.",
+    "totp-required": "Your role is tier 0: a second factor is required.",
+    "totp-start": "Set up an authenticator app",
+    "totp-remove": "Remove",
+    "totp-secret": "Secret",
+    "totp-secret-help": "Add this secret to an authenticator app (TOTP, 6 digits, 30 seconds), then enter the code it shows. The secret is shown only now.",
+    "totp-uri": "Or import this link into an app that accepts otpauth:// links:",
+    "totp-code": "Authenticator code",
+    "totp-confirm": "Confirm",
+    "totp-done": "The authenticator app is set up.",
+    "recovery-help": "Recovery codes: each works once if you lose the device. Store them safely; they are shown only now.",
+    "mfa-title": "Set up a second factor",
+    "mfa-help": "Your role administers the domain (tier 0), so it needs an authenticator app in addition to your password. Set one up to continue.",
+    "reauth-title": "Confirm it's you",
+    "reauth-help": "This action changes tier-0 objects. Confirm your password (and authenticator code) to continue.",
+    "reauth-submit": "Confirm",
+    "tokens": "API tokens",
+    "tokens-help": "Tokens let the opendc CLI and scripts act as you (Authorization: Bearer). They never carry tier-0 rights.",
+    "token": "Token",
+    "token-name": "Name",
+    "token-days": "Valid (days)",
+    "token-create": "Create token",
+    "token-created": "Token created. Copy it now: it is shown only once.",
+    "token-expires": "Expires",
+    "token-revoke": "Revoke"
   }
 }

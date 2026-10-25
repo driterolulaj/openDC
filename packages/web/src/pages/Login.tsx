@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button, Center, Paper, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { sessionInfo } from '@opendc/shared/api';
-import { api, setCsrfToken } from '../api.ts';
+import { api, ApiFailure, setCsrfToken } from '../api.ts';
 import { ErrorView } from '../ErrorView.tsx';
 import { useSession } from '../session.tsx';
 import { LanguageSwitch } from '../LanguageSwitch.tsx';
@@ -13,6 +13,8 @@ export default function Login() {
   const { refresh } = useSession();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [totp, setTotp] = useState('');
+  const [needCode, setNeedCode] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
 
@@ -21,13 +23,23 @@ export default function Login() {
     setBusy(true);
     setError(null);
     try {
-      const s = await api('/session', { method: 'POST', body: { username, password }, schema: sessionInfo });
+      const s = await api('/session', {
+        method: 'POST',
+        body: { username, password, ...(needCode && totp ? { totp } : {}) },
+        schema: sessionInfo,
+      });
       setCsrfToken(s.csrfToken);
       setPassword('');
       await refresh();
     } catch (err) {
+      // a second factor is needed: keep the password, ask for the code
+      if (err instanceof ApiFailure && err.body.code === 'auth.totp-required') {
+        setNeedCode(true);
+        return;
+      }
       setError(err);
       setPassword('');
+      setTotp('');
     } finally {
       setBusy(false);
     }
@@ -67,6 +79,18 @@ export default function Login() {
               value={password}
               onChange={(e) => setPassword(e.currentTarget.value)}
             />
+            {needCode ? (
+              <TextInput
+                label={t('login.totp')}
+                description={t('login.totp-hint')}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                autoFocus
+                required
+                value={totp}
+                onChange={(e) => setTotp(e.currentTarget.value.trim())}
+              />
+            ) : null}
             <Button type="submit" loading={busy} fullWidth>
               {t('login.submit')}
             </Button>

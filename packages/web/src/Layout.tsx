@@ -7,6 +7,7 @@ import { empty } from '@opendc/shared/api';
 import { api, setCsrfToken } from './api.ts';
 import { useSession } from './session.tsx';
 import { LanguageSwitch } from './LanguageSwitch.tsx';
+import { ReauthModal } from './pages/Account.tsx';
 
 /** Navigation entries, each shown only with its permission (the server enforces regardless). */
 const NAV = [
@@ -16,6 +17,7 @@ const NAV = [
   { to: '/password-policies', label: 'nav.passwordPolicies', permission: 'domain.passwordPolicy.read' },
   { to: '/rbac', label: 'nav.rbac', permission: 'domain.rbac.read' },
   { to: '/audit', label: 'nav.audit', permission: 'core.audit.read' },
+  { to: '/account', label: 'nav.account', permission: 'core.console.access' },
 ] as const;
 
 export default function Layout() {
@@ -58,6 +60,7 @@ export default function Layout() {
         </Stack>
       </AppShell.Navbar>
       <AppShell.Main>
+        <ReauthModal />
         <Outlet />
       </AppShell.Main>
     </AppShell>

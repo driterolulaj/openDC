@@ -19,6 +19,7 @@ import type { AuthenticatedUser } from '../directory.ts';
 import type { JobRunner } from '../jobs.ts';
 import { SESSION_COOKIE, type Session, type SessionStore } from '../sessions.ts';
 import type { RbacEngine } from '../rbac/engine.ts';
+import type { TotpStore } from '../mfa.ts';
 import type { RouteTable } from '../http/route.ts';
 
 export interface CoreDeps {
@@ -30,6 +31,8 @@ export interface CoreDeps {
   engineFor(domainSid: string): RbacEngine;
   idleMs: number;
   absoluteMs: number;
+  totp: Pick<TotpStore, 'enrolled' | 'check'>;
+  requireTotpForTier0: boolean;
 }
 
 const subject = (s: Session): { sid: string; groupSids: string[] } => ({ sid: s.sid, groupSids: s.groupSids });
@@ -40,6 +43,7 @@ function info(s: Session, csrfToken: string, d: CoreDeps): ReturnType<typeof ses
     csrfToken,
     expiresAt: new Date(s.createdAt + d.absoluteMs).toISOString(),
     idleTimeoutSec: Math.round(d.idleMs / 1000),
+    mfaSetupRequired: s.mfaSetupRequired,
   };
 }
 
@@ -96,6 +100,27 @@ export function coreRoutes(t: RouteTable, d: CoreDeps): void {
         });
         throw new PlatformError('auth.forbidden', { permission: 'core.console.access' });
       }
+      // second factor (ADR-0020): enrolled -> required now; tier-0 role without one -> enrol right after login
+      const enrolled = await d.totp.enrolled(user.sid).catch(() => false);
+      let mfaSetupRequired = false;
+      if (enrolled) {
+        if (!c.body.totp) throw new PlatformError('auth.totp-required');
+        if (!(await d.totp.check(user.sid, c.body.totp))) {
+          d.audit.append({
+            actor: user.username,
+            actorSid: user.sid,
+            sourceIp: c.ip,
+            action: 'session.login',
+            result: 'failure',
+            targetGuid: user.guid,
+            after: { reason: 'auth.totp-invalid' },
+            requestId: c.requestId,
+          });
+          throw new PlatformError('auth.totp-invalid');
+        }
+      } else if (d.requireTotpForTier0) {
+        mfaSetupRequired = engine.effective({ sid: user.sid, groupSids: user.groupSids }).some((p) => p.tier0);
+      }
       const { id, session } = d.sessions.create(
         {
           sid: user.sid,
@@ -107,6 +132,7 @@ export function coreRoutes(t: RouteTable, d: CoreDeps): void {
           groupSids: user.groupSids,
         },
         c.ip,
+        { mfaSetupRequired },
       );
       d.audit.append({
         actor: user.username,
@@ -116,7 +142,7 @@ export function coreRoutes(t: RouteTable, d: CoreDeps): void {
         result: 'success',
         targetGuid: user.guid,
         targetDn: user.dn,
-        after: { dc: user.dc },
+        after: { dc: user.dc, secondFactor: enrolled, mfaSetupRequired },
         requestId: c.requestId,
       });
       void c.reply.setCookie(SESSION_COOKIE, id, { path: '/', httpOnly: true, secure: true, sameSite: 'strict' });
@@ -128,6 +154,7 @@ export function coreRoutes(t: RouteTable, d: CoreDeps): void {
     method: 'GET',
     url: '/api/v1/session',
     operationId: 'getSession',
+    allowDuringMfaSetup: true,
     summary: 'The current session and its CSRF token',
     tags: ['session'],
     auth: 'session',
@@ -140,6 +167,7 @@ export function coreRoutes(t: RouteTable, d: CoreDeps): void {
     method: 'DELETE',
     url: '/api/v1/session',
     operationId: 'logout',
+    allowDuringMfaSetup: true,
     summary: 'Log out',
     tags: ['session'],
     auth: 'session',
@@ -163,6 +191,7 @@ export function coreRoutes(t: RouteTable, d: CoreDeps): void {
     method: 'GET',
     url: '/api/v1/session/permissions',
     operationId: 'getPermissions',
+    allowDuringMfaSetup: true,
     summary: 'Effective permissions of the current user (for display; the server enforces regardless)',
     tags: ['session'],
     auth: 'session',

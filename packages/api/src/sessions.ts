@@ -24,6 +24,13 @@ export interface Session extends SessionUser {
   lastSeen: number;
   groupsAt: number;
   ip: string | null;
+  /** Last password (+ second factor) check: login or re-authentication. */
+  authAt: number;
+  /** The user's role requires a second factor that isn't enrolled yet: only enrolment routes work. */
+  mfaSetupRequired: boolean;
+  via: 'cookie' | 'token';
+  /** API tokens: the permissions the token is limited to (null = all of the user's non-tier-0 ones). */
+  tokenPermissions: string[] | null;
 }
 
 interface Row {
@@ -39,6 +46,8 @@ interface Row {
   created_at: number;
   last_seen: number;
   ip: string | null;
+  auth_at: number | null;
+  mfa_setup: number;
 }
 
 const hashId = (id: string): string => createHash('sha256').update(id).digest('hex');
@@ -59,13 +68,28 @@ export class SessionStore {
     this.#o = { now: Date.now, ...o };
   }
 
-  create(user: SessionUser, ip: string | null): { id: string; session: Session } {
+  create(
+    user: SessionUser,
+    ip: string | null,
+    o: { mfaSetupRequired?: boolean } = {},
+  ): { id: string; session: Session } {
     const id = randomBytes(32).toString('base64url');
     const now = this.#o.now();
-    const session: Session = { ...user, idHash: hashId(id), createdAt: now, lastSeen: now, groupsAt: now, ip };
+    const session: Session = {
+      ...user,
+      idHash: hashId(id),
+      createdAt: now,
+      lastSeen: now,
+      groupsAt: now,
+      ip,
+      authAt: now,
+      mfaSetupRequired: o.mfaSetupRequired ?? false,
+      via: 'cookie',
+      tokenPermissions: null,
+    };
     this.#db.run(
-      `INSERT INTO sessions (id_hash, user_sid, user_guid, username, display_name, user_dn, domain_sid, group_sids, groups_at, created_at, last_seen, ip)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO sessions (id_hash, user_sid, user_guid, username, display_name, user_dn, domain_sid, group_sids, groups_at, created_at, last_seen, ip, auth_at, mfa_setup)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         session.idHash,
         user.sid,
@@ -79,6 +103,8 @@ export class SessionStore {
         now,
         now,
         ip,
+        now,
+        session.mfaSetupRequired ? 1 : 0,
       ],
     );
     return { id, session };
@@ -111,7 +137,21 @@ export class SessionStore {
       createdAt: r.created_at,
       lastSeen: touched ? now : r.last_seen,
       ip: r.ip,
+      authAt: r.auth_at ?? r.created_at,
+      mfaSetupRequired: r.mfa_setup === 1,
+      via: 'cookie',
+      tokenPermissions: null,
     };
+  }
+
+  /** A successful re-authentication (password and, if enrolled, second factor). */
+  reauthenticated(idHash: string): void {
+    this.#db.run('UPDATE sessions SET auth_at = ? WHERE id_hash = ?', [this.#o.now(), idHash]);
+  }
+
+  /** The second factor was enrolled: the session leaves the enrolment-only state. */
+  mfaEnrolled(idHash: string): void {
+    this.#db.run('UPDATE sessions SET mfa_setup = 0, auth_at = ? WHERE id_hash = ?', [this.#o.now(), idHash]);
   }
 
   destroy(id: string | undefined): void {

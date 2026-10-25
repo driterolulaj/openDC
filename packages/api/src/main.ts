@@ -127,6 +127,7 @@ async function main(): Promise<void> {
     csrfKey: hmac && hmac.length >= 32 ? hmac : randomBytes(32),
     idleMinutes: registry.get<number>('core.session.idleMinutes'),
     absoluteHours: registry.get<number>('core.session.absoluteHours'),
+    requireTotpForTier0: registry.get<boolean>('core.session.requireTotpForTier0'),
     webDir,
     validateResponses: dev,
     https: dev ? null : { key: key ?? '', cert: cert ?? '' },

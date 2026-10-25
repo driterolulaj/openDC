@@ -17,6 +17,8 @@ export type ApiError = z.infer<typeof errorBody>;
 export const loginRequest = z.strictObject({
   username: z.string().min(1).max(256),
   password: z.string().min(1).max(1024),
+  /** Authenticator code (or recovery code) when the account has a second factor. */
+  totp: z.string().max(32).optional(),
 });
 
 export const scope = z.union([
@@ -36,6 +38,8 @@ export const sessionInfo = z.object({
   csrfToken: z.string(),
   expiresAt: z.string(),
   idleTimeoutSec: z.number(),
+  /** The user's role needs a second factor that isn't enrolled yet; only enrolment works until it is. */
+  mfaSetupRequired: z.boolean(),
 });
 export type SessionInfo = z.infer<typeof sessionInfo>;
 
@@ -113,3 +117,4 @@ export const SETUP_TOKEN_HEADER = 'x-setup-token';
 export * from './directory.ts';
 export * from './rbac.ts';
 export * from './bulk.ts';
+export * from './account.ts';

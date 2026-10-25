@@ -50,6 +50,8 @@ export interface RouteSpec<
   /** Server-sent events: the handler writes the stream itself and returns nothing. */
   stream?: boolean;
   rateLimit?: { max: number; windowSec: number };
+  /** Reachable while the session must still enrol a second factor (enrolment, session info, logout). */
+  allowDuringMfaSetup?: boolean;
   handler(ctx: RouteContext<Infer<B>, Infer<Q>, Infer<P>>): Promise<z.output<R> | undefined>;
 }
 
@@ -57,12 +59,14 @@ export interface RouteSpec<
 export type AnyRoute = RouteSpec<any, any, any, z.ZodType>;
 
 export interface AuthHooks {
-  /** Resolves the session (or null) and enforces CSRF/Origin for state-changing requests. */
-  session(request: FastifyRequest): Session | null;
+  /** Resolves the session from the cookie or a bearer API token (or null). */
+  session(request: FastifyRequest): Promise<Session | null>;
   checkOrigin(request: FastifyRequest): void;
   checkCsrf(request: FastifyRequest, session: Session): void;
   can(session: Session, permission: string, target?: Target): { allow: true } | { allow: false; reason: string };
   denied(request: FastifyRequest, session: Session, permission: string, reason: string): void;
+  /** Extra checks for an allowed tier-0 action (fresh authentication, no API tokens); throws. */
+  tier0(session: Session): void;
 }
 
 const SAFE = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -109,12 +113,15 @@ export class RouteTable {
           ? { config: { rateLimit: { max: r.rateLimit.max, timeWindow: r.rateLimit.windowSec * 1000 } } }
           : {}),
         handler: async (request, reply) => {
-          if (!SAFE.has(request.method)) hooks.checkOrigin(request);
+          const bearer = /^Bearer /i.test(request.headers.authorization ?? '');
+          if (!SAFE.has(request.method) && !bearer) hooks.checkOrigin(request);
           let session: Session | null = null;
           if (r.auth !== 'public') {
-            session = hooks.session(request);
+            session = await hooks.session(request);
             if (!session) throw new PlatformError('auth.session-required');
-            if (!SAFE.has(request.method)) hooks.checkCsrf(request, session);
+            // bearer tokens carry no cookie, so they can't be ridden by a cross-site request
+            if (!SAFE.has(request.method) && session.via === 'cookie') hooks.checkCsrf(request, session);
+            if (session.mfaSetupRequired && !r.allowDuringMfaSetup) throw new PlatformError('auth.mfa-setup-required');
             if (typeof r.auth === 'object') {
               const d = hooks.can(session, r.auth.permission);
               if (!d.allow) {
@@ -140,7 +147,10 @@ export class RouteTable {
             require(permission, target) {
               if (!s) throw new PlatformError('auth.session-required');
               const d = hooks.can(s, permission, target);
-              if (d.allow) return;
+              if (d.allow) {
+                if (target?.protected) hooks.tier0(s);
+                return;
+              }
               hooks.denied(request, s, permission, d.reason);
               if (d.reason === 'tier0')
                 throw new PlatformError('auth.tier0-required', { target: target?.label ?? target?.dn ?? '?' });

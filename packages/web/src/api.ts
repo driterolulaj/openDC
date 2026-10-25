@@ -19,6 +19,15 @@ export class ApiFailure extends Error {
 
 let csrfToken: string | null = null;
 
+/**
+ * Tier-0 actions need a fresh sign-in (SECURITY.md §4). The layout registers a handler that asks for the
+ * password (and code); a request refused with auth.reauth-required is retried once after it succeeded.
+ */
+let reauthHandler: (() => Promise<boolean>) | null = null;
+export function setReauthHandler(fn: (() => Promise<boolean>) | null): void {
+  reauthHandler = fn;
+}
+
 export function setCsrfToken(token: string | null): void {
   csrfToken = token;
 }
@@ -33,6 +42,16 @@ export interface RequestOptions<S extends z.ZodType> {
 }
 
 export async function api<S extends z.ZodType>(path: string, opts: RequestOptions<S>): Promise<z.output<S>> {
+  try {
+    return await request(path, opts);
+  } catch (e) {
+    if (e instanceof ApiFailure && e.body.code === 'auth.reauth-required' && reauthHandler && (await reauthHandler()))
+      return request(path, opts);
+    throw e;
+  }
+}
+
+async function request<S extends z.ZodType>(path: string, opts: RequestOptions<S>): Promise<z.output<S>> {
   const method = opts.method ?? 'GET';
   const headers: Record<string, string> = { ...opts.headers, accept: 'application/json' };
   if (opts.body !== undefined) headers['content-type'] = 'application/json';

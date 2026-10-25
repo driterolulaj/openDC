@@ -20,6 +20,7 @@
     "directory-base-dn": "Basis-DN der Domäne. Leer bedeutet: aus dem rootDSE des DCs lesen.",
     "directory-tls-server-name": "Name, der im DC-Zertifikat geprüft wird. Leer bedeutet: der Host aus der URL.",
     "session-idle": "Minuten Inaktivität, nach denen eine Konsolensitzung endet.",
-    "session-absolute": "Stunden nach der Anmeldung, nach denen eine Konsolensitzung in jedem Fall endet."
+    "session-absolute": "Stunden nach der Anmeldung, nach denen eine Konsolensitzung in jedem Fall endet.",
+    "session-require-totp": "Benutzer mit einer Tier-0-Rolle müssen eine Authenticator-App einrichten (zweiter Faktor)."
   }
 }

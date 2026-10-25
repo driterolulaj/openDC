@@ -85,4 +85,13 @@ export const apiMigrations: Migration[] = [
       );
     `,
   },
+  {
+    id: 3,
+    name: 'session-auth-state',
+    sql: `
+      -- tier-0 re-authentication (SECURITY.md §4) and pending second-factor enrolment
+      ALTER TABLE sessions ADD COLUMN auth_at INTEGER;
+      ALTER TABLE sessions ADD COLUMN mfa_setup INTEGER NOT NULL DEFAULT 0;
+    `,
+  },
 ];

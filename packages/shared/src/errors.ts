@@ -477,6 +477,61 @@ const catalogue = {
       fix: 'Beheben Sie die Ursache und starten Sie das Setup erneut; erledigte Schritte werden übersprungen. Details: journalctl -u opendc-agent.',
     },
   },
+  'auth.totp-required': {
+    http: 401,
+    en: {
+      message: 'This account uses a second factor: enter the code from your authenticator app.',
+      fix: 'Enter the 6-digit code (or a recovery code) together with your password.',
+    },
+    de: {
+      message: 'Dieses Konto verwendet einen zweiten Faktor: Geben Sie den Code aus Ihrer Authenticator-App ein.',
+      fix: 'Geben Sie den 6-stelligen Code (oder einen Wiederherstellungscode) zusammen mit Ihrem Passwort ein.',
+    },
+  },
+  'auth.totp-invalid': {
+    http: 401,
+    en: {
+      message: 'The authenticator code is wrong or expired.',
+      fix: "Check the device's clock and enter the current code, or use a recovery code.",
+    },
+    de: {
+      message: 'Der Authenticator-Code ist falsch oder abgelaufen.',
+      fix: 'Prüfen Sie die Uhrzeit des Geräts und geben Sie den aktuellen Code ein, oder verwenden Sie einen Wiederherstellungscode.',
+    },
+  },
+  'auth.mfa-setup-required': {
+    http: 403,
+    en: {
+      message: 'Your role requires a second factor, and none is set up yet.',
+      fix: 'Set up an authenticator app in the console (it asks you right after login).',
+    },
+    de: {
+      message: 'Ihre Rolle verlangt einen zweiten Faktor, und es ist noch keiner eingerichtet.',
+      fix: 'Richten Sie in der Konsole eine Authenticator-App ein (Sie werden direkt nach der Anmeldung gefragt).',
+    },
+  },
+  'auth.reauth-required': {
+    http: 403,
+    en: {
+      message: 'This tier-0 action needs a fresh sign-in (more than {{minutes}} minutes ago).',
+      fix: 'Confirm your password (and authenticator code) and repeat the action.',
+    },
+    de: {
+      message: 'Diese Tier-0-Aktion braucht eine frische Anmeldung (die letzte ist über {{minutes}} Minuten her).',
+      fix: 'Bestätigen Sie Ihr Passwort (und den Authenticator-Code) und wiederholen Sie die Aktion.',
+    },
+  },
+  'auth.token-invalid': {
+    http: 401,
+    en: {
+      message: 'The API token is unknown, revoked or expired.',
+      fix: 'Create a new token in the console (Account → API tokens).',
+    },
+    de: {
+      message: 'Das API-Token ist unbekannt, widerrufen oder abgelaufen.',
+      fix: 'Erstellen Sie in der Konsole ein neues Token (Konto → API-Tokens).',
+    },
+  },
   'directory.not-configured': {
     http: 503,
     en: {

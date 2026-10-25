@@ -29,7 +29,17 @@ const PLATFORM_CONTAINERS = [
   ['UserTemplates'],
   ['SavedSearches'],
   ['ExtendedAttributes'],
+  ['MFA'],
+  ['APITokens'],
 ] as const;
+
+/** Containers only platform services, Domain/Enterprise Admins and SYSTEM may read (object model §2). */
+const CONFIDENTIAL = ['Settings', 'RBAC', 'MFA', 'APITokens'] as const;
+
+/** Protected DACL for a confidential container (inheritance from CN=System blocked). */
+export function confidentialDacl(groupSid: string): string {
+  return `D:P(A;CI;GA;;;SY)(A;CI;GA;;;DA)(A;CI;GA;;;EA)(A;CI;GA;;;${groupSid})`;
+}
 
 /** schemaIDGUIDs of the classes the platform account administers (MS-ADSC). */
 const CLASS_GUIDS = {
@@ -140,6 +150,15 @@ export class PlatformBootstrap {
       await this.#acl(this.#domainDn, domainHeadAces(groupSid));
       await this.#acl(childDn(this.#domainDn, 'OU', 'Domain Controllers'), `(D;CI;CCDCSWWPCRSDWDWODT;;;${groupSid})`);
       await this.#acl(this.platformDn, `(A;CI;GA;;;${groupSid})`);
+    }
+    for (const cn of CONFIDENTIAL) {
+      const dn = childDn(this.platformDn, 'CN', cn);
+      const sd = first(await this.#s.get(dn, ['nTSecurityDescriptor']), 'nTSecurityDescriptor') ?? '';
+      if (!/D:P/.test(sd))
+        await this.#s.modify(
+          modifyRecord(dn, [{ op: 'replace', attr: 'nTSecurityDescriptor', values: [confidentialDacl(groupSid)] }]),
+          ['sd_flags:1:4'],
+        );
     }
   }
 
