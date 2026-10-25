@@ -103,6 +103,11 @@ export const ops = {
       lowestDc: z.string().nullable(),
     }),
   },
+  'samba.sdprop.run': {
+    v: 1,
+    args: empty,
+    result: z.object({ checked: z.number(), updated: z.array(z.string()), skipped: z.string().nullable() }),
+  },
   'time.tracking': {
     v: 1,
     args: empty,

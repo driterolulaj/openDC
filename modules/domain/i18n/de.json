@@ -176,6 +176,7 @@
       "read-domain": "Domäne wird gelesen",
       "platform": "OpenDC-Plattformobjekte werden angelegt",
       "service-accounts": "Dienstkonten werden angelegt",
+      "sdprop": "Administratorkonten werden geschützt",
       "secrets": "Dienst-Anmeldedaten werden gespeichert",
       "config": "Knotenkonfiguration wird geschrieben",
       "certificate": "Konsolenzertifikat wird erneuert",

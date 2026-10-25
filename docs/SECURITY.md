@@ -157,6 +157,13 @@ Restore documentation stresses that the backup key must be stored off-host.
    replication policy.
 5. Container mode needs `CAP_SYS_ADMIN`, so the container isn't a security boundary.
 
+**Samba lacks SDProp (found in Phase 2, OPEN-QUESTIONS Q21).** Protected accounts don't get a protected DACL
+on Samba, so a delegation on the domain head reaches Domain Admins. OpenDC runs its own SDProp
+(`samba.sdprop.run`, `opendc-sdprop.timer` on the PDC emulator), and the API treats targets as tier 0 through
+`adminCount` and transitive membership in protected groups. Residual window: a member added to a protected
+group with other tools (RSAT, samba-tool) is protected at the DACL level within 15 minutes. Until then only the
+API guard protects it against the delegated account.
+
 ## 11. Vulnerability disclosure
 Until the project has a public mail domain (Q19), security reports go to the local address `security@localhost`
 on the OpenDC development host. The OpenDC mail module (Phase 5) will provide the mail server. Policy text is

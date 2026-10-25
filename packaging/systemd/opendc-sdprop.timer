@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Like the Windows SDProp task: every 15 minutes (Windows: 60), so a member added to a protected group with
+# other tools is protected soon. OpenDC's own tier-0 changes run it immediately.
+[Unit]
+Description=OpenDC SDProp every 15 minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=15min
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target

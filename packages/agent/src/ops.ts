@@ -9,6 +9,7 @@ import type { OsActions } from '@opendc/os';
 import type { Allowlist } from './allowlist.ts';
 import { join as joinDomain, provision } from './samba/provision.ts';
 import { fsmoShow, levelShow, sambaStatus } from './samba/info.ts';
+import { runSdPropIfPdc } from './samba/sdprop.ts';
 import { SambaLocal } from './samba/local.ts';
 import { preflight } from './setup/preflight.ts';
 import { renewConsoleCertificate } from './init-secrets.ts';
@@ -44,6 +45,7 @@ export const timeouts: Partial<Record<ImplementedOp, number>> = {
   'samba.join': 3_600_000,
   'samba.fsmo.show': 60_000,
   'samba.level.show': 60_000,
+  'samba.sdprop.run': 300_000,
 };
 
 /** In-memory registry commit lock. Registry commits are short; a holder that vanished expires. */
@@ -182,6 +184,8 @@ export const implementations: Impls = {
   'samba.status': async (_args, ctx) => sambaStatus(ctx.os),
   'samba.fsmo.show': async (_args, ctx) => fsmoShow(ctx.os),
   'samba.level.show': async (_args, ctx) => levelShow(ctx.os),
+  'samba.sdprop.run': async (_args, ctx) =>
+    runSdPropIfPdc(new SambaLocal(ctx.os), (await ctx.os.system.info()).hostname),
   'time.tracking': async (_args, ctx) => ctx.os.host.timeSync(),
   'file.writeManaged': async (args, ctx) => {
     const f = ctx.allowlist.file(args.fileId, ctx.socket, 'file.writeManaged');

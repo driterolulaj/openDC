@@ -19,6 +19,7 @@ import { parseLayer, withHeader } from '@opendc/registry';
 import { modifyRecord, unicodePwd, first } from './ldif.ts';
 import { SambaLocal } from './local.ts';
 import { PlatformBootstrap } from './platform.ts';
+import { runSdPropIfPdc } from './sdprop.ts';
 import type { NodeStateFile, SecretFiles } from '../state.ts';
 import { servicePassword } from '../state.ts';
 import type { SetupToken } from '../setup/token.ts';
@@ -198,6 +199,8 @@ class Setup {
     const accounts = await step('service-accounts', () =>
       platform.dcAccounts(host, { svc: servicePassword(), watch: servicePassword() }),
     );
+    // protect tier-0 accounts from the delegation just granted (Samba has no SDProp)
+    await step('sdprop', () => runSdPropIfPdc(this.samba, host));
     progress('secrets', 92);
     await step('secrets', async () => {
       const [svc, watch] = accounts;

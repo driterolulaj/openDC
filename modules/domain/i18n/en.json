@@ -176,6 +176,7 @@
       "read-domain": "Reading the domain",
       "platform": "Creating OpenDC platform objects",
       "service-accounts": "Creating service accounts",
+      "sdprop": "Protecting administrator accounts",
       "secrets": "Storing service credentials",
       "config": "Writing the node configuration",
       "certificate": "Renewing the console certificate",

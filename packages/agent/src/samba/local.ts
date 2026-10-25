@@ -57,7 +57,7 @@ export class SambaLocal {
     attrs: string[],
     url = this.samDb,
   ): Promise<LdifEntry[]> {
-    const argv = ['-H', url, '-s', scope, '-b', base, '--show-binary'];
+    const argv = ['-H', url, '-s', scope, '-b', base];
     if (filter) argv.push(filter.text);
     argv.push(...attrs);
     const out = await this.#run('ldbsearch', argv, { okExitCodes: [0] });
@@ -83,8 +83,9 @@ export class SambaLocal {
     await this.#run('ldbadd', ['-H', this.samDb], { stdin: ldif });
   }
 
-  async modify(ldif: string): Promise<void> {
-    await this.#run('ldbmodify', ['-H', this.samDb], { stdin: ldif });
+  /** `controls`: ldb control strings, e.g. "sd_flags:1:4" to write only the DACL. */
+  async modify(ldif: string, controls: string[] = []): Promise<void> {
+    await this.#run('ldbmodify', ['-H', this.samDb, ...controls.map((c) => `--controls=${c}`)], { stdin: ldif });
   }
 
   async rootDse(url = this.samDb): Promise<LdifEntry | undefined> {

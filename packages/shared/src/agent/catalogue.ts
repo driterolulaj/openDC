@@ -76,6 +76,8 @@ export const catalogue = {
   'samba.sites.subnet.setSite': { sockets: [A, C], risk: 'tier0', phase: 4 },
   'samba.sites.link.set': { sockets: [A, C], risk: 'tier0', phase: 4 },
   'samba.protectedObject.modify': { sockets: [A], risk: 'tier0', confirm: 'typed', phase: 2 },
+  // Samba has no SDProp; OpenDC protects tier-0 objects itself (agent-operations.md §3.3, Phase 2 note)
+  'samba.sdprop.run': { sockets: [A, C], risk: 'write', phase: 2 },
   'samba.gpo.list': { sockets: [A, W, C], risk: 'read', phase: 3 },
   'samba.gpo.backup': { sockets: [A, C], risk: 'write', phase: 3 },
   'samba.gpo.restore': { sockets: [A, C], risk: 'tier0', confirm: 'typed', phase: 3 },

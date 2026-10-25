@@ -95,6 +95,7 @@ export default {
     { op: 'samba.fsmo.show', from: ['api', 'cli'] },
     { op: 'samba.level.show', from: ['api', 'cli'] },
     { op: 'time.tracking', from: ['api', 'watch'] },
+    { op: 'samba.sdprop.run', from: ['api', 'cli'] },
     { op: 'service.restart', from: ['api'] },
     { op: 'service.enable', from: ['cli'] },
     { op: 'service.disable', from: ['cli'] },

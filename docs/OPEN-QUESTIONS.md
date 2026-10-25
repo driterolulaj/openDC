@@ -149,3 +149,26 @@ domain and addresses should packages, SECURITY.md and the console's "Source code
   stream
 - the watch account gets DS-Replication-Get-Changes on the domain head, and nothing broader
 - an optional streaming wake-up reader is decided in Phase 3
+
+## I. Raised during Phase 2 (2026-10-25)
+
+**Q21 (B, before Phase 2 ends) — Samba has no SDProp; approve OpenDC's own (ADR-0012 premise).** ADR-0012
+assumes the delegated account `opendc-svc-<host>` "can't modify protected accounts" because AdminSDHolder
+blocks inheritance on them. Tested on Samba 4.22: it doesn't. Administrator has `adminCount=1` but an
+unprotected DACL (`D:AI`), and new members of Domain Admins get neither `adminCount` nor a protected DACL, so
+the delegation granted on the domain head reaches them. The delegated account could reset a Domain Admin's
+password. **Implemented (pending your approval):**
+- a new agent operation `samba.sdprop.run` (catalogue §3.3) that does what the Windows SDProp task does. For
+  every member (transitive) of a protected group, the groups themselves, Administrator and krbtgt, it sets
+  `adminCount=1` and a protected DACL: AdminSDHolder's explicit ACEs plus the Windows defaults Samba's copy
+  lacks (BA/EA full control, change password for Everyone and SELF). It writes only the DACL (SD flags 4).
+- it runs at the end of setup, after OpenDC's own tier-0 changes, and from `opendc-sdprop.timer` every
+  15 minutes on the PDC emulator only (Windows: 60 minutes)
+- the API additionally treats an object as tier 0 when it is protected by `adminCount` or by transitive
+  membership in a protected group, so the guard holds even inside the 15-minute window
+- verified in the lab: before the run the delegated account can modify a new Domain Admin; afterwards it
+  can't, while ordinary users stay writable. The second run changes nothing.
+
+Alternatives: (a) narrow the delegation to OpenDC-managed OUs only (then default users in `CN=Users`
+can't be managed), (b) leave the API guard as the only barrier (contradicts ADR-0012's consequences
+section). If you approve, I'll add a short amendment to ADR-0012.

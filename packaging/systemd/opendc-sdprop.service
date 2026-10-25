@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Protects tier-0 accounts (Samba has no SDProp): on the PDC emulator, members of protected groups get
+# adminCount=1 and a protected DACL, so the delegated platform account can't modify them (ADR-0012).
+[Unit]
+Description=OpenDC SDProp (protect tier-0 accounts)
+After=samba-ad-dc.service
+ConditionPathExists=/etc/opendc/node.json
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/opendc/node/bin/node --disable-warning=ExperimentalWarning /usr/lib/opendc/app/node_modules/@opendc/agent/dist/main.js --sdprop
+UMask=0077
+NoNewPrivileges=yes
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictRealtime=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK

@@ -6,7 +6,8 @@ systemd-sysusers /usr/lib/sysusers.d/opendc.conf
 systemd-tmpfiles --create /usr/lib/tmpfiles.d/opendc.conf
 if [ -d /run/systemd/system ]; then
   systemctl daemon-reload
-  systemctl enable opendc-secrets-init.service opendc-agent-api.socket opendc-agent-watch.socket opendc-agent-cli.socket opendc-api.service opendc-watcher.service >/dev/null
+  systemctl enable opendc-secrets-init.service opendc-agent-api.socket opendc-agent-watch.socket opendc-agent-cli.socket opendc-api.service opendc-watcher.service opendc-sdprop.timer >/dev/null
+  systemctl start opendc-sdprop.timer
   systemctl restart opendc-secrets-init.service
   systemctl restart opendc-agent-api.socket opendc-agent-watch.socket opendc-agent-cli.socket
   # A running agent keeps the old code; restart it (it is socket-activated, so a stopped one is fine too).

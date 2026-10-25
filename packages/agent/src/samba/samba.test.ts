@@ -87,3 +87,22 @@ test('networkOf derives the CIDR of an interface address', () => {
   assert.equal(networkOf('192.168.5.130', 25), '192.168.5.128/25');
   assert.equal(networkOf('172.16.3.4', 0), '0.0.0.0/0');
 });
+
+test('SDProp: protected DACL from AdminSDHolder, and the match is order-insensitive', async () => {
+  const { protectedDacl, daclMatches } = await import('./sdprop.ts');
+  const holder =
+    'O:DAG:DAD:AI(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;DA)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;SY)(A;;LCRPLORC;;;AU)(OA;CIID;CCDC;bf967aba-0de6-11d0-a285-00aa003049e2;;S-1-5-21-1-2-3-1103)S:AI(OU;CIIOIDSA;WP;x;y;WD)';
+  const dacl = protectedDacl(holder);
+  assert.ok(dacl.startsWith('D:P(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;DA)'));
+  assert.ok(!dacl.includes('1103'), 'inherited ACEs (the delegation) are dropped');
+  assert.ok(dacl.includes(';;WD)') && dacl.includes(';;BA)'));
+  const stored = `O:DAG:DA${dacl.replace('D:P', 'D:PAI')}S:AI(OU;CIIOIDSA;WP;x;y;WD)`;
+  assert.ok(daclMatches(stored, dacl));
+  const reordered = `O:DAG:DAD:P${[...dacl.slice(3).matchAll(/\([^)]*\)/g)]
+    .map((m) => m[0])
+    .reverse()
+    .join('')}`;
+  assert.ok(daclMatches(reordered, dacl));
+  assert.ok(!daclMatches(stored.replace('D:PAI', 'D:AI'), dacl), 'not protected');
+  assert.ok(!daclMatches(`${stored}`.replace(';;;AU)', ';;;AU)(A;;GA;;;S-1-5-21-1-2-3-1103)'), dacl), 'extra ACE');
+});

@@ -12,6 +12,8 @@ import { agentSocket, nodeRoles, type AgentSocket, type NodeRole } from '@opendc
 import { loadAllowlist } from './allowlist.ts';
 import { AgentServer, type LogLine } from './server.ts';
 import { initSecrets } from './init-secrets.ts';
+import { SambaLocal } from './samba/local.ts';
+import { runSdPropIfPdc } from './samba/sdprop.ts';
 import { SetupToken } from './setup/token.ts';
 import { NodeStateFile, SecretFiles } from './state.ts';
 
@@ -52,8 +54,16 @@ async function main(): Promise<void> {
       listen: { type: 'string', multiple: true },
       role: { type: 'string' },
       'init-secrets': { type: 'boolean' },
+      sdprop: { type: 'boolean' },
     },
   });
+  if (values.sdprop) {
+    // opendc-sdprop.timer: protect tier-0 accounts on the PDC emulator
+    const os = await detectActions();
+    const r = await runSdPropIfPdc(new SambaLocal(os), (await os.system.info()).hostname);
+    log({ level: 'info', msg: 'sdprop', ...r });
+    return;
+  }
   if (values['init-secrets']) {
     await initSecrets(await detectActions(), (msg, extra) => {
       log({ level: 'info', msg, ...extra });
