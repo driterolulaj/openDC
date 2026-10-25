@@ -2,8 +2,8 @@
 
 **B** = blocks Phase 1. **L** = needed later (phase noted). Each question has a recommendation.
 
-**Status 2026-10-24:** all blocking questions are answered (marked inline). Still open: Q2 (IANA PEN, before any
-schema work), Q7 (front proxy and ACME, before Phase 3), Q9, Q14–Q16.
+**Status 2026-10-25:** all blocking questions are answered (marked inline). Still open: Q2 (IANA PEN, before any
+schema work), Q7 (front proxy and ACME, needed for the ACME part of Phase 3), Q9, Q14–Q16.
 
 ## A. Naming, legal, identifiers
 
@@ -152,7 +152,7 @@ domain and addresses should packages, SECURITY.md and the console's "Source code
 
 ## I. Raised during Phase 2 (2026-10-25)
 
-**Q21 (B, before Phase 2 ends) — Samba has no SDProp; approve OpenDC's own (ADR-0012 premise).** ADR-0012
+**Q21 (B, before Phase 2 ends) — Samba has no SDProp; approve OpenDC's own (ADR-0012 premise).** *Answered 2026-10-25: approved, written into ADR-0012.* ADR-0012
 assumes the delegated account `opendc-svc-<host>` "can't modify protected accounts" because AdminSDHolder
 blocks inheritance on them. Tested on Samba 4.22: it doesn't. Administrator has `adminCount=1` but an
 unprotected DACL (`D:AI`), and new members of Domain Admins get neither `adminCount` nor a protected DACL, so
@@ -173,14 +173,14 @@ Alternatives: (a) narrow the delegation to OpenDC-managed OUs only (then default
 can't be managed), (b) leave the API guard as the only barrier (contradicts ADR-0012's consequences
 section). If you approve, I'll add a short amendment to ADR-0012.
 
-**Q22 (C, Phase 3) — POSIX IDs for objects created outside OpenDC.** ADR-0018 writes `idBase + RID` when
+**Q22 (C, Phase 3) — POSIX IDs for objects created outside OpenDC.** *Answered 2026-10-25: (a) and (b), written into ADR-0018.* ADR-0018 writes `idBase + RID` when
 OpenDC creates a user or group. Accounts created with RSAT, `samba-tool` or a migration have no `uidNumber`,
 and Linux members with `ldap_id_mapping = False` don't see them at all (seen in the lab: a `samba-tool` user is
 missing from `getent` on client1; console users resolve). Options: (a) the watcher (Phase 3) fills in missing
 values for new users and groups, using the same rule, and logs each one in the audit; (b) a "Fill in POSIX IDs"
 bulk action only; (c) leave as is and document it. Recommendation: (a) plus (b) for existing objects.
 
-**Q23 (B, before Phase 2 ends) — Network apply-with-rollback in the setup wizard.** The roadmap lists it;
+**Q23 (B, before Phase 2 ends) — Network apply-with-rollback in the setup wizard.** *Answered 2026-10-25: (b), moved to Phase 6.* The roadmap lists it;
 it isn't built. Pre-flight requires a static address and tells the admin to set one (all lab hosts and most
 servers already have one). Options: (a) build it now: the wizard writes the netplan/ifupdown/NetworkManager
 config, applies it, and rolls back unless the browser confirms through the new address within 120 s;

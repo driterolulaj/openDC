@@ -1,6 +1,6 @@
 # ADR-0018: POSIX IDs from the RID (RFC2307 attributes)
 
-Status: Accepted 2026-10-24 · Date: 2026-10-06
+Status: Accepted 2026-10-24 · Date: 2026-10-06 · Amended 2026-10-25: objects created elsewhere (Q22)
 
 ## Context
 Linux members, NFS and file shares need the same UID/GID for a user on every host. Counter-based allocation in
@@ -17,6 +17,11 @@ a multi-master directory can produce duplicates when two DCs allocate at the sam
 - Linux members read these attributes: sssd with `ldap_id_mapping = false`, or winbind with `idmap_ad`. The
   join scripts render the matching config.
 - Admins can override a value by hand; uniqueness is checked through a directory search before saving.
+- **Objects created outside OpenDC (Q22).** RSAT, `samba-tool` and migrations create users and groups without
+  `uidNumber`/`gidNumber`, and Linux members with `ldap_id_mapping = false` don't see them. The watcher fills in
+  `idBase + RID` (and `gidNumber` of the primary group for users) for new users and groups that lack them, one
+  audit entry per object; it never overwrites an existing value. A "Fill in POSIX IDs" bulk action does the
+  same for existing objects.
 
 ## Consequences
 - Deterministic, conflict-free, and stable across rename and move.

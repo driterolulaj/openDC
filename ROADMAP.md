@@ -78,9 +78,9 @@ are updated.
 ---
 
 ## Phase 2: Domain core
-- [ ] Setup wizard (web + `opendc setup` CLI): role selection, hostname/FQDN, realm/NetBIOS, network (apply
-  with rollback), time, admin password; setup token. *Done except network apply-with-rollback: pre-flight
-  requires a static address and tells the admin to configure one.*
+- [x] Setup wizard (web + `opendc setup` CLI): role selection, hostname/FQDN, realm/NetBIOS, time, admin
+  password; setup token. *Network apply-with-rollback moved to Phase 6 (Q23); pre-flight requires a static
+  address.*
 - [x] Pre-flight checks: DNS, time drift, ports, hostname validity (NetBIOS ≤ 15), disk, xattr/ACL,
   SELinux/AppArmor, port 53 conflict.
 - [x] Provision primary DC (`samba.provision`, RFC2307, 2012_R2/2016 schema choice); join additional DC
@@ -126,6 +126,7 @@ are updated.
 
 ## Phase 3: Network services
 - [ ] Watcher: DirSync/USN follower, per-DC checkpoints, full resync, handler quarantine, metrics.
+- [ ] POSIX IDs for users and groups created outside OpenDC: watcher handler and a bulk action (ADR-0018, Q22).
 - [ ] Policies module: policy types, links, enforced/priority, effective-policy viewer; registry `domain-policy`
   layer; OU-linked password policies through shadow groups + PSOs.
 - [ ] DNS: zones (forward/reverse), records, auto-PTR, aging/scavenging, forwarders, DNS diagnostics (SRV,
@@ -226,6 +227,8 @@ are updated.
 - [ ] RHEL-family and SUSE adapters (member/managed native; DC through container mode); Arch/Alpine agent-only
   (Tier 2).
 - [ ] Samba AD DC container image: build, sign, SBOM, GPL source publication, security-update pipeline.
+- [ ] Setup wizard network step: apply the address configuration with automatic rollback unless confirmed
+  through the new address (moved from Phase 2, Q23).
 
 **Acceptance:**
 1. Rocky 9 DC in container mode joins the Debian-based `standard` lab domain; replication clean, console works

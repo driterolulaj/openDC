@@ -1,6 +1,6 @@
 # ADR-0012: `ldapts` and the directory bind model
 
-Status: Accepted 2026-10-24 · Date: 2026-10-06 · Decided by the project owner (Q4) · Amended 2026-10-24: account naming (Q18)
+Status: Accepted 2026-10-24 · Date: 2026-10-06 · Decided by the project owner (Q4) · Amended 2026-10-24: account naming (Q18) · Amended 2026-10-25: OpenDC SDProp (Q21)
 
 ## Context
 The API needs an identity to bind to the directory with. `ldapts` supports simple and a few SASL binds but
@@ -40,7 +40,15 @@ would mean keeping their plaintext password in session memory for the whole sess
    - App accounts use `odca-<appId cut to 10>-<4 hex of SHA-256(appId/instance)>`, which is also at most 20
      characters.
    - Logs and the audit trail show the readable name together with the objectGUID.
-4. **Password rotation:** service account passwords are random (32 bytes, base64), rotated every 30 days by the
+4. **Protected objects need OpenDC's own SDProp (Q21).** Samba (tested on 4.22) has no SDProp task: members of
+   protected groups don't get `adminCount=1` or a protected DACL, so the tier-1 delegation on the domain head
+   reaches them. The agent operation `samba.sdprop.run` does what the Windows task does: for every transitive
+   member of a protected group, the groups themselves, Administrator and krbtgt it sets `adminCount=1` and a
+   protected DACL (AdminSDHolder's explicit ACEs plus BA/EA full control and change password for Everyone and
+   SELF), writing only the DACL. It runs at the end of setup and from `opendc-sdprop.timer` every 15 minutes on
+   whichever DC holds the PDC emulator role. Inside that window the API's tier-0 guard (`adminCount`, protected
+   SIDs, DC accounts, transitive membership via `tokenGroups`) still refuses tier-1 writes.
+5. **Password rotation:** service account passwords are random (32 bytes, base64), rotated every 30 days by the
    leader through the agent, and redistributed to the owning node only.
 
 ## Consequences
