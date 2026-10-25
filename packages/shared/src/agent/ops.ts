@@ -13,6 +13,7 @@ import {
   provisionResult,
   setupState,
 } from '../domain/setup.ts';
+import { passwordPolicies, passwordPolicyChange } from '../domain/password-policy.ts';
 
 const MAX_MANAGED_FILE_BYTES = 1024 * 1024;
 
@@ -163,6 +164,8 @@ export const ops = {
     args: z.strictObject({ targetGuid: z.uuid(), change: protectedChange }),
     result: z.object({ dn: z.string(), sdprop: z.number() }),
   },
+  'samba.passwordPolicy.show': { v: 1, args: empty, result: passwordPolicies },
+  'samba.passwordPolicy.set': { v: 1, args: passwordPolicyChange, result: passwordPolicies },
   'samba.sdprop.run': {
     v: 1,
     args: empty,

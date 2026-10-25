@@ -7,6 +7,7 @@
 import { PlatformError } from '@opendc/shared';
 import { mintConfirmation, type AgentClient, type OpArgs } from '@opendc/shared/agent';
 import { z } from 'zod';
+import { passwordPolicies, passwordPolicyChange } from '@opendc/shared/domain';
 import type { AuditLog } from '../audit.ts';
 import type { RouteTable } from '../http/route.ts';
 
@@ -161,6 +162,50 @@ export function domainRoutes(
         result: 'success',
         before,
         after,
+        requestId: c.requestId,
+      });
+      return after;
+    },
+  });
+
+  t.add({
+    method: 'GET',
+    url: '/api/v1/domain/password-policies',
+    operationId: 'getPasswordPolicies',
+    summary: 'The default domain password policy and the fine-grained policies (PSOs)',
+    tags: ['domain'],
+    auth: { permission: 'domain.passwordPolicy.read' },
+    response: passwordPolicies,
+    handler: async (c) =>
+      agent().call('samba.passwordPolicy.show', {}, { actor: { name: c.user.username, sid: c.user.sid, via: 'api' } }),
+  });
+
+  t.add({
+    method: 'PUT',
+    url: '/api/v1/domain/password-policies',
+    operationId: 'setPasswordPolicy',
+    summary: 'Change the default policy, create/update a PSO (with its users and groups) or delete a PSO',
+    tags: ['domain'],
+    auth: { permission: 'domain.passwordPolicy.write' },
+    body: passwordPolicyChange,
+    response: passwordPolicies,
+    handler: async (c) => {
+      c.require('domain.passwordPolicy.write', { protected: true, label: 'password policy' });
+      const actor = { name: c.user.username, sid: c.user.sid, via: 'api' as const };
+      const before = await agent().call('samba.passwordPolicy.show', {}, { actor });
+      const after = await agent().call('samba.passwordPolicy.set', c.body, { actor, timeoutMs: 300_000 });
+      const pick = (p: z.infer<typeof passwordPolicies>): unknown =>
+        c.body.kind === 'default'
+          ? p.default
+          : (p.psos.find((x) => x.name.toLowerCase() === (c.body as { name: string }).name.toLowerCase()) ?? null);
+      d.audit.append({
+        actor: c.user.username,
+        actorSid: c.user.sid,
+        sourceIp: c.ip,
+        action: `domain.password-policy.${c.body.kind}`,
+        result: 'success',
+        before: pick(before),
+        after: pick(after),
         requestId: c.requestId,
       });
       return after;

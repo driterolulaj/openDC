@@ -24,7 +24,8 @@
     "audit": "Audit log",
     "directory": "Directory",
     "domain": "Domain",
-    "rbac": "Roles"
+    "rbac": "Roles",
+    "passwordPolicies": "Password policies"
   },
   "home": {
     "title": "Overview",
@@ -343,5 +344,29 @@
     "scope-ou": "per OU",
     "scope-node": "per node",
     "scope-global": "global"
+  },
+  "pwp": {
+    "title": "Password policies",
+    "default": "Default domain policy",
+    "default-hint": "Applies to every account that no fine-grained policy covers.",
+    "psos": "Fine-grained policies (PSOs)",
+    "psos-hint": "Apply to users and groups directly. With several, the lowest precedence wins. OU-linked policies arrive with policies in Phase 3.",
+    "new-pso": "New policy",
+    "edit-pso": "Edit policy",
+    "name": "Name",
+    "precedence": "Precedence",
+    "precedence-hint": "Lower wins.",
+    "applies-to": "Applies to",
+    "complexity": "Require complex passwords",
+    "complexity-hint": "Three of: upper case, lower case, digits, symbols; not containing the account name.",
+    "minLength": "Minimum length",
+    "historyLength": "Remembered passwords",
+    "minAgeDays": "Minimum age (days)",
+    "maxAgeDays": "Maximum age (days)",
+    "maxAgeDays-hint": "0: passwords never expire.",
+    "lockoutThreshold": "Failed logons before lockout",
+    "lockoutThreshold-hint": "0: accounts never lock.",
+    "lockoutDurationMinutes": "Lockout duration (minutes)",
+    "lockoutWindowMinutes": "Reset failed-logon count after (minutes)"
   }
 }

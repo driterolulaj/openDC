@@ -2,3 +2,4 @@
 // Browser-safe: domain names, setup contract and their texts.
 export * from './names.ts';
 export * from './setup.ts';
+export * from './password-policy.ts';

@@ -24,6 +24,7 @@ const Directory = lazy(() => import('./pages/directory/Directory.tsx'));
 const ObjectView = lazy(() => import('./pages/directory/ObjectView.tsx'));
 const Domain = lazy(() => import('./pages/Domain.tsx'));
 const Rbac = lazy(() => import('./pages/Rbac.tsx'));
+const PasswordPolicies = lazy(() => import('./pages/PasswordPolicies.tsx'));
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
 
@@ -47,6 +48,7 @@ const router = createBrowserRouter(
         { path: 'directory/:guid', element: <ObjectView /> },
         { path: 'domain', element: <Domain /> },
         { path: 'rbac', element: <Rbac /> },
+        { path: 'password-policies', element: <PasswordPolicies /> },
         ...moduleRoutes.filter((r) => r.area === 'console').map((r) => ({ path: r.path, element: <r.component /> })),
       ],
     },

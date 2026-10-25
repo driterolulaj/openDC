@@ -24,7 +24,8 @@
     "audit": "Audit-Log",
     "directory": "Verzeichnis",
     "domain": "Domäne",
-    "rbac": "Rollen"
+    "rbac": "Rollen",
+    "passwordPolicies": "Passwortrichtlinien"
   },
   "home": {
     "title": "Übersicht",
@@ -343,5 +344,29 @@
     "scope-ou": "pro OU",
     "scope-node": "pro Knoten",
     "scope-global": "global"
+  },
+  "pwp": {
+    "title": "Passwortrichtlinien",
+    "default": "Standard-Domänenrichtlinie",
+    "default-hint": "Gilt für jedes Konto, das keine feinkörnige Richtlinie abdeckt.",
+    "psos": "Feinkörnige Richtlinien (PSOs)",
+    "psos-hint": "Gelten direkt für Benutzer und Gruppen. Bei mehreren gewinnt die niedrigste Rangfolge. An OUs gebundene Richtlinien kommen mit den Richtlinien in Phase 3.",
+    "new-pso": "Neue Richtlinie",
+    "edit-pso": "Richtlinie bearbeiten",
+    "name": "Name",
+    "precedence": "Rangfolge",
+    "precedence-hint": "Niedriger gewinnt.",
+    "applies-to": "Gilt für",
+    "complexity": "Komplexe Passwörter verlangen",
+    "complexity-hint": "Drei von: Großbuchstaben, Kleinbuchstaben, Ziffern, Sonderzeichen; ohne den Kontonamen.",
+    "minLength": "Mindestlänge",
+    "historyLength": "Gemerkte Passwörter",
+    "minAgeDays": "Mindestalter (Tage)",
+    "maxAgeDays": "Höchstalter (Tage)",
+    "maxAgeDays-hint": "0: Passwörter laufen nie ab.",
+    "lockoutThreshold": "Fehlanmeldungen bis zur Sperre",
+    "lockoutThreshold-hint": "0: Konten werden nie gesperrt.",
+    "lockoutDurationMinutes": "Sperrdauer (Minuten)",
+    "lockoutWindowMinutes": "Fehlanmeldezähler zurücksetzen nach (Minuten)"
   }
 }

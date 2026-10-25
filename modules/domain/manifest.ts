@@ -100,6 +100,8 @@ export default {
     { op: 'samba.fsmo.transfer', from: ['api', 'cli'] },
     { op: 'samba.fsmo.seize', from: ['api', 'cli'] },
     { op: 'samba.level.raise', from: ['api', 'cli'] },
+    { op: 'samba.passwordPolicy.show', from: ['api', 'cli'] },
+    { op: 'samba.passwordPolicy.set', from: ['api', 'cli'] },
     { op: 'service.restart', from: ['api'] },
     { op: 'service.enable', from: ['cli'] },
     { op: 'service.disable', from: ['cli'] },

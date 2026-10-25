@@ -10706,6 +10706,590 @@
         }
       }
     },
+    "/api/v1/domain/password-policies": {
+      "get": {
+        "operationId": "getPasswordPolicies",
+        "summary": "The default domain password policy and the fine-grained policies (PSOs)",
+        "tags": [
+          "domain"
+        ],
+        "x-opendc-auth": {
+          "permission": "domain.passwordPolicy.read"
+        },
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "default": {
+                      "type": "object",
+                      "properties": {
+                        "complexity": {
+                          "type": "boolean"
+                        },
+                        "minLength": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 255
+                        },
+                        "historyLength": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 24
+                        },
+                        "minAgeDays": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 998
+                        },
+                        "maxAgeDays": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 999
+                        },
+                        "lockoutThreshold": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 999
+                        },
+                        "lockoutDurationMinutes": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 99999
+                        },
+                        "lockoutWindowMinutes": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 99999
+                        }
+                      },
+                      "required": [
+                        "complexity",
+                        "minLength",
+                        "historyLength",
+                        "minAgeDays",
+                        "maxAgeDays",
+                        "lockoutThreshold",
+                        "lockoutDurationMinutes",
+                        "lockoutWindowMinutes"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "psos": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "guid": {
+                            "type": "string"
+                          },
+                          "precedence": {
+                            "type": "number"
+                          },
+                          "settings": {
+                            "type": "object",
+                            "properties": {
+                              "complexity": {
+                                "type": "boolean"
+                              },
+                              "minLength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 255
+                              },
+                              "historyLength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 24
+                              },
+                              "minAgeDays": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 998
+                              },
+                              "maxAgeDays": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 999
+                              },
+                              "lockoutThreshold": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 999
+                              },
+                              "lockoutDurationMinutes": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 99999
+                              },
+                              "lockoutWindowMinutes": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 99999
+                              }
+                            },
+                            "required": [
+                              "complexity",
+                              "minLength",
+                              "historyLength",
+                              "minAgeDays",
+                              "maxAgeDays",
+                              "lockoutThreshold",
+                              "lockoutDurationMinutes",
+                              "lockoutWindowMinutes"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "appliesTo": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "guid": {
+                                  "type": "string"
+                                },
+                                "dn": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "guid",
+                                "dn",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "guid",
+                          "precedence",
+                          "settings",
+                          "appliesTo"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "default",
+                    "psos"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "setPasswordPolicy",
+        "summary": "Change the default policy, create/update a PSO (with its users and groups) or delete a PSO",
+        "tags": [
+          "domain"
+        ],
+        "x-opendc-auth": {
+          "permission": "domain.passwordPolicy.write"
+        },
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "default"
+                      },
+                      "settings": {
+                        "type": "object",
+                        "properties": {
+                          "complexity": {
+                            "type": "boolean"
+                          },
+                          "minLength": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 255
+                          },
+                          "historyLength": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 24
+                          },
+                          "minAgeDays": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 998
+                          },
+                          "maxAgeDays": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 999
+                          },
+                          "lockoutThreshold": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 999
+                          },
+                          "lockoutDurationMinutes": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 99999
+                          },
+                          "lockoutWindowMinutes": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 99999
+                          }
+                        },
+                        "required": [
+                          "complexity",
+                          "minLength",
+                          "historyLength",
+                          "minAgeDays",
+                          "maxAgeDays",
+                          "lockoutThreshold",
+                          "lockoutDurationMinutes",
+                          "lockoutWindowMinutes"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "settings"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "pso"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9 ._-]*$"
+                      },
+                      "precedence": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 2147483647
+                      },
+                      "settings": {
+                        "type": "object",
+                        "properties": {
+                          "complexity": {
+                            "type": "boolean"
+                          },
+                          "minLength": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 255
+                          },
+                          "historyLength": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 24
+                          },
+                          "minAgeDays": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 998
+                          },
+                          "maxAgeDays": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 999
+                          },
+                          "lockoutThreshold": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 999
+                          },
+                          "lockoutDurationMinutes": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 99999
+                          },
+                          "lockoutWindowMinutes": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 99999
+                          }
+                        },
+                        "required": [
+                          "complexity",
+                          "minLength",
+                          "historyLength",
+                          "minAgeDays",
+                          "maxAgeDays",
+                          "lockoutThreshold",
+                          "lockoutDurationMinutes",
+                          "lockoutWindowMinutes"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "appliesTo": {
+                        "maxItems": 200,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        }
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "name",
+                      "precedence",
+                      "settings",
+                      "appliesTo"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "psoDelete"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9 ._-]*$"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "name"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "default": {
+                      "type": "object",
+                      "properties": {
+                        "complexity": {
+                          "type": "boolean"
+                        },
+                        "minLength": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 255
+                        },
+                        "historyLength": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 24
+                        },
+                        "minAgeDays": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 998
+                        },
+                        "maxAgeDays": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 999
+                        },
+                        "lockoutThreshold": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 999
+                        },
+                        "lockoutDurationMinutes": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 99999
+                        },
+                        "lockoutWindowMinutes": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 99999
+                        }
+                      },
+                      "required": [
+                        "complexity",
+                        "minLength",
+                        "historyLength",
+                        "minAgeDays",
+                        "maxAgeDays",
+                        "lockoutThreshold",
+                        "lockoutDurationMinutes",
+                        "lockoutWindowMinutes"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "psos": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "guid": {
+                            "type": "string"
+                          },
+                          "precedence": {
+                            "type": "number"
+                          },
+                          "settings": {
+                            "type": "object",
+                            "properties": {
+                              "complexity": {
+                                "type": "boolean"
+                              },
+                              "minLength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 255
+                              },
+                              "historyLength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 24
+                              },
+                              "minAgeDays": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 998
+                              },
+                              "maxAgeDays": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 999
+                              },
+                              "lockoutThreshold": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 999
+                              },
+                              "lockoutDurationMinutes": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 99999
+                              },
+                              "lockoutWindowMinutes": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 99999
+                              }
+                            },
+                            "required": [
+                              "complexity",
+                              "minLength",
+                              "historyLength",
+                              "minAgeDays",
+                              "maxAgeDays",
+                              "lockoutThreshold",
+                              "lockoutDurationMinutes",
+                              "lockoutWindowMinutes"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "appliesTo": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "guid": {
+                                  "type": "string"
+                                },
+                                "dn": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "guid",
+                                "dn",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "guid",
+                          "precedence",
+                          "settings",
+                          "appliesTo"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "default",
+                    "psos"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/health": {
       "get": {
         "operationId": "health",
