@@ -75,6 +75,14 @@ export class SambaLocal {
     }
   }
 
+  /** Base-scope read that also sees deleted objects and CN=Deleted Objects itself. */
+  async getDeleted(dn: string, attrs: string[]): Promise<LdifEntry | null> {
+    const out = await this.#run('ldbsearch', ['-H', this.samDb, '--show-deleted', '-s', 'base', '-b', dn, ...attrs], {
+      okExitCodes: [0],
+    }).catch(() => '');
+    return parseLdif(out)[0] ?? null;
+  }
+
   async exists(dn: string): Promise<boolean> {
     return (await this.get(dn, ['objectClass'])) !== null;
   }

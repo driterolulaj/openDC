@@ -334,4 +334,8 @@ test('base and scope: one level, subtree, base, {platform}, deletions by last kn
   assert.ok(!engine.inScope(h('OU=Other', 'one'), ev('CN=d', del)));
   assert.ok(engine.inScope(h('OU=Other', 'one'), ev('CN=d', { isDeleted: 'TRUE' })), 'unknown parent: deliver');
   assert.ok(engine.inScope(h('', 'sub'), ev('CN=d', { isDeleted: ['TRUE'], lastKnownParent: `OU=Staff,${DOMAIN}` })));
+  // extended DN form, as AD returns it
+  const ext = { isDeleted: 'TRUE', lastKnownParent: `<GUID=0f00>;OU=Staff,${DOMAIN}` };
+  assert.ok(engine.inScope(ous, ev('CN=d', ext)));
+  assert.ok(!engine.inScope(h('OU=Other', 'one'), ev('CN=d', ext)));
 });

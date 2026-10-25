@@ -164,6 +164,7 @@ export const ops = {
     args: z.strictObject({ targetGuid: z.uuid(), change: protectedChange }),
     result: z.object({ dn: z.string(), sdprop: z.number() }),
   },
+  'platform.watchAccess.ensure': { v: 1, args: empty, result: z.object({ changed: z.array(z.string()) }) },
   'directory.posixIds.fill': {
     v: 1,
     args: z.strictObject({ guids: z.array(z.uuid()).min(1).max(500) }),

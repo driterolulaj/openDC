@@ -181,12 +181,34 @@ export class PlatformBootstrap {
     if (!members.some((m) => m.toLowerCase() === svc.dn.toLowerCase())) {
       await this.#s.modify(modifyRecord(groupDn, [{ op: 'add', attr: 'member', values: [svc.dn] }]));
     }
-    // DirSync for the watcher
     const sid = first(await this.#s.get(watch.dn, ['objectSid']), 'objectSid');
-    if (sid && !(await this.#hasAce(this.#domainDn, sid))) {
-      await this.#acl(this.#domainDn, `(OA;;CR;${GET_CHANGES};;${sid})`);
-    }
+    if (sid) await this.watchAccess(sid);
     return [svc, watch];
+  }
+
+  /**
+   * What a watch account needs (ADR-0004; idempotent): DS-Replication-Get-Changes on the domain head for DirSync,
+   * and read on CN=Deleted Objects, without which DirSync silently drops tombstones (deletions would go unseen).
+   * Tombstones keep no secrets (unicodePwd and the other secret attributes are stripped on deletion).
+   */
+  async watchAccess(sid: string): Promise<string[]> {
+    const changed: string[] = [];
+    if (!(await this.#hasAce(this.#domainDn, sid))) {
+      await this.#acl(this.#domainDn, `(OA;;CR;${GET_CHANGES};;${sid})`);
+      changed.push('dirsync');
+    }
+    const deleted = childDn(this.#domainDn, 'CN', 'Deleted Objects');
+    const sd = first(await this.#s.getDeleted(deleted, ['nTSecurityDescriptor']), 'nTSecurityDescriptor') ?? '';
+    const dacl = /D:([A-Z]*)((?:\([^)]*\))*)/.exec(sd);
+    if (dacl && !sd.includes(sid)) {
+      const sddl = `D:${dacl[1] ?? ''}${dacl[2] ?? ''}(A;;LCRP;;;${sid})`;
+      await this.#s.modify(modifyRecord(deleted, [{ op: 'replace', attr: 'nTSecurityDescriptor', values: [sddl] }]), [
+        'show_deleted:1',
+        'sd_flags:1:4',
+      ]);
+      changed.push('deleted-objects');
+    }
+    return changed;
   }
 
   async #account(cn: string, sam: string, password: string, description: string): Promise<ServiceAccount> {

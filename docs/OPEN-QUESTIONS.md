@@ -187,3 +187,18 @@ config, applies it, and rolls back unless the browser confirms through the new a
 (b) move it to Phase 6 (appliance/ISO), where OpenDC owns the network configuration anyway.
 Recommendation: (b); it touches three network stacks and is the riskiest step of setup for little gain on
 hosts that already run.
+
+## J. Raised during Phase 3 (2026-10-25)
+
+**Q24 (B, before Phase 3 ends) — The watch account needs read access to `CN=Deleted Objects` (ADR-0004/0012).**
+DirSync silently drops tombstones for an account that can't read `CN=Deleted Objects`, whose default DACL admits
+only SYSTEM and Administrators. Spike S2 saw tombstones because it ran as Administrator; the delegated watch
+account `odcw-<host>` didn't, so deletions (a deleted policy, later a deleted DHCP reservation) were never seen.
+**Implemented (pending your approval):** each DC's watch account gets one more ACE, `(A;;LCRP;;;<sid>)` (list
+contents, read properties) on `CN=Deleted Objects`, appended to the existing DACL; setup grants it and the
+watcher ensures it at start through the new agent operation `platform.watchAccess.ensure` (no arguments: only
+this DC's own watch account). Tombstones hold no secrets (passwords and other secret attributes are removed on
+deletion). Verified in the lab: before, a deleted platform object produced no DirSync entry for the watch
+account; after, the tombstone arrives with `isDeleted` and `lastKnownParent`. Alternative: periodic full
+reconciles instead of deletion events (slower, and every handler would have to diff against its last output).
+If you approve, I'll add a short amendment to ADR-0004 and ADR-0012.

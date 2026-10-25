@@ -134,6 +134,15 @@ async function main(): Promise<void> {
     ...(tlsServerName ? { tlsServerName } : {}),
   });
   const handlers = watchers.filter((w) => roleMatches(node.role, w.roles));
+  if (roleMatches(node.role, ['writable-dc'])) {
+    // read access to tombstones, without which deletions are never seen (older installs lack it)
+    try {
+      const r = await client.call('platform.watchAccess.ensure', {}, { actor, timeoutMs: 120_000 });
+      if (r.changed.length) log('info', 'watch account access completed', { changed: r.changed });
+    } catch (e) {
+      log('warn', 'could not check the watch account access', { error: e instanceof Error ? e.message : String(e) });
+    }
+  }
   const stateDir = join(facts.paths.state, 'watcher');
   mkdirSync(stateDir, { recursive: true, mode: 0o700 });
   const state = new SqliteCheckpoints(openDb(join(stateDir, 'watcher.db'), watcherMigrations));

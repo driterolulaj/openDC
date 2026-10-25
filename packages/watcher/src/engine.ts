@@ -127,8 +127,10 @@ export class WatcherEngine {
   inScope(h: WatchedHandler, e: WatchEvent): boolean {
     const base = lower(this.baseOf(h));
     if (e.deleted) {
-      const lkp = e.entry.lastKnownParent;
-      if (typeof lkp !== 'string' || !lkp) return true;
+      const raw = e.entry.lastKnownParent;
+      // AD returns lastKnownParent as an extended DN: <GUID=...>;CN=...
+      const lkp = (Array.isArray(raw) ? raw[0] : raw)?.toString().replace(/^(<[^>]*>;)+/, '') ?? '';
+      if (!lkp) return true;
       const p = lower(lkp);
       return h.scope === 'one' ? p === base : h.scope === 'sub' ? p === base || p.endsWith(`,${base}`) : true;
     }

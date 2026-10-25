@@ -98,6 +98,7 @@ export default {
     { op: 'samba.sdprop.run', from: ['api', 'cli'] },
     { op: 'samba.protectedObject.modify', from: ['api'] },
     { op: 'directory.posixIds.fill', from: ['api', 'watch', 'cli'] },
+    { op: 'platform.watchAccess.ensure', from: ['watch', 'cli'] },
     { op: 'samba.fsmo.transfer', from: ['api', 'cli'] },
     { op: 'samba.fsmo.seize', from: ['api', 'cli'] },
     { op: 'samba.level.raise', from: ['api', 'cli'] },

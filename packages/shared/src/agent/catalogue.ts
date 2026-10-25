@@ -78,6 +78,8 @@ export const catalogue = {
   'samba.protectedObject.modify': { sockets: [A], risk: 'tier0', confirm: 'typed', phase: 2 },
   // Samba has no SDProp; OpenDC protects tier-0 objects itself (agent-operations.md §3.3, Phase 2 note)
   'samba.sdprop.run': { sockets: [A, C], risk: 'write', phase: 2 },
+  // the watch account of this DC: DirSync right and read on CN=Deleted Objects (ADR-0004); called by the watcher
+  'platform.watchAccess.ensure': { sockets: [W, C], risk: 'write', phase: 3 },
   // RFC2307 IDs for objects created outside OpenDC (ADR-0018, Q22): watcher handler and bulk action
   'directory.posixIds.fill': { sockets: [A, W, C], risk: 'write', phase: 3 },
   // OU-linked password policies: PSOs + shadow groups (directory-object-model §3.2), run by the leader's watcher

@@ -10,6 +10,8 @@ import { join as joinDomain, provision } from './samba/provision.ts';
 import { fsmoShow, levelShow, sambaStatus } from './samba/info.ts';
 import { runSdPropIfPdc } from './samba/sdprop.ts';
 import { fillPosixIds } from './samba/posix.ts';
+import { PlatformBootstrap } from './samba/platform.ts';
+import { eq } from '@opendc/shared/ldap';
 import { reconcilePasswordPolicies } from './samba/policy-password.ts';
 import { modifyProtected } from './samba/protected.ts';
 import { fsmoSeize, fsmoTransfer, levelRaise } from './samba/fsmo.ts';
@@ -208,6 +210,17 @@ export const implementations: Impls = {
   'policy.password.reconcile': async (args, ctx) =>
     reconcilePasswordPolicies(new SambaLocal(ctx.os), args.users ? { users: args.users } : {}),
   'directory.posixIds.fill': async (args, ctx) => fillPosixIds(new SambaLocal(ctx.os), args.guids),
+  'platform.watchAccess.ensure': async (_args, ctx) => {
+    const samba = new SambaLocal(ctx.os);
+    if (!(await samba.provisioned())) throw new PlatformError('samba.not-provisioned');
+    // only this DC's own watch account (odcw-<host>), never a caller-chosen one
+    const host = (await ctx.os.system.info()).hostname.split('.')[0]?.toLowerCase() ?? '';
+    const domainDn = await samba.domainDn();
+    const [w] = await samba.search(domainDn, 'sub', eq('sAMAccountName', `odcw-${host}`), ['objectSid']);
+    const sid = w?.attrs.get('objectsid')?.[0];
+    if (!sid) throw new PlatformError('request.not-found', { what: `Watch account odcw-${host}` });
+    return { changed: await new PlatformBootstrap(samba, domainDn).watchAccess(sid) };
+  },
   'samba.passwordPolicy.show': async (_args, ctx) => showPolicies(new SambaLocal(ctx.os)),
   'samba.passwordPolicy.set': async (args, ctx) => setPolicy(new SambaLocal(ctx.os), args),
   'samba.sdprop.run': async (_args, ctx) =>
