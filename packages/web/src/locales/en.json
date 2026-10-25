@@ -29,7 +29,8 @@
     "rbac": "Roles",
     "passwordPolicies": "Password policies",
     "account": "Account",
-    "policies": "Policies"
+    "policies": "Policies",
+    "dns": "DNS"
   },
   "home": {
     "title": "Overview",
@@ -505,5 +506,34 @@
     "effective-none": "No policy of this type applies.",
     "effective-none-password": "No password policy is linked above this object: the domain default applies.",
     "registry-format": "One setting per line: key = value (JSON), e.g. core.session.requireTotpForTier0 = true"
+  },
+  "dns": {
+    "title": "DNS",
+    "zones": "Zones",
+    "zone": "Zone",
+    "ad-zone": "Active Directory",
+    "diagnostics": "Diagnostics",
+    "add": "Add record",
+    "name": "Name",
+    "name-hint": "Relative to {{zone}}; empty or @ for the zone itself",
+    "type": "Type",
+    "data": "Data",
+    "ttl": "TTL (s)",
+    "f-address": "Address",
+    "f-target": "Target",
+    "f-exchange": "Mail server",
+    "f-preference": "Preference",
+    "f-port": "Port",
+    "f-priority": "Priority",
+    "f-weight": "Weight",
+    "f-text": "Text",
+    "with-ptr": "Also add the PTR record (if a matching reverse zone exists)",
+    "dc-record": "DC record",
+    "dynamic": "dynamic",
+    "diag-servers": "Asked: {{servers}}",
+    "diag-ok": "All {{count}} checks passed.",
+    "check-again": "Check again",
+    "repair": "Re-create {{count}} missing records",
+    "repaired": "{{count}} records re-created, {{failed}} failed."
   }
 }

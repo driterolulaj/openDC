@@ -5,6 +5,13 @@ export const allowlist = {
   "sockets": {
     "api": [
       "directory.posixIds.fill",
+      "dns.record.add",
+      "dns.record.delete",
+      "dns.record.update",
+      "dns.zone.create",
+      "dns.zone.delete",
+      "dns.zone.list",
+      "dns.zone.setAging",
       "file.readManaged",
       "policy.password.reconcile",
       "registry.commitLock",
@@ -41,6 +48,7 @@ export const allowlist = {
     ],
     "cli": [
       "directory.posixIds.fill",
+      "dns.zone.list",
       "file.readManaged",
       "file.restorePrevious",
       "file.writeManaged",

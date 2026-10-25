@@ -42,6 +42,30 @@ export const permissions = [
     ]
   },
   {
+    "module": "dns",
+    "name": "dns.records.write",
+    "title": "dns:perm.records-write",
+    "scope": "global",
+    "implies": [
+      "dns.zones.read"
+    ]
+  },
+  {
+    "module": "dns",
+    "name": "dns.zones.manage",
+    "title": "dns:perm.zones-manage",
+    "scope": "global",
+    "implies": [
+      "dns.records.write"
+    ]
+  },
+  {
+    "module": "dns",
+    "name": "dns.zones.read",
+    "title": "dns:perm.read",
+    "scope": "global"
+  },
+  {
     "module": "domain",
     "name": "domain.computers.delete",
     "title": "domain:perm.computers-delete",

@@ -11,6 +11,7 @@ import { fsmoShow, levelShow, sambaStatus } from './samba/info.ts';
 import { runSdPropIfPdc } from './samba/sdprop.ts';
 import { fillPosixIds } from './samba/posix.ts';
 import { PlatformBootstrap } from './samba/platform.ts';
+import * as dnsOps from './samba/dns.ts';
 import { eq } from '@opendc/shared/ldap';
 import { reconcilePasswordPolicies } from './samba/policy-password.ts';
 import { modifyProtected } from './samba/protected.ts';
@@ -210,6 +211,13 @@ export const implementations: Impls = {
   'policy.password.reconcile': async (args, ctx) =>
     reconcilePasswordPolicies(new SambaLocal(ctx.os), args.users ? { users: args.users } : {}),
   'directory.posixIds.fill': async (args, ctx) => fillPosixIds(new SambaLocal(ctx.os), args.guids),
+  'dns.zone.list': async (_args, ctx) => dnsOps.zoneList(new SambaLocal(ctx.os)),
+  'dns.zone.create': async (args, ctx) => dnsOps.zoneCreate(new SambaLocal(ctx.os), args),
+  'dns.zone.delete': async (args, ctx) => dnsOps.zoneDelete(new SambaLocal(ctx.os), args),
+  'dns.record.add': async (args, ctx) => dnsOps.recordAdd(new SambaLocal(ctx.os), args),
+  'dns.record.update': async (args, ctx) => dnsOps.recordUpdate(new SambaLocal(ctx.os), args),
+  'dns.record.delete': async (args, ctx) => dnsOps.recordDelete(new SambaLocal(ctx.os), args),
+  'dns.zone.setAging': async (args, ctx) => dnsOps.zoneSetAging(new SambaLocal(ctx.os), args),
   'platform.watchAccess.ensure': async (_args, ctx) => {
     const samba = new SambaLocal(ctx.os);
     if (!(await samba.provisioned())) throw new PlatformError('samba.not-provisioned');

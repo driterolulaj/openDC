@@ -27,6 +27,7 @@ export const BUILTIN_ROLES: readonly Role[] = [
       'domain.passwordPolicy.read',
       'domain.rbac.read',
       'policies.policy.read',
+      'dns.zones.read',
     ],
     tier0: false,
     builtin: true,

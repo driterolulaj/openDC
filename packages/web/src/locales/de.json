@@ -29,7 +29,8 @@
     "rbac": "Rollen",
     "passwordPolicies": "Passwortrichtlinien",
     "account": "Konto",
-    "policies": "Richtlinien"
+    "policies": "Richtlinien",
+    "dns": "DNS"
   },
   "home": {
     "title": "Übersicht",
@@ -505,5 +506,34 @@
     "effective-none": "Keine Richtlinie dieses Typs trifft zu.",
     "effective-none-password": "Über diesem Objekt ist keine Kennwortrichtlinie verknüpft: Es gilt der Domänenstandard.",
     "registry-format": "Eine Einstellung pro Zeile: Schlüssel = Wert (JSON), z. B. core.session.requireTotpForTier0 = true"
+  },
+  "dns": {
+    "title": "DNS",
+    "zones": "Zonen",
+    "zone": "Zone",
+    "ad-zone": "Active Directory",
+    "diagnostics": "Diagnose",
+    "add": "Eintrag hinzufügen",
+    "name": "Name",
+    "name-hint": "Relativ zu {{zone}}; leer oder @ für die Zone selbst",
+    "type": "Typ",
+    "data": "Daten",
+    "ttl": "TTL (s)",
+    "f-address": "Adresse",
+    "f-target": "Ziel",
+    "f-exchange": "Mailserver",
+    "f-preference": "Priorität (MX)",
+    "f-port": "Port",
+    "f-priority": "Priorität",
+    "f-weight": "Gewichtung",
+    "f-text": "Text",
+    "with-ptr": "Auch den PTR-Eintrag anlegen (falls eine passende Reverse-Zone existiert)",
+    "dc-record": "DC-Eintrag",
+    "dynamic": "dynamisch",
+    "diag-servers": "Abgefragt: {{servers}}",
+    "diag-ok": "Alle {{count}} Prüfungen bestanden.",
+    "check-again": "Erneut prüfen",
+    "repair": "{{count}} fehlende Einträge neu anlegen",
+    "repaired": "{{count}} Einträge neu angelegt, {{failed}} fehlgeschlagen."
   }
 }

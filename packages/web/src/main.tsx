@@ -30,6 +30,7 @@ const Account = lazy(() => import('./pages/Account.tsx'));
 const MfaSetupPage = lazy(() => import('./pages/Account.tsx').then((m) => ({ default: m.MfaSetupPage })));
 const PasswordPolicies = lazy(() => import('./pages/PasswordPolicies.tsx'));
 const Policies = lazy(() => import('./pages/Policies.tsx'));
+const Dns = lazy(() => import('./pages/Dns.tsx'));
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
 
@@ -58,6 +59,7 @@ const router = createBrowserRouter(
         { path: 'account', element: <Account /> },
         { path: 'password-policies', element: <PasswordPolicies /> },
         { path: 'policies', element: <Policies /> },
+        { path: 'dns', element: <Dns /> },
         ...moduleRoutes.filter((r) => r.area === 'console').map((r) => ({ path: r.path, element: <r.component /> })),
       ],
     },

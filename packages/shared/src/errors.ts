@@ -600,6 +600,44 @@ const catalogue = {
       fix: 'Verwenden Sie für diese Änderung RSAT oder samba-tool als Domänen-Administrator.',
     },
   },
+  'dns.record-exists': {
+    http: 409,
+    en: { message: '{{record}} already exists in {{zone}}.', fix: 'Change or delete the existing record instead.' },
+    de: {
+      message: '{{record}} existiert bereits in {{zone}}.',
+      fix: 'Ändern oder löschen Sie stattdessen den vorhandenen Eintrag.',
+    },
+  },
+  'dns.not-found': {
+    http: 404,
+    en: { message: '{{what}} does not exist in DNS.', fix: 'Reload the list; someone may have changed it meanwhile.' },
+    de: {
+      message: '{{what}} existiert im DNS nicht.',
+      fix: 'Laden Sie die Liste neu; jemand hat sie womöglich inzwischen geändert.',
+    },
+  },
+  'dns.protected': {
+    http: 409,
+    en: {
+      message: "{{what}} is needed by Active Directory and can't be deleted.",
+      fix: 'Domain controllers register these records and zones themselves.',
+    },
+    de: {
+      message: '{{what}} wird vom Active Directory benötigt und kann nicht gelöscht werden.',
+      fix: 'Domänencontroller registrieren diese Einträge und Zonen selbst.',
+    },
+  },
+  'dns.failed': {
+    http: 502,
+    en: {
+      message: 'The DNS server refused the change: {{reason}}',
+      fix: 'Check the record and the DNS server log (journalctl -u samba-ad-dc).',
+    },
+    de: {
+      message: 'Der DNS-Server hat die Änderung abgelehnt: {{reason}}',
+      fix: 'Prüfen Sie den Eintrag und das DNS-Server-Protokoll (journalctl -u samba-ad-dc).',
+    },
+  },
   'samba.not-provisioned': {
     http: 409,
     en: {

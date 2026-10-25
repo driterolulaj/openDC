@@ -123,3 +123,4 @@ export * from './bulk.ts';
 export * from './account.ts';
 export * from './watcher.ts';
 export * from './policies.ts';
+export * from './dns.ts';

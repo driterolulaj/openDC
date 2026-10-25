@@ -1,0 +1,8 @@
+{
+  "module": { "title": "DNS", "description": "Zones and records of the domain's DNS servers, and DNS diagnostics." },
+  "perm": {
+    "read": "View DNS zones, records and diagnostics",
+    "records-write": "Add, change and delete DNS records",
+    "zones-manage": "Create and delete DNS zones, set aging"
+  }
+}

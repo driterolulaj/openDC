@@ -3,6 +3,20 @@
 
 export const operations = [
   {
+    "operationId": "addDnsRecord",
+    "method": "POST",
+    "path": "/api/v1/dns/zones/:zone/records",
+    "tag": "dns",
+    "summary": "Add a record (A records optionally with their PTR record)",
+    "pathParams": [
+      "zone"
+    ],
+    "queryParams": [],
+    "body": true,
+    "stream": false,
+    "auth": "session"
+  },
+  {
     "operationId": "beginTotp",
     "method": "POST",
     "path": "/api/v1/session/totp/begin",
@@ -89,6 +103,18 @@ export const operations = [
     "body": true,
     "stream": false,
     "auth": "domain.contacts.write"
+  },
+  {
+    "operationId": "createDnsZone",
+    "method": "POST",
+    "path": "/api/v1/dns/zones",
+    "tag": "dns",
+    "summary": "Create a forward or reverse zone (AD-integrated, domain partition)",
+    "pathParams": [],
+    "queryParams": [],
+    "body": true,
+    "stream": false,
+    "auth": "dns.zones.manage"
   },
   {
     "operationId": "createGroup",
@@ -201,6 +227,34 @@ export const operations = [
     "body": true,
     "stream": false,
     "auth": "session"
+  },
+  {
+    "operationId": "deleteDnsRecord",
+    "method": "DELETE",
+    "path": "/api/v1/dns/zones/:zone/records",
+    "tag": "dns",
+    "summary": "Delete a record",
+    "pathParams": [
+      "zone"
+    ],
+    "queryParams": [],
+    "body": true,
+    "stream": false,
+    "auth": "session"
+  },
+  {
+    "operationId": "deleteDnsZone",
+    "method": "DELETE",
+    "path": "/api/v1/dns/zones/:zone",
+    "tag": "dns",
+    "summary": "Delete a zone and all its records (type the zone name to confirm)",
+    "pathParams": [
+      "zone"
+    ],
+    "queryParams": [],
+    "body": true,
+    "stream": false,
+    "auth": "dns.zones.manage"
   },
   {
     "operationId": "deletePolicy",
@@ -334,6 +388,18 @@ export const operations = [
     "body": false,
     "stream": false,
     "auth": "domain.ous.read"
+  },
+  {
+    "operationId": "getDnsDiagnostics",
+    "method": "GET",
+    "path": "/api/v1/dns/diagnostics",
+    "tag": "dns",
+    "summary": "Checks every DC's DNS server for the records each writable DC needs, and Internet resolution",
+    "pathParams": [],
+    "queryParams": [],
+    "body": false,
+    "stream": false,
+    "auth": "dns.zones.read"
   },
   {
     "operationId": "getDomainInfo",
@@ -600,6 +666,32 @@ export const operations = [
     "auth": "session"
   },
   {
+    "operationId": "listDnsRecords",
+    "method": "GET",
+    "path": "/api/v1/dns/zones/:zone/records",
+    "tag": "dns",
+    "summary": "The records of a zone (tombstoned ones left out)",
+    "pathParams": [
+      "zone"
+    ],
+    "queryParams": [],
+    "body": false,
+    "stream": false,
+    "auth": "dns.zones.read"
+  },
+  {
+    "operationId": "listDnsZones",
+    "method": "GET",
+    "path": "/api/v1/dns/zones",
+    "tag": "dns",
+    "summary": "DNS zones in the domain and forest DNS partitions",
+    "pathParams": [],
+    "queryParams": [],
+    "body": false,
+    "stream": false,
+    "auth": "dns.zones.read"
+  },
+  {
     "operationId": "listGroupMembers",
     "method": "GET",
     "path": "/api/v1/directory/groups/:guid/members",
@@ -774,6 +866,18 @@ export const operations = [
     "auth": "session"
   },
   {
+    "operationId": "repairDnsRecords",
+    "method": "POST",
+    "path": "/api/v1/dns/diagnostics/repair",
+    "tag": "dns",
+    "summary": "Re-create missing DC records (tier 0)",
+    "pathParams": [],
+    "queryParams": [],
+    "body": true,
+    "stream": false,
+    "auth": "session"
+  },
+  {
     "operationId": "resetTotp",
     "method": "DELETE",
     "path": "/api/v1/accounts/:sid/totp",
@@ -838,6 +942,20 @@ export const operations = [
     "body": true,
     "stream": false,
     "auth": "domain.fsmo.manage"
+  },
+  {
+    "operationId": "setDnsZoneAging",
+    "method": "PUT",
+    "path": "/api/v1/dns/zones/:zone/aging",
+    "tag": "dns",
+    "summary": "Aging and scavenging of dynamically registered records",
+    "pathParams": [
+      "zone"
+    ],
+    "queryParams": [],
+    "body": true,
+    "stream": false,
+    "auth": "dns.zones.manage"
   },
   {
     "operationId": "setPasswordPolicy",
@@ -1001,6 +1119,20 @@ export const operations = [
     "summary": "Change contact attributes",
     "pathParams": [
       "guid"
+    ],
+    "queryParams": [],
+    "body": true,
+    "stream": false,
+    "auth": "session"
+  },
+  {
+    "operationId": "updateDnsRecord",
+    "method": "PUT",
+    "path": "/api/v1/dns/zones/:zone/records",
+    "tag": "dns",
+    "summary": "Change a record (same name and type)",
+    "pathParams": [
+      "zone"
     ],
     "queryParams": [],
     "body": true,

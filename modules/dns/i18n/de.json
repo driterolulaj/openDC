@@ -1,0 +1,8 @@
+{
+  "module": { "title": "DNS", "description": "Zonen und Einträge der DNS-Server der Domäne sowie DNS-Diagnose." },
+  "perm": {
+    "read": "DNS-Zonen, -Einträge und -Diagnose anzeigen",
+    "records-write": "DNS-Einträge hinzufügen, ändern und löschen",
+    "zones-manage": "DNS-Zonen erstellen und löschen, Alterung einstellen"
+  }
+}

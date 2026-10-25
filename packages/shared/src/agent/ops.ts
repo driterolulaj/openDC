@@ -5,6 +5,7 @@
  * are rejected (ADR-0006 §3).
  */
 import { z } from 'zod';
+import { dnsFqdn, recordData, recordName } from '../dns/index.ts';
 import {
   joinArgs,
   preflightArgs,
@@ -163,6 +164,38 @@ export const ops = {
     v: 1,
     args: z.strictObject({ targetGuid: z.uuid(), change: protectedChange }),
     result: z.object({ dn: z.string(), sdprop: z.number() }),
+  },
+  'dns.zone.list': {
+    v: 1,
+    args: empty,
+    result: z.object({ zones: z.array(z.object({ name: z.string(), reverse: z.boolean() })) }),
+  },
+  'dns.zone.create': { v: 1, args: z.strictObject({ zone: dnsFqdn }), result: z.object({ zone: z.string() }) },
+  'dns.zone.delete': { v: 1, args: z.strictObject({ zone: dnsFqdn }), result: z.object({ zone: z.string() }) },
+  'dns.record.add': {
+    v: 1,
+    args: z.strictObject({ zone: dnsFqdn, name: recordName, record: recordData }),
+    result: z.object({ zone: z.string(), name: z.string() }),
+  },
+  'dns.record.update': {
+    v: 1,
+    args: z.strictObject({ zone: dnsFqdn, name: recordName, from: recordData, to: recordData }),
+    result: z.object({ zone: z.string(), name: z.string() }),
+  },
+  'dns.record.delete': {
+    v: 1,
+    args: z.strictObject({ zone: dnsFqdn, name: recordName, record: recordData }),
+    result: z.object({ zone: z.string(), name: z.string() }),
+  },
+  'dns.zone.setAging': {
+    v: 1,
+    args: z.strictObject({
+      zone: dnsFqdn,
+      aging: z.boolean(),
+      refreshHours: z.number().int().min(1).max(8760),
+      noRefreshHours: z.number().int().min(1).max(8760),
+    }),
+    result: z.object({ zone: z.string() }),
   },
   'platform.watchAccess.ensure': { v: 1, args: empty, result: z.object({ changed: z.array(z.string()) }) },
   'directory.posixIds.fill': {
