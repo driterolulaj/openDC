@@ -32,6 +32,7 @@ const PasswordPolicies = lazy(() => import('./pages/PasswordPolicies.tsx'));
 const Policies = lazy(() => import('./pages/Policies.tsx'));
 const Dns = lazy(() => import('./pages/Dns.tsx'));
 const Pki = lazy(() => import('./pages/Pki.tsx'));
+const Dhcp = lazy(() => import('./pages/Dhcp.tsx'));
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
 
@@ -62,6 +63,7 @@ const router = createBrowserRouter(
         { path: 'policies', element: <Policies /> },
         { path: 'dns', element: <Dns /> },
         { path: 'certificates', element: <Pki /> },
+        { path: 'dhcp', element: <Dhcp /> },
         ...moduleRoutes.filter((r) => r.area === 'console').map((r) => ({ path: r.path, element: <r.component /> })),
       ],
     },

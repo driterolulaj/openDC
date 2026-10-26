@@ -79,11 +79,23 @@ export type LogicalBinary =
   | 'hostnamectl'
   | 'apt-get'
   | 'apt-cache'
-  | 'systemd-run';
+  | 'systemd-run'
+  | 'kea-dhcp4';
 
 export interface BinaryLocator {
   /** Absolute path, or throws PlatformError(os.binary-missing) naming the package to install. */
   resolve(name: LogicalBinary): Promise<string>;
+}
+
+export interface KeaFacts {
+  hooksDir: string;
+  configFile: string;
+  leaseFile: string;
+  controlSocket: string;
+  /** logical unit id (unitName() maps it) */
+  unit: string;
+  /** the account Kea runs as (owns its configuration) */
+  user: string;
 }
 
 export interface SambaFacts {
@@ -98,6 +110,8 @@ export interface OsFacts {
   readonly paths: PlatformPaths;
   readonly binaries: BinaryLocator;
   readonly samba: SambaFacts;
+  /** Kea DHCPv4 as the distribution packages it (paths the Kea security releases insist on). */
+  kea(): Promise<KeaFacts>;
   /** Logical unit id -> systemd unit name. */
   unitName(unit: string): string;
   /** Logical package -> distro package names. */

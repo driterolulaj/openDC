@@ -6,6 +6,7 @@ export const allowlist = {
     "api": [
       "ca.issuer.create",
       "cert.revoke",
+      "dhcp.leases",
       "directory.posixIds.fill",
       "dns.record.add",
       "dns.record.delete",
@@ -37,6 +38,7 @@ export const allowlist = {
       "time.tracking"
     ],
     "watch": [
+      "dhcp.apply",
       "directory.posixIds.fill",
       "file.readManaged",
       "file.restorePrevious",
@@ -54,6 +56,8 @@ export const allowlist = {
     "cli": [
       "ca.init",
       "ca.issuer.create",
+      "dhcp.apply",
+      "dhcp.leases",
       "directory.posixIds.fill",
       "dns.server.configure",
       "dns.server.show",

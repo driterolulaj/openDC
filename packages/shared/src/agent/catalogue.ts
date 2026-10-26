@@ -116,8 +116,11 @@ export const catalogue = {
   'dns.server.show': { sockets: [A, C], risk: 'read', phase: 3 },
   'dns.server.configure': { sockets: [A, C], risk: 'write', phase: 3 },
   // 3.5 DHCP
-  'kea.configTest': { sockets: [W], risk: 'read', phase: 3 },
-  'kea.command': { sockets: [A, W], risk: 'write', phase: 3 },
+  // render Kea's configuration from typed data, check it, swap it in and reload (watcher); leases (console)
+  'dhcp.apply': { sockets: [W, C], risk: 'write', phase: 3 },
+  'dhcp.leases': { sockets: [A, C], risk: 'read', phase: 3 },
+  // HA maintenance commands (ha-maintenance-start/cancel, …)
+  'kea.command': { sockets: [A, W], risk: 'write', phase: 4 },
   // 3.6 PKI
   'ca.init': { sockets: [C], risk: 'tier0', setup: true, phase: 3 },
   // a member server joins (machine account + its watch account); full node enrolment in Phase 4

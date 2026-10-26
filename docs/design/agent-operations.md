@@ -157,8 +157,9 @@ ADR amendment.
 ### 3.5 DHCP (Kea)
 | Op | Args | Sock | Risk | Phase |
 |---|---|---|---|---|
-| `kea.configTest` | `fileId` (validates the rendered candidate before the swap) | W | R | 3 |
-| `kea.command` | `daemon: dhcp4|dhcp6, command ∈ {config-reload, status-get, lease4-get-page, lease6-get-page, lease4-get, lease4-del, ha-heartbeat, ha-maintenance-start, ha-maintenance-cancel}, args (typed per command)` | AW | R/W | 3 |
+| `dhcp.apply` | `enabled, interfaces[], leaseSeconds, globals, subnets[] (pools, options, reservations), ha?` — the agent renders Kea's configuration itself (hook paths from the OS adapter, never caller-supplied), runs `kea-dhcp4 -t`, swaps it in as `_kea`, `config-reload`s (rollback on failure) or starts Kea; `enabled: false` stops it (replaces `kea.configTest`) | W, C | W | 3 |
+| `dhcp.leases` | — `lease4-get-all` over the control socket (lease_cmds hook) | A, C | R | 3 |
+| `kea.command` | `daemon: dhcp4|dhcp6, command ∈ {config-reload, status-get, lease4-get-page, lease6-get-page, lease4-get, lease4-del, ha-heartbeat, ha-maintenance-start, ha-maintenance-cancel}, args (typed per command)` | AW | R/W | 4 |
 
 Uses Kea's Unix control socket directly, which works across Kea 2.x and 3.x with or without the control agent.
 

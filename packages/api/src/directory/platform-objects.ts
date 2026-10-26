@@ -132,12 +132,30 @@ export class PlatformObjects<T extends z.ZodType> {
 
   async create(actor: Actor, data: z.output<T>): Promise<string> {
     const id = randomUUID();
-    await this.#dir().ldap.add(childDn(this.container(), 'CN', id), {
-      objectClass: ['top', 'msDS-App-Configuration'],
-      displayName: [this.#name(data)],
-      'msDS-Settings': [this.#payload(1, actor, data)],
-    });
+    const add = () =>
+      this.#dir().ldap.add(childDn(this.container(), 'CN', id), {
+        objectClass: ['top', 'msDS-App-Configuration'],
+        displayName: [this.#name(data)],
+        'msDS-Settings': [this.#payload(1, actor, data)],
+      });
+    try {
+      await add();
+    } catch (e) {
+      // a module's containers (e.g. CN=DHCP,CN=Subnets) appear with its first object
+      if (!(e instanceof PlatformError && e.code === 'request.not-found')) throw e;
+      await this.#ensureContainers();
+      await add();
+    }
     return id;
+  }
+
+  async #ensureContainers(): Promise<void> {
+    let dn = this.#dir().platformDn;
+    for (const cn of this.#path) {
+      dn = childDn(dn, 'CN', cn);
+      const [e] = await this.#dir().ldap.search(dn, { scope: 'base', attributes: ['cn'] });
+      if (!e) await this.#dir().ldap.add(dn, { objectClass: ['top', 'container'] });
+    }
   }
 
   /** Compare-and-swap: request.conflict if the stored value changed since `current` was read. */

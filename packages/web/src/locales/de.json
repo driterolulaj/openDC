@@ -31,7 +31,8 @@
     "account": "Konto",
     "policies": "Richtlinien",
     "dns": "DNS",
-    "certificates": "Zertifikate"
+    "certificates": "Zertifikate",
+    "dhcp": "DHCP"
   },
   "home": {
     "title": "Übersicht",
@@ -571,5 +572,33 @@
     "p-web": "Konsole",
     "p-ldaps": "LDAPS",
     "fingerprint": "SHA-256 {{value}}"
+  },
+  "dhcp": {
+    "title": "DHCP",
+    "subnets": "Subnetze",
+    "services": "Dienste",
+    "leases": "Leases (dieser Knoten)",
+    "name": "Name",
+    "servers": "Server",
+    "interfaces": "Schnittstellen",
+    "interfaces-hint": "Netzwerkschnittstellen, auf denen Kea lauscht, z. B. eth0",
+    "mode-hot-standby": "Hot Standby",
+    "mode-load-balancing": "Lastverteilung",
+    "ha-mode": "HA-Modus",
+    "new-service": "Neuer DHCP-Dienst",
+    "create": "Erstellen",
+    "new-subnet": "Neues Subnetz",
+    "service": "Dienst",
+    "cidr": "Netz",
+    "router": "Router",
+    "pool-from": "Pool von",
+    "pool-to": "Pool bis",
+    "dns": "DNS-Server",
+    "ip": "Adresse",
+    "mac": "MAC-Adresse",
+    "hostname": "Hostname",
+    "reserve": "Reservieren",
+    "expires": "Läuft ab",
+    "no-leases": "Keine Leases auf diesem Knoten (er stellt womöglich kein DHCP bereit)."
   }
 }

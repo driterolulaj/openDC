@@ -6,6 +6,7 @@
  */
 import { z } from 'zod';
 import { dnsFqdn, recordData, recordName } from '../dns/index.ts';
+import { keaApplyArgs } from '../dhcp/index.ts';
 
 const pkiLeaf = z.object({
   profile: z.enum(['node', 'web', 'ldaps']),
@@ -220,6 +221,27 @@ export const ops = {
       scavenging: z.boolean().optional(),
     }),
     result: z.object({ forwarders: z.array(z.string()), scavenging: z.boolean(), restarted: z.boolean() }),
+  },
+  'dhcp.apply': {
+    v: 1,
+    args: keaApplyArgs,
+    result: z.object({ changed: z.boolean(), action: z.enum(['none', 'reloaded', 'started', 'stopped']) }),
+  },
+  'dhcp.leases': {
+    v: 1,
+    args: empty,
+    result: z.object({
+      leases: z.array(
+        z.object({
+          ip: z.string(),
+          mac: z.string(),
+          hostname: z.string().nullable(),
+          subnetId: z.number(),
+          expires: z.string(),
+          state: z.number(),
+        }),
+      ),
+    }),
   },
   'samba.member.join': {
     v: 1,

@@ -29,6 +29,7 @@ export const BUILTIN_ROLES: readonly Role[] = [
       'policies.policy.read',
       'dns.zones.read',
       'pki.read',
+      'dhcp.read',
     ],
     tier0: false,
     builtin: true,

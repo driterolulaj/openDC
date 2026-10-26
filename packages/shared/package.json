@@ -59,6 +59,11 @@
       "types": "./src/pki/index.ts",
       "development": "./src/pki/index.ts",
       "default": "./dist/pki/index.js"
+    },
+    "./dhcp": {
+      "types": "./src/dhcp/index.ts",
+      "development": "./src/dhcp/index.ts",
+      "default": "./dist/dhcp/index.js"
     }
   },
   "files": [

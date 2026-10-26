@@ -1,0 +1,7 @@
+{
+  "module": { "title": "DHCP", "description": "DHCPv4 with Kea: services, subnets, reservations, leases." },
+  "perm": {
+    "read": "View DHCP services, subnets, reservations and leases",
+    "write": "Change DHCP services, subnets and reservations"
+  }
+}

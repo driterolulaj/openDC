@@ -42,6 +42,21 @@ export const permissions = [
     ]
   },
   {
+    "module": "dhcp",
+    "name": "dhcp.read",
+    "title": "dhcp:perm.read",
+    "scope": "global"
+  },
+  {
+    "module": "dhcp",
+    "name": "dhcp.write",
+    "title": "dhcp:perm.write",
+    "scope": "global",
+    "implies": [
+      "dhcp.read"
+    ]
+  },
+  {
     "module": "dns",
     "name": "dns.records.write",
     "title": "dns:perm.records-write",

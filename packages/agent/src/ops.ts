@@ -12,7 +12,8 @@ import { runSdPropIfPdc } from './samba/sdprop.ts';
 import { fillPosixIds } from './samba/posix.ts';
 import { PlatformBootstrap } from './samba/platform.ts';
 import * as dnsOps from './samba/dns.ts';
-import { Pki } from './samba/pki.ts';
+import { Pki, pkiPaths } from './samba/pki.ts';
+import { keaApply, keaLeases } from './dhcp.ts';
 import { joinMember } from './samba/member.ts';
 import { eq } from '@opendc/shared/ldap';
 import { reconcilePasswordPolicies } from './samba/policy-password.ts';
@@ -53,6 +54,7 @@ export const timeouts: Partial<Record<ImplementedOp, number>> = {
   'samba.provision': 3_600_000,
   'samba.join': 3_600_000,
   'samba.member.join': 1_800_000,
+  'dhcp.apply': 600_000,
   'samba.fsmo.show': 60_000,
   'samba.level.show': 60_000,
   'samba.sdprop.run': 300_000,
@@ -226,6 +228,11 @@ export const implementations: Impls = {
   'dns.zone.setAging': async (args, ctx) => dnsOps.zoneSetAging(new SambaLocal(ctx.os), args),
   'dns.server.show': async (_args, ctx) => dnsOps.serverShow(new SambaLocal(ctx.os)),
   'dns.server.configure': async (args, ctx) => dnsOps.serverConfigure(ctx.os, new SambaLocal(ctx.os), args),
+  'dhcp.apply': async (args, ctx) => {
+    const p = pkiPaths(ctx.os);
+    return keaApply(ctx.os, args, { keys: p.keys, trust: p.trust });
+  },
+  'dhcp.leases': async (_args, ctx) => keaLeases(ctx.os),
   'samba.member.join': async (args, ctx) =>
     joinMember(args, {
       os: ctx.os,

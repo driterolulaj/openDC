@@ -6,7 +6,7 @@
 import { z } from 'zod';
 import { passwordSettings } from '../domain/password-policy.ts';
 
-export const policyTypes = ['password', 'registry'] as const;
+export const policyTypes = ['password', 'registry', 'dhcp'] as const;
 export type PolicyType = (typeof policyTypes)[number];
 
 export const policyLink = z.strictObject({
@@ -39,9 +39,21 @@ const common = {
 /** Registry keys a policy may set (registry keys with policySettable: true; values checked by the API). */
 const registrySettings = z.record(z.string().regex(/^[a-z][a-z0-9-]*(?:\.[a-zA-Z0-9-]+)+$/), z.unknown());
 
+/** DHCP servers in the linked OUs: server-wide options (subnets can override them). */
+export const dhcpPolicySettings = z.strictObject({
+  dnsServers: z.array(z.ipv4()).max(4).optional(),
+  domainName: z
+    .string()
+    .regex(/^(?=.{1,253}$)([A-Za-z0-9-]{1,63}\.)*[A-Za-z0-9-]{1,63}$/)
+    .optional(),
+  ntpServers: z.array(z.ipv4()).max(4).optional(),
+  leaseSeconds: z.number().int().min(300).max(31_536_000).optional(),
+});
+
 export const policyInput = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('password'), ...common, settings: passwordSettings }),
   z.strictObject({ type: z.literal('registry'), ...common, settings: registrySettings }),
+  z.strictObject({ type: z.literal('dhcp'), ...common, settings: dhcpPolicySettings }),
 ]);
 export type PolicyInput = z.input<typeof policyInput>;
 export type PolicyData = z.output<typeof policyInput>;

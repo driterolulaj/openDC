@@ -31,7 +31,8 @@
     "account": "Account",
     "policies": "Policies",
     "dns": "DNS",
-    "certificates": "Certificates"
+    "certificates": "Certificates",
+    "dhcp": "DHCP"
   },
   "home": {
     "title": "Overview",
@@ -571,5 +572,33 @@
     "p-web": "Console",
     "p-ldaps": "LDAPS",
     "fingerprint": "SHA-256 {{value}}"
+  },
+  "dhcp": {
+    "title": "DHCP",
+    "subnets": "Subnets",
+    "services": "Services",
+    "leases": "Leases (this node)",
+    "name": "Name",
+    "servers": "Servers",
+    "interfaces": "Interfaces",
+    "interfaces-hint": "Network interfaces Kea listens on, e.g. eth0",
+    "mode-hot-standby": "Hot standby",
+    "mode-load-balancing": "Load balancing",
+    "ha-mode": "HA mode",
+    "new-service": "New DHCP service",
+    "create": "Create",
+    "new-subnet": "New subnet",
+    "service": "Service",
+    "cidr": "Network",
+    "router": "Router",
+    "pool-from": "Pool from",
+    "pool-to": "Pool to",
+    "dns": "DNS servers",
+    "ip": "Address",
+    "mac": "MAC address",
+    "hostname": "Host name",
+    "reserve": "Reserve",
+    "expires": "Expires",
+    "no-leases": "No leases on this node (it may not serve DHCP)."
   }
 }

@@ -11,6 +11,7 @@ import { PosixFileActions } from '../posix/files.ts';
 import { SystemdServiceActions, runTransient } from '../posix/systemd.ts';
 import { PosixHostActions } from '../posix/host.ts';
 import type {
+  KeaFacts,
   BinaryLocator,
   LogicalBinary,
   OsActions,
@@ -59,6 +60,7 @@ const BIN_PACKAGES: Record<LogicalBinary, string> = {
   'apt-get': 'apt',
   'apt-cache': 'apt',
   'systemd-run': 'systemd',
+  'kea-dhcp4': 'kea-dhcp4-server',
 };
 
 const PACKAGES: Record<string, string[]> = {
@@ -79,11 +81,13 @@ const PACKAGES: Record<string, string[]> = {
   chrony: ['chrony'],
   // a domain member running OpenDC services: net ads join, Kerberos, ldb tools
   'samba-member': ['samba-common-bin', 'krb5-user', 'ldb-tools'],
+  kea: ['kea-dhcp4-server'],
 };
 
 const UNITS: Record<string, string> = {
   'samba-ad-dc': 'samba-ad-dc.service',
   chrony: 'chrony.service',
+  'kea-dhcp4': 'kea-dhcp4-server.service',
   smbd: 'smbd.service',
   nmbd: 'nmbd.service',
   winbind: 'winbind.service',
@@ -194,6 +198,31 @@ export class DebianFacts implements OsFacts {
         stateDir: '/var/lib/samba',
         tlsDir: '/var/lib/samba/private/tls',
       }),
+    };
+  }
+
+  async kea(): Promise<KeaFacts> {
+    // the multiarch library directory (/usr/lib/x86_64-linux-gnu/kea/hooks on amd64)
+    const lib = '/usr/lib';
+    let arch: string | undefined;
+    for (const d of await readdir(lib).catch(() => [] as string[])) {
+      if (!d.endsWith('-linux-gnu')) continue;
+      const ok = await access(join(lib, d, 'kea', 'hooks')).then(
+        () => true,
+        () => false,
+      );
+      if (ok) {
+        arch = d;
+        break;
+      }
+    }
+    return {
+      hooksDir: `/usr/lib/${arch ?? 'x86_64-linux-gnu'}/kea/hooks`,
+      configFile: '/etc/kea/kea-dhcp4.conf',
+      leaseFile: '/var/lib/kea/kea-leases4.csv',
+      controlSocket: '/run/kea/kea4-ctrl-socket',
+      unit: 'kea-dhcp4',
+      user: '_kea',
     };
   }
 

@@ -13,8 +13,11 @@ import { applicablePolicies, effectiveSettings, splitDn, type ResolvablePolicy }
 const lower = (s: string): string => s.toLowerCase();
 const buffers = (v: unknown): Buffer[] => (Array.isArray(v) ? v : [v]).filter((b): b is Buffer => Buffer.isBuffer(b));
 
-/** The effective registry values for this node; null when its computer object isn't found. */
-export async function nodePolicyValues(ctx: WatchContext): Promise<Record<string, unknown> | null> {
+/** The effective settings of `type` for this node; null when its computer object isn't found. */
+export async function nodePolicyValues(
+  ctx: WatchContext,
+  type: 'registry' | 'dhcp' = 'registry',
+): Promise<Record<string, unknown> | null> {
   const host = (ctx.node.hostname.split('.')[0] ?? '').toUpperCase();
   const [found] = await ctx.ldap.search(ctx.domainDn, {
     scope: 'sub',
@@ -59,7 +62,7 @@ export async function nodePolicyValues(ctx: WatchContext): Promise<Record<string
     attributes: ['cn', 'msDS-Settings'],
   })) {
     const d = parsePolicyPayload(typeof e['msDS-Settings'] === 'string' ? e['msDS-Settings'] : null);
-    if (d?.type !== 'registry') continue;
+    if (d?.type !== type) continue;
     policies.push({
       id: typeof e.cn === 'string' ? e.cn : '',
       name: d.name,
@@ -81,7 +84,7 @@ export async function nodePolicyValues(ctx: WatchContext): Promise<Record<string
     const sid = buffers(ge?.objectSid)[0];
     if (sid && tokenSids.has(sidFromBytes(sid))) groupGuids.push(g);
   }
-  const applied = applicablePolicies({ chain, groupGuids, nodeRole: ctx.node.role }, policies, 'registry');
+  const applied = applicablePolicies({ chain, groupGuids, nodeRole: ctx.node.role }, policies, type);
   return Object.fromEntries(Object.entries(effectiveSettings(applied)).map(([k, s]) => [k, s.value]));
 }
 

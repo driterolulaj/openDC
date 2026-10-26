@@ -167,6 +167,18 @@ export const operations = [
     "auth": "session"
   },
   {
+    "operationId": "createReservation",
+    "method": "POST",
+    "path": "/api/v1/dhcp/reservations",
+    "tag": "dhcp",
+    "summary": "Create a DHCP reservation",
+    "pathParams": [],
+    "queryParams": [],
+    "body": true,
+    "stream": false,
+    "auth": "session"
+  },
+  {
     "operationId": "createRole",
     "method": "POST",
     "path": "/api/v1/rbac/roles",
@@ -189,6 +201,30 @@ export const operations = [
     "body": true,
     "stream": false,
     "auth": "core.console.access"
+  },
+  {
+    "operationId": "createService",
+    "method": "POST",
+    "path": "/api/v1/dhcp/services",
+    "tag": "dhcp",
+    "summary": "Create a DHCP service",
+    "pathParams": [],
+    "queryParams": [],
+    "body": true,
+    "stream": false,
+    "auth": "session"
+  },
+  {
+    "operationId": "createSubnet",
+    "method": "POST",
+    "path": "/api/v1/dhcp/subnets",
+    "tag": "dhcp",
+    "summary": "Create a DHCP subnet",
+    "pathParams": [],
+    "queryParams": [],
+    "body": true,
+    "stream": false,
+    "auth": "session"
   },
   {
     "operationId": "createUser",
@@ -285,6 +321,20 @@ export const operations = [
     "auth": "session"
   },
   {
+    "operationId": "deleteReservation",
+    "method": "DELETE",
+    "path": "/api/v1/dhcp/reservations/:id",
+    "tag": "dhcp",
+    "summary": "Delete a DHCP reservation",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [],
+    "body": false,
+    "stream": false,
+    "auth": "session"
+  },
+  {
     "operationId": "deleteRole",
     "method": "DELETE",
     "path": "/api/v1/rbac/roles/:id",
@@ -311,6 +361,34 @@ export const operations = [
     "body": false,
     "stream": false,
     "auth": "core.console.access"
+  },
+  {
+    "operationId": "deleteService",
+    "method": "DELETE",
+    "path": "/api/v1/dhcp/services/:id",
+    "tag": "dhcp",
+    "summary": "Delete a DHCP service",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [],
+    "body": false,
+    "stream": false,
+    "auth": "session"
+  },
+  {
+    "operationId": "deleteSubnet",
+    "method": "DELETE",
+    "path": "/api/v1/dhcp/subnets/:id",
+    "tag": "dhcp",
+    "summary": "Delete a DHCP subnet",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [],
+    "body": false,
+    "stream": false,
+    "auth": "session"
   },
   {
     "operationId": "deleteUserTemplate",
@@ -358,6 +436,18 @@ export const operations = [
     "body": false,
     "stream": true,
     "auth": "domain.users.read"
+  },
+  {
+    "operationId": "getDhcp",
+    "method": "GET",
+    "path": "/api/v1/dhcp",
+    "tag": "dhcp",
+    "summary": "DHCP services, subnets and reservations",
+    "pathParams": [],
+    "queryParams": [],
+    "body": false,
+    "stream": false,
+    "auth": "dhcp.read"
   },
   {
     "operationId": "getDirectoryObject",
@@ -680,6 +770,18 @@ export const operations = [
     "body": false,
     "stream": false,
     "auth": "core.audit.read"
+  },
+  {
+    "operationId": "listDhcpLeases",
+    "method": "GET",
+    "path": "/api/v1/dhcp/leases",
+    "tag": "dhcp",
+    "summary": "This node's leases (its own Kea)",
+    "pathParams": [],
+    "queryParams": [],
+    "body": false,
+    "stream": false,
+    "auth": "dhcp.read"
   },
   {
     "operationId": "listDirectoryObjects",
@@ -1246,6 +1348,20 @@ export const operations = [
     "auth": "session"
   },
   {
+    "operationId": "updateReservation",
+    "method": "PUT",
+    "path": "/api/v1/dhcp/reservations/:id",
+    "tag": "dhcp",
+    "summary": "Change a DHCP reservation",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [],
+    "body": true,
+    "stream": false,
+    "auth": "session"
+  },
+  {
     "operationId": "updateRole",
     "method": "PUT",
     "path": "/api/v1/rbac/roles/:id",
@@ -1258,6 +1374,34 @@ export const operations = [
     "body": true,
     "stream": false,
     "auth": "domain.rbac.write"
+  },
+  {
+    "operationId": "updateService",
+    "method": "PUT",
+    "path": "/api/v1/dhcp/services/:id",
+    "tag": "dhcp",
+    "summary": "Change a DHCP service",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [],
+    "body": true,
+    "stream": false,
+    "auth": "session"
+  },
+  {
+    "operationId": "updateSubnet",
+    "method": "PUT",
+    "path": "/api/v1/dhcp/subnets/:id",
+    "tag": "dhcp",
+    "summary": "Change a DHCP subnet",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [],
+    "body": true,
+    "stream": false,
+    "auth": "session"
   },
   {
     "operationId": "updateUser",
