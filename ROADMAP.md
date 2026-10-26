@@ -134,9 +134,9 @@ are updated.
 - [x] DNS: zones (forward/reverse), records, auto-PTR, aging/scavenging, forwarders, DNS diagnostics (SRV,
   `_msdcs`, delegation); spike agent vs LDAP record writes. *Spike S3: writes through the agent, reads over LDAP.
   Forwarders/scavenging are per DC (the DC the console runs on until node RPC in Phase 4).*
-- [ ] Kea DHCPv4/v6: subnets, pools, reservations, options from directory + DHCP policies; config-test before swap;
-  lease viewer; HA pair; optional DNS registration (GSS-TSIG or lease hook, per spike). *Done except DNS
-  registration, which waits for Q25 (the lease-hook plan fails under Kea's AppArmor profile): services (one
+- [x] Kea DHCPv4/v6: subnets, pools, reservations, options from directory + DHCP policies; config-test before swap;
+  lease viewer; HA pair; optional DNS registration (GSS-TSIG or lease hook, per spike). *The optional DNS
+  registration waits for Q25 (the lease-hook plan fails under Kea's AppArmor profile). Built: services (one
   server or an HA pair over mutual TLS), IPv4 and IPv6 subnets, pools, reservations (IPv6 by DUID or MAC),
   options, DHCP policies (server-wide IPv4 options), `kea-dhcp4/6 -t` as `_kea` before the swap,
   `config-reload`, lease viewer; each daemon runs only while the node serves subnets of its family.*

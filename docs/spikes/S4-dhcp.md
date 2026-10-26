@@ -35,3 +35,9 @@ Lab: member1 (Debian 13), client1 (Ubuntu 24.04)
   plain HTTP. Lab: dc1 (Debian 13, Kea 2.6.3) primary and dc2 (Ubuntu 24.04, Kea 2.4.1) standby reached
   `hot-standby`. A client on the reserved MAC got its address from dc1, and the lease appeared on dc2 through
   HA lease updates.
+- **DHCPv6:** `kea-dhcp6` beside `kea-dhcp4`, each running only while the node serves subnets of its family; the
+  same check, swap and `config-reload` path, HA on its own port (8001). Direct clients are matched by the
+  subnet's `interface`. Lab: `fd97:10::/64` on the dc1/dc2 pair, both daemons reached `hot-standby`. A busybox
+  `udhcpc6` client on member1 with DUID-LL `00:03:00:01:02:00:00:00:97:06` got its reserved `fd97:10::206` from
+  dc1, and the lease appeared on dc2. The very first attempt, seconds after the reload, got no answer; the next
+  one did (Solicit → Advertise → Request → Reply), probably while the bridge relearned Kea's multicast group.

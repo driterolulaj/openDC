@@ -14,8 +14,9 @@ site-specific.** Topology, names, subnets and features are configurable; ship de
 
 ## Current phase
 See `ROADMAP.md`. Phase 1 (foundation) and Phase 2 (domain core) are complete (2026-10-24, 2026-10-25).
-**Phase 3 (network services) is in progress on branch `phase-3` (go-ahead 2026-10-25).** Phase 4 starts only
-after the user's explicit go-ahead.
+**Phase 3 (network services) is built on branch `phase-3` (go-ahead 2026-10-25); acceptance 1–6 are met.
+Waiting on the owner: Q7 (ACME client), Q24 (watch account reads tombstones), Q25 (DHCP DNS registration).**
+Phase 4 starts only after the user's explicit go-ahead.
 
 Day-to-day commands: `npm ci --ignore-scripts`, `npm run build`, `npm run check` (lint, typecheck, generated
 files, OpenAPI, tests, coverage gate), `npm run gen` after manifest changes, `npm run openapi` after route
