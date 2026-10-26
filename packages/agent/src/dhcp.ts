@@ -106,12 +106,16 @@ export async function keaApply(
   const current = await readFile(k.configFile, 'utf8').catch(() => null);
   if (current === json && (await active())) return { changed: false, action: 'none' };
 
-  // the candidate must pass Kea's own check before it replaces anything
+  // the candidate must pass Kea's own check before it replaces anything; as Kea's user, because Kea's AppArmor
+  // profile denies root the DAC override it would need for /etc/kea (0750 _kea)
   const candidate = join(dirname(k.configFile), `.opendc-${randomBytes(4).toString('hex')}.conf`);
   await writeFile(candidate, json, { mode: 0o640 });
   try {
     if (owner) await chown(candidate, owner.uid, owner.gid);
-    await os.exec(await os.facts.binaries.resolve('kea-dhcp4'), ['-t', candidate], { timeoutMs: 60_000 });
+    await os.exec(await os.facts.binaries.resolve('kea-dhcp4'), ['-t', candidate], {
+      timeoutMs: 60_000,
+      ...(owner ? { user: owner } : {}),
+    });
   } catch (e) {
     throw new PlatformError('validation.invalid', {
       issues: `Kea rejected the configuration: ${(e instanceof Error ? e.message : String(e)).slice(-400)}`,

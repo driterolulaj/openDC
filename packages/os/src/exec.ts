@@ -21,6 +21,8 @@ export interface ExecOptions {
   cwd?: string;
   /** Extra variables on top of the fixed environment (e.g. PASSWD for Samba tools, never argv). */
   env?: Record<string, string>;
+  /** Run as this account instead of root (e.g. a daemon's own check under its AppArmor profile). */
+  user?: { uid: number; gid: number };
 }
 
 export const SAFE_PATH = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin';
@@ -43,6 +45,7 @@ export const exec: Exec = (binary, argv, opts = {}) => {
         windowsHide: true,
         encoding: 'utf8',
         ...(opts.cwd ? { cwd: opts.cwd } : {}),
+        ...(opts.user ? { uid: opts.user.uid, gid: opts.user.gid } : {}),
       },
       (err, stdout, stderr) => {
         const code = err ? (typeof err.code === 'number' ? err.code : -1) : 0;
