@@ -187,7 +187,11 @@
       "config": "Knotenkonfiguration wird geschrieben",
       "certificate": "Konsolenzertifikat wird erneuert",
       "done": "Fertig",
-      "pki": "Interne Zertifizierungsstelle einrichten"
+      "pki": "Interne Zertifizierungsstelle einrichten",
+      "trust": "Stamm-CA der Domäne prüfen",
+      "directory": "Domäne lesen",
+      "accounts": "Watch-Konto anlegen",
+      "services": "OpenDC-Dienste neu starten"
     }
   }
 }

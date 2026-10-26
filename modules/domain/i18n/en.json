@@ -187,7 +187,11 @@
       "config": "Writing the node configuration",
       "certificate": "Renewing the console certificate",
       "done": "Done",
-      "pki": "Setting up the internal certificate authority"
+      "pki": "Setting up the internal certificate authority",
+      "trust": "Checking the domain's root CA",
+      "directory": "Reading the domain",
+      "accounts": "Creating the watch account",
+      "services": "Restarting the OpenDC services"
     }
   }
 }

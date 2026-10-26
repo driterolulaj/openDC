@@ -71,6 +71,7 @@ export const allowlist = {
       "samba.join",
       "samba.level.raise",
       "samba.level.show",
+      "samba.member.join",
       "samba.passwordPolicy.set",
       "samba.passwordPolicy.show",
       "samba.provision",

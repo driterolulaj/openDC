@@ -19,6 +19,9 @@ export const SERVICE_OU = 'OpenDC Service Accounts';
 export const SHADOW_OU = 'OpenDC Shadow Groups';
 export const PLATFORM_GROUP = 'OpenDC Platform Services';
 export const PLATFORM_GROUP_SAM = 'opendc-platform';
+/** Watch accounts of DCs and members: DirSync and read on CN=Deleted Objects come through this group. */
+export const WATCH_GROUP = 'OpenDC Watchers';
+export const WATCH_GROUP_SAM = 'opendc-watchers';
 
 const PLATFORM_CONTAINERS = [
   ['Nodes'],
@@ -183,6 +186,7 @@ export class PlatformBootstrap {
     }
     const sid = first(await this.#s.get(watch.dn, ['objectSid']), 'objectSid');
     if (sid) await this.watchAccess(sid);
+    await this.watchersGroup(watch.dn);
     return [svc, watch];
   }
 
@@ -207,6 +211,32 @@ export class PlatformBootstrap {
         'sd_flags:1:4',
       ]);
       changed.push('deleted-objects');
+    }
+    return changed;
+  }
+
+  /** The watchers group with its rights (idempotent); `member` (a watch account DN) is added to it. */
+  async watchersGroup(member?: string): Promise<string[]> {
+    const dn = childDn(this.serviceOu, 'CN', WATCH_GROUP);
+    const changed: string[] = [];
+    if (
+      await this.#ensure(dn, {
+        objectClass: 'group',
+        sAMAccountName: WATCH_GROUP_SAM,
+        groupType: String(GLOBAL_SECURITY_GROUP),
+        description: 'OpenDC watch accounts: DirSync (DS-Replication-Get-Changes) and read on deleted objects',
+      })
+    )
+      changed.push('group');
+    const sid = first(await this.#s.get(dn, ['objectSid']), 'objectSid');
+    if (!sid) throw new Error(`${dn} has no objectSid`);
+    changed.push(...(await this.watchAccess(sid)).map((c) => `group-${c}`));
+    if (member) {
+      const members = ((await this.#s.get(dn, ['member']))?.attrs.get('member') ?? []).map((m) => m.toLowerCase());
+      if (!members.includes(member.toLowerCase())) {
+        await this.#s.modify(modifyRecord(dn, [{ op: 'add', attr: 'member', values: [member] }]));
+        changed.push('membership');
+      }
     }
     return changed;
   }

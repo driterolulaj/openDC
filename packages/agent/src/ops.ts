@@ -13,6 +13,7 @@ import { fillPosixIds } from './samba/posix.ts';
 import { PlatformBootstrap } from './samba/platform.ts';
 import * as dnsOps from './samba/dns.ts';
 import { Pki } from './samba/pki.ts';
+import { joinMember } from './samba/member.ts';
 import { eq } from '@opendc/shared/ldap';
 import { reconcilePasswordPolicies } from './samba/policy-password.ts';
 import { modifyProtected } from './samba/protected.ts';
@@ -51,6 +52,7 @@ export const timeouts: Partial<Record<ImplementedOp, number>> = {
   'setup.preflight': 120_000,
   'samba.provision': 3_600_000,
   'samba.join': 3_600_000,
+  'samba.member.join': 1_800_000,
   'samba.fsmo.show': 60_000,
   'samba.level.show': 60_000,
   'samba.sdprop.run': 300_000,
@@ -224,6 +226,18 @@ export const implementations: Impls = {
   'dns.zone.setAging': async (args, ctx) => dnsOps.zoneSetAging(new SambaLocal(ctx.os), args),
   'dns.server.show': async (_args, ctx) => dnsOps.serverShow(new SambaLocal(ctx.os)),
   'dns.server.configure': async (args, ctx) => dnsOps.serverConfigure(ctx.os, new SambaLocal(ctx.os), args),
+  'samba.member.join': async (args, ctx) =>
+    joinMember(args, {
+      os: ctx.os,
+      node: ctx.node,
+      secrets: ctx.secrets,
+      progress: (step, percent) => {
+        ctx.progress(step, percent);
+      },
+      onRole: (r) => {
+        ctx.setRole(r);
+      },
+    }),
   'ca.init': async (_args, ctx) => new Pki(ctx.os, new SambaLocal(ctx.os)).initRoot(),
   'ca.issuer.create': async (args, ctx) => new Pki(ctx.os, new SambaLocal(ctx.os)).approveIssuer(args.nodeGuid),
   'pki.maintain': async (args, ctx) =>
@@ -239,8 +253,10 @@ export const implementations: Impls = {
     const domainDn = await samba.domainDn();
     const [w] = await samba.search(domainDn, 'sub', eq('sAMAccountName', `odcw-${host}`), ['objectSid']);
     const sid = w?.attrs.get('objectsid')?.[0];
-    if (!sid) throw new PlatformError('request.not-found', { what: `Watch account odcw-${host}` });
-    return { changed: await new PlatformBootstrap(samba, domainDn).watchAccess(sid) };
+    if (!w || !sid) throw new PlatformError('request.not-found', { what: `Watch account odcw-${host}` });
+    const platform = new PlatformBootstrap(samba, domainDn);
+    // the per-account rights (older installs) and the watchers group that members' accounts use
+    return { changed: [...(await platform.watchAccess(sid)), ...(await platform.watchersGroup(w.dn))] };
   },
   'samba.passwordPolicy.show': async (_args, ctx) => showPolicies(new SambaLocal(ctx.os)),
   'samba.passwordPolicy.set': async (args, ctx) => setPolicy(new SambaLocal(ctx.os), args),

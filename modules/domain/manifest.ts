@@ -99,6 +99,7 @@ export default {
     { op: 'samba.protectedObject.modify', from: ['api'] },
     { op: 'directory.posixIds.fill', from: ['api', 'watch', 'cli'] },
     { op: 'platform.watchAccess.ensure', from: ['watch', 'cli'] },
+    { op: 'samba.member.join', from: ['cli'] },
     { op: 'samba.fsmo.transfer', from: ['api', 'cli'] },
     { op: 'samba.fsmo.seize', from: ['api', 'cli'] },
     { op: 'samba.level.raise', from: ['api', 'cli'] },
@@ -113,7 +114,10 @@ export default {
       { unit: 'samba-ad-dc', allowed: ['status', 'start', 'stop', 'restart', 'enable', 'disable'] },
       { unit: 'chrony', allowed: ['status', 'restart'] },
     ],
-    packageSets: [{ id: 'samba-dc', logicalPackages: ['samba-dc', 'chrony'], roles: ['writable-dc'] }],
+    packageSets: [
+      { id: 'samba-dc', logicalPackages: ['samba-dc', 'chrony'], roles: ['writable-dc'] },
+      { id: 'samba-member', logicalPackages: ['samba-member'], roles: ['member'] },
+    ],
     secrets: [
       { id: 'ldap-svc', kind: 'password', rotateDays: 30 },
       { id: 'ldap-watch', kind: 'password', rotateDays: 30 },

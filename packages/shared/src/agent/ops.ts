@@ -14,6 +14,7 @@ const pkiLeaf = z.object({
   renewed: z.boolean(),
 });
 import {
+  memberJoinArgs,
   joinArgs,
   preflightArgs,
   preflightResult,
@@ -219,6 +220,11 @@ export const ops = {
       scavenging: z.boolean().optional(),
     }),
     result: z.object({ forwarders: z.array(z.string()), scavenging: z.boolean(), restarted: z.boolean() }),
+  },
+  'samba.member.join': {
+    v: 1,
+    args: memberJoinArgs,
+    result: z.object({ domain: z.string(), dc: z.string(), dcs: z.array(z.string()), watchAccount: z.string() }),
   },
   'ca.init': {
     v: 1,

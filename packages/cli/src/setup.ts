@@ -22,6 +22,7 @@ import {
   confirmationPhrase,
   defaultNetbios,
   joinArgs,
+  memberJoinArgs,
   provisionArgs,
   type PreflightResult,
 } from '@opendc/shared/domain';
@@ -60,6 +61,7 @@ const OPTIONS = {
   dc: { type: 'string' },
   user: { type: 'string' },
   'password-file': { type: 'string' },
+  'root-fingerprint': { type: 'string' },
   confirm: { type: 'string' },
   json: { type: 'boolean' },
 } as const;
@@ -138,7 +140,7 @@ export async function setupCommand(argv: string[], d: SetupDeps): Promise<number
     return r.ok ? 0 : 1;
   }
 
-  if (sub !== 'provision' && sub !== 'join')
+  if (sub !== 'provision' && sub !== 'join' && sub !== 'member')
     throw new PlatformError('validation.invalid', { issues: `setup ${sub ?? ''}` });
 
   const key = await d.io.readSecret('api-hmac');
@@ -152,6 +154,30 @@ export async function setupCommand(argv: string[], d: SetupDeps): Promise<number
         `  … ${t(`domain:setup.step.${p.step}`, { defaultValue: p.step })}${p.percent === undefined ? '' : ` (${String(p.percent)}%)`}`,
       );
   };
+  if (sub === 'member') {
+    // a member server running OpenDC services (Phase 3; full enrolment in Phase 4)
+    const user = values.user ?? 'Administrator';
+    const password = await d.io.readPassword(values['password-file'], t('cli:setup-join-password-prompt', { user }));
+    const parsed = memberJoinArgs.safeParse({
+      fqdn: values.fqdn ?? '',
+      hostIp: values.ip ?? '',
+      dc: values.dc ?? '',
+      rootFingerprint: values['root-fingerprint'] ?? '',
+      username: user,
+      password,
+    });
+    if (!parsed.success)
+      throw new PlatformError('validation.invalid', {
+        issues: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; '),
+      });
+    const r = await d.client.call('samba.member.join', parsed.data, {
+      actor,
+      timeoutMs: 1_800_000,
+      onProgress: progress,
+    });
+    emit(r, t('cli:setup-member-joined', { domain: r.domain, dc: r.dc, account: r.watchAccount }));
+    return 0;
+  }
   const confirm = async (domain: string): Promise<boolean> => {
     const phrase = confirmationPhrase({ domain });
     const typed = values.confirm ?? (await d.io.ask(t('cli:setup-confirm', { phrase })));

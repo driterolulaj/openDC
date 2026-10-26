@@ -77,6 +77,8 @@ const PACKAGES: Record<string, string[]> = {
     'attr',
   ],
   chrony: ['chrony'],
+  // a domain member running OpenDC services: net ads join, Kerberos, ldb tools
+  'samba-member': ['samba-common-bin', 'krb5-user', 'ldb-tools'],
 };
 
 const UNITS: Record<string, string> = {

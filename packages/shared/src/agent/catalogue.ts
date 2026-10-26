@@ -120,6 +120,8 @@ export const catalogue = {
   'kea.command': { sockets: [A, W], risk: 'write', phase: 3 },
   // 3.6 PKI
   'ca.init': { sockets: [C], risk: 'tier0', setup: true, phase: 3 },
+  // a member server joins (machine account + its watch account); full node enrolment in Phase 4
+  'samba.member.join': { sockets: [C], risk: 'tier0', phase: 3 },
   'ca.issuer.create': { sockets: [A, C], risk: 'tier0', confirm: 'typed', phase: 3 },
   'ca.issuer.csr': { sockets: [A, C], risk: 'tier0', phase: 4 },
   'ca.issuer.importSigned': { sockets: [A, C], risk: 'tier0', phase: 4 },

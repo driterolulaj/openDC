@@ -71,6 +71,24 @@ export const joinArgs = z.strictObject({
 });
 export type JoinArgs = z.input<typeof joinArgs>;
 
+/** A domain member running OpenDC services (Phase 3; full enrolment in Phase 4). */
+export const memberJoinArgs = z.strictObject({
+  fqdn: fqdnSchema,
+  hostIp: ipv4,
+  /** a DC of the domain (address or name) */
+  dc: dcHost,
+  /** the root CA fingerprint (SHA-256) from the console's Certificates page: what this host will trust */
+  rootFingerprint: z.string().regex(/^([0-9A-Fa-f]{2}:?){32}$/),
+  /** a Domain Admin (joins the computer, creates the member's watch account); used once, never stored */
+  username: z
+    .string()
+    .min(1)
+    .max(256)
+    .regex(/^[^@\\/]+$/, 'the account name (sAMAccountName), not DOMAIN\\user or a UPN'),
+  password: z.string().min(1).max(256),
+});
+export type MemberJoinArgs = z.input<typeof memberJoinArgs>;
+
 export const preflightArgs = z.strictObject({
   role: z.enum(setupRoles),
   fqdn: z.string().max(253),
