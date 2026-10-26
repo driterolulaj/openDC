@@ -13,7 +13,13 @@ import { cp, mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:
 import { join } from 'node:path';
 import { PlatformError } from '@opendc/shared';
 import type { OpParsedArgs, OpResult } from '@opendc/shared/agent';
-import { gpoBackupMeta, restoredVersion, withGptVersion, type GpoBackupMeta } from '@opendc/shared/gpo';
+import {
+  gpoBackupMeta,
+  restoredVersion,
+  withGpLinkOptions,
+  withGptVersion,
+  type GpoBackupMeta,
+} from '@opendc/shared/gpo';
 import { childDn, eq, guidToBytes } from '@opendc/shared/ldap';
 import type { OsActions } from '@opendc/os';
 import { parseFsmoShow } from './info.ts';
@@ -316,6 +322,19 @@ export async function gpoSetLink(
   const w = await where(samba);
   if (!(await samba.exists(gpcDn(w, a.gpo)))) throw new PlatformError('gpo.not-found', { what: `GPO ${a.gpo}` });
   const container = await containerDn(samba, a.container);
+  // an existing link: new options in place (samba-tool only creates links); compare-and-swap on the old value
+  const current = first(await samba.get(container, ['gPLink']), 'gPLink');
+  const updated = current ? withGpLinkOptions(current, a.gpo, a) : null;
+  if (current && updated !== null) {
+    if (updated !== current)
+      await samba.modify(
+        modifyRecord(container, [
+          { op: 'delete', attr: 'gPLink', values: [current] },
+          { op: 'add', attr: 'gPLink', values: [updated] },
+        ]),
+      );
+    return { container };
+  }
   const argv = ['gpo', 'setlink', container, a.gpo, '-H', samba.samDb];
   if (a.enforced) argv.push('--enforce');
   if (a.disabled) argv.push('--disable');

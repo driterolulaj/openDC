@@ -1,7 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { gpoGuid, gpoName, parseGpLink, restoredVersion, splitVersion, withGptVersion } from './index.ts';
+import {
+  gpoGuid,
+  gpoName,
+  parseGpLink,
+  restoredVersion,
+  splitVersion,
+  withGpLinkOptions,
+  withGptVersion,
+} from './index.ts';
 
 test('GPO ids and names', () => {
   assert.equal(gpoGuid.parse('{31b2f340-016d-11d2-945f-00c04fb984f9}'), '{31B2F340-016D-11D2-945F-00C04FB984F9}');
@@ -53,4 +61,21 @@ test('gPLink: options and link order (the last entry wins)', () => {
   );
   assert.deepEqual(parseGpLink(null), []);
   assert.deepEqual(parseGpLink(' '), []);
+});
+
+test('gPLink: changing the options of one link keeps the others and the order', () => {
+  const a = '[LDAP://cn={31B2F340-016D-11D2-945F-00C04FB984F9},cn=policies,cn=system,DC=x;0]';
+  const b = '[LDAP://CN={6AC1786C-016F-11D2-945F-00C04FB984F9},CN=Policies,CN=System,DC=x;0]';
+  assert.equal(
+    withGpLinkOptions(a + b, '{6ac1786c-016f-11d2-945f-00c04fb984f9}', { enforced: true, disabled: true }),
+    a + b.replace(';0]', ';3]'),
+  );
+  assert.equal(
+    withGpLinkOptions(a + b, '{31B2F340-016D-11D2-945F-00C04FB984F9}', { enforced: true, disabled: false }),
+    a.replace(';0]', ';2]') + b,
+  );
+  assert.equal(
+    withGpLinkOptions(a, '{6AC1786C-016F-11D2-945F-00C04FB984F9}', { enforced: false, disabled: false }),
+    null,
+  );
 });

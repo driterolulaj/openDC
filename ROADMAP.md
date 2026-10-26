@@ -142,7 +142,14 @@ are updated.
 - [ ] PKI: root + per-DC issuing CAs, node/service/web/LDAPS certificates, revocation, CRL publication, expiry
   warnings, auto-renew; ACME via the chosen client. *Done except ACME (waits for Q7) and expiry warnings in the
   diagnostics framework (Phase 4); a DC's issuing CA needs a tier-0 approval on the root holder.*
-- [ ] GPO: list/backup/restore/link/unlink.
+- [x] GPO: list/backup/restore/link/unlink. *Listed over LDAP; create, backup and restore run on the PDC emulator
+  with the DC's local privileges (samba-tool's own commands write SYSVOL over SMB with an account's
+  credentials): the container through `sam.ldb`, the folder on disk, then `ntacl sysvolreset`. The new folders
+  get the same ACL as the provisioned default GPOs. Restores land above the current and the backed-up version
+  so clients reapply them, in place or as a new GPO. Backups stay on the PDC emulator until backup targets
+  (Phase 4). Links on the domain and the Domain Controllers OU, and all restores, are tier 0. Note:
+  `samba-tool ntacl sysvolcheck` flags the folder owner `sysvolreset` sets (LA instead of DA) on every GPO,
+  the provisioned ones included; the DACLs match.*
 
 **Acceptance:**
 1. Editing a DHCP reservation on dc2 changes the rendered Kea config on the member serving that subnet within 30 s

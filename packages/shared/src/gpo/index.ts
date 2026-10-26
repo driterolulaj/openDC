@@ -100,3 +100,22 @@ export function parseGpLink(value: string | null | undefined): GpLink[] {
   });
   return out.sort((a, b) => a.order - b.order);
 }
+
+/**
+ * The gPLink value with new options for an existing link to `gpo` (order and the other links unchanged); null when
+ * the GPO isn't linked there.
+ */
+export function withGpLinkOptions(
+  value: string,
+  gpo: string,
+  o: { enforced: boolean; disabled: boolean },
+): string | null {
+  const target = gpo.toUpperCase();
+  if (!parseGpLink(value).some((l) => l.gpo === target)) return null;
+  const options = String((o.disabled ? 1 : 0) | (o.enforced ? 2 : 0));
+  const out = value.replace(/\[LDAP:\/\/([^;\]]+);(\d+)\]/gi, (all, dn: string) => {
+    if (/^cn=(\{[0-9a-f-]{36}\}),/i.exec(dn)?.[1]?.toUpperCase() !== target) return all;
+    return '[LDAP://' + dn + ';' + options + ']';
+  });
+  return out;
+}
