@@ -147,6 +147,8 @@ export async function keaApply(
 
 export async function keaLeases(os: OsActions): Promise<OpResult<'dhcp.leases'>> {
   const k = await os.facts.kea();
+  // a node that serves no DHCP has no leases (and no Kea to ask)
+  if ((await os.services.status(k.unit).catch(() => null))?.active !== 'active') return { leases: [] };
   const r = await keaCommand(k.controlSocket, { command: 'lease4-get-all' });
   // 3 = empty
   if (r.result !== 0 && r.result !== 3)
