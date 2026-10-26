@@ -61,6 +61,7 @@ const BIN_PACKAGES: Record<LogicalBinary, string> = {
   'apt-cache': 'apt',
   'systemd-run': 'systemd',
   'kea-dhcp4': 'kea-dhcp4-server',
+  'kea-dhcp6': 'kea-dhcp6-server',
 };
 
 const PACKAGES: Record<string, string[]> = {
@@ -82,12 +83,14 @@ const PACKAGES: Record<string, string[]> = {
   // a domain member running OpenDC services: net ads join, Kerberos, ldb tools
   'samba-member': ['samba-common-bin', 'krb5-user', 'ldb-tools'],
   kea: ['kea-dhcp4-server'],
+  kea6: ['kea-dhcp6-server'],
 };
 
 const UNITS: Record<string, string> = {
   'samba-ad-dc': 'samba-ad-dc.service',
   chrony: 'chrony.service',
   'kea-dhcp4': 'kea-dhcp4-server.service',
+  'kea-dhcp6': 'kea-dhcp6-server.service',
   smbd: 'smbd.service',
   nmbd: 'nmbd.service',
   winbind: 'winbind.service',
@@ -218,11 +221,23 @@ export class DebianFacts implements OsFacts {
     }
     return {
       hooksDir: `/usr/lib/${arch ?? 'x86_64-linux-gnu'}/kea/hooks`,
-      configFile: '/etc/kea/kea-dhcp4.conf',
-      leaseFile: '/var/lib/kea/kea-leases4.csv',
-      controlSocket: '/run/kea/kea4-ctrl-socket',
-      unit: 'kea-dhcp4',
       user: '_kea',
+      v4: {
+        binary: 'kea-dhcp4',
+        packages: 'kea',
+        configFile: '/etc/kea/kea-dhcp4.conf',
+        leaseFile: '/var/lib/kea/kea-leases4.csv',
+        controlSocket: '/run/kea/kea4-ctrl-socket',
+        unit: 'kea-dhcp4',
+      },
+      v6: {
+        binary: 'kea-dhcp6',
+        packages: 'kea6',
+        configFile: '/etc/kea/kea-dhcp6.conf',
+        leaseFile: '/var/lib/kea/kea-leases6.csv',
+        controlSocket: '/run/kea/kea6-ctrl-socket',
+        unit: 'kea-dhcp6',
+      },
     };
   }
 

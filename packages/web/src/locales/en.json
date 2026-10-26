@@ -600,7 +600,16 @@
     "hostname": "Host name",
     "reserve": "Reserve",
     "expires": "Expires",
-    "no-leases": "No leases on this node (it may not serve DHCP)."
+    "no-leases": "No leases on this node (it may not serve DHCP).",
+    "family": "Address family",
+    "prefix": "Prefix",
+    "interface": "Interface",
+    "interface-hint": "The link Kea serves this prefix on; may stay empty when the service has one interface",
+    "client6": "DUID or MAC address",
+    "client": "Client",
+    "ha-hint": "The two servers exchange lease updates over mutual TLS with their node certificates; members get theirs with node enrolment.",
+    "ipv4": "IPv4",
+    "ipv6": "IPv6"
   },
   "gpo": {
     "title": "Group policy",

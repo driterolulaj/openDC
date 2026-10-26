@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * DHCPv4 with Kea (ROADMAP Phase 3, Spike S4): the directory objects (services, subnets, reservations), address
- * arithmetic for their validation, and the Kea configuration the agent renders from typed data. The agent never
+ * DHCPv4 and DHCPv6 with Kea (ROADMAP Phase 3, Spike S4): the directory objects (services, subnets and
+ * reservations per family), address arithmetic for their validation, and the Kea configurations the agent renders
+ * from typed data. The agent never
  * accepts a Kea configuration as such: hook libraries load code as root, so their paths come from the OS adapter.
  */
 import { z } from 'zod';
@@ -35,9 +36,92 @@ export function inSubnet(cidr: string, ip: string): boolean {
   return n >= s.first && n <= s.last;
 }
 
+/** IPv6 address -> 128-bit number (no zone ids; an IPv4 tail is accepted). */
+export function ip6ToBig(ip: string): bigint {
+  let s = ip.toLowerCase();
+  const v4 = /(\d+\.\d+\.\d+\.\d+)$/.exec(s)?.[1];
+  if (v4) {
+    const n = ipToInt(v4);
+    s = `${s.slice(0, -v4.length)}${(n >>> 16).toString(16)}:${(n & 0xffff).toString(16)}`;
+  }
+  const halves = s.split('::');
+  if (halves.length > 2) throw new TypeError(`not an IPv6 address: ${ip}`);
+  const head = halves[0] ? halves[0].split(':') : [];
+  const tail = halves.length === 2 && halves[1] ? halves[1].split(':') : [];
+  const missing = 8 - head.length - tail.length;
+  if (halves.length === 1 ? head.length !== 8 : missing < 1) throw new TypeError(`not an IPv6 address: ${ip}`);
+  let n = 0n;
+  for (const g of [...head, ...Array<string>(halves.length === 2 ? missing : 0).fill('0'), ...tail]) {
+    if (!/^[0-9a-f]{1,4}$/.test(g)) throw new TypeError(`not an IPv6 address: ${ip}`);
+    n = (n << 16n) | BigInt(parseInt(g, 16));
+  }
+  return n;
+}
+
+/** 128-bit number -> IPv6 address in the RFC 5952 form (the longest run of zero groups compressed). */
+export function bigToIp6(n: bigint): string {
+  const g: string[] = [];
+  for (let i = 7; i >= 0; i--) g.push(Number((n >> BigInt(i * 16)) & 0xffffn).toString(16));
+  let best = -1;
+  let bestLen = 1;
+  for (let i = 0; i < 8;) {
+    if (g[i] !== '0') {
+      i++;
+      continue;
+    }
+    let j = i;
+    while (j < 8 && g[j] === '0') j++;
+    if (j - i > bestLen) {
+      best = i;
+      bestLen = j - i;
+    }
+    i = j;
+  }
+  return best < 0 ? g.join(':') : `${g.slice(0, best).join(':')}::${g.slice(best + bestLen).join(':')}`;
+}
+
+const MAX128 = (1n << 128n) - 1n;
+
+export function parseCidr6(cidr: string): { network: bigint; prefix: number; first: bigint; last: bigint } {
+  const [ip, bits] = cidr.split('/');
+  const prefix = Number(bits);
+  if (!ip || !Number.isInteger(prefix) || prefix < 32 || prefix > 124)
+    throw new TypeError(`not an IPv6 prefix: ${cidr}`);
+  const n = ip6ToBig(ip);
+  const host = (1n << BigInt(128 - prefix)) - 1n;
+  const network = n & (MAX128 ^ host);
+  if (network !== n) throw new TypeError(`${cidr} is not a prefix (try ${bigToIp6(network)}/${String(prefix)})`);
+  return { network, prefix, first: network + 1n, last: network | host };
+}
+
+/** An address of the prefix other than the subnet-router anycast address. */
+export function inSubnet6(prefix: string, ip: string): boolean {
+  const s = parseCidr6(prefix);
+  const n = ip6ToBig(ip);
+  return n >= s.first && n <= s.last;
+}
+
 // ---------------------------------------------------------------- directory objects (CN=DHCP)
 
 const ipv4 = z.ipv4();
+/** IPv6, stored in the RFC 5952 form so equal addresses compare equal */
+const ipv6 = z.ipv6().transform((a) => bigToIp6(ip6ToBig(a)));
+const cidr6 = z
+  .string()
+  .refine((c) => {
+    try {
+      parseCidr6(c);
+      return true;
+    } catch {
+      return false;
+    }
+  }, 'an IPv6 prefix of /32 to /124, e.g. fd00:10::/64')
+  .transform((c) => `${bigToIp6(parseCidr6(c).network)}/${String(parseCidr6(c).prefix)}`);
+/** DHCPv6 client id: hex octets, colon-separated */
+const duid = z
+  .string()
+  .regex(/^([0-9A-Fa-f]{2}:){2,129}[0-9A-Fa-f]{2}$/, 'a DUID in hex, e.g. 00:01:00:01:2c:5e:aa:bb:00:11:22:33:44:55')
+  .transform((d) => d.toLowerCase());
 const cidr = z.string().refine((c) => {
   try {
     parseCidr(c);
@@ -102,6 +186,51 @@ export const dhcpReservation = z.strictObject({
   hostname: hostLabel.nullable().default(null),
   comment,
 });
+/** An IPv6 subnet (kind dhcp.subnet6). Routers come from router advertisements, not DHCPv6. */
+export const dhcpSubnet6 = z
+  .strictObject({
+    serviceId: z.uuid(),
+    prefix: cidr6,
+    /** the link Kea serves it on (direct clients); null: the service's only interface */
+    interface: ifname.nullable().default(null),
+    pools: z
+      .array(z.strictObject({ from: ipv6, to: ipv6 }))
+      .max(16)
+      .default([]),
+    dnsServers: z.array(ipv6).max(4).default([]),
+    domainSearch: z.array(domainName).max(6).default([]),
+    comment,
+  })
+  .superRefine((s, ctx) => {
+    let net: ReturnType<typeof parseCidr6>;
+    try {
+      net = parseCidr6(s.prefix);
+    } catch {
+      return;
+    }
+    s.pools.forEach((p, i) => {
+      const a = ip6ToBig(p.from);
+      const b = ip6ToBig(p.to);
+      if (a > b || a < net.first || b > net.last)
+        ctx.addIssue({ code: 'custom', path: ['pools', i], message: `a range inside ${s.prefix}, from ≤ to` });
+    });
+  });
+/** An IPv6 reservation (kind dhcp.reservation6): by DUID, or by MAC address where Kea can learn it. */
+export const dhcpReservation6 = z
+  .strictObject({
+    subnetId: z.uuid(),
+    duid: duid.nullable().default(null),
+    mac: mac.nullable().default(null),
+    ip: ipv6,
+    hostname: hostLabel.nullable().default(null),
+    comment,
+  })
+  .refine((r) => (r.duid === null) !== (r.mac === null), {
+    message: 'a DUID or a MAC address (one of them)',
+    path: ['duid'],
+  });
+export type DhcpSubnet6 = z.output<typeof dhcpSubnet6>;
+export type DhcpReservation6 = z.output<typeof dhcpReservation6>;
 export type DhcpService = z.output<typeof dhcpService>;
 export type DhcpSubnet = z.output<typeof dhcpSubnet>;
 export type DhcpReservation = z.output<typeof dhcpReservation>;
@@ -142,6 +271,24 @@ export const keaApplyArgs = z.strictObject({
     )
     .max(512)
     .default([]),
+  subnets6: z
+    .array(
+      z.strictObject({
+        id: z.number().int().min(1).max(2_147_483_647),
+        prefix: cidr6,
+        interface: ifname,
+        pools: z.array(z.strictObject({ from: ipv6, to: ipv6 })).max(16),
+        dnsServers: z.array(ipv6).max(4),
+        domainSearch: z.array(domainName).max(6),
+        reservations: z
+          .array(
+            z.strictObject({ duid: duid.nullable(), mac: mac.nullable(), ip: ipv6, hostname: hostLabel.nullable() }),
+          )
+          .max(10_000),
+      }),
+    )
+    .max(512)
+    .default([]),
   ha: z
     .strictObject({
       mode: z.enum(['hot-standby', 'load-balancing']),
@@ -169,8 +316,9 @@ export interface KeaPaths {
   tls: { cert: string; key: string; ca: string } | null;
 }
 
-/** HA listener port between the two peers (Kea's dedicated HA HTTP listener). */
+/** HA listener ports between the two peers (Kea's dedicated HA HTTP listener, one per daemon). */
 export const KEA_HA_PORT = 8000;
+export const KEA_HA_PORT6 = 8001;
 
 type Option = { name: string; data: string };
 const options = (o: {
@@ -185,47 +333,54 @@ const options = (o: {
   ...(o.ntpServers.length ? [{ name: 'ntp-servers', data: o.ntpServers.join(', ') }] : []),
 ];
 
+/** lease_cmds, and the HA hook for a pair (mutual TLS only). */
+function hooksFor(a: KeaApplyArgs, p: KeaPaths, port: number): Record<string, unknown>[] {
+  const hooks: Record<string, unknown>[] = [{ library: `${p.hooksDir}/libdhcp_lease_cmds.so` }];
+  if (!a.ha) return hooks;
+  const self = a.ha.peers.find((x) => x.name === a.ha?.thisServer);
+  if (!self) throw new TypeError('ha.thisServer is not one of the peers');
+  // the HA channel carries lease updates: mutual TLS only
+  const tls = p.tls;
+  if (!tls) throw new TypeError('an HA pair needs TLS (node certificates)');
+  hooks.push({
+    library: `${p.hooksDir}/libdhcp_ha.so`,
+    parameters: {
+      'high-availability': [
+        {
+          'this-server-name': a.ha.thisServer,
+          mode: a.ha.mode,
+          'heartbeat-delay': 10_000,
+          'max-response-delay': 60_000,
+          'max-ack-delay': 5000,
+          'max-unacked-clients': 5,
+          'multi-threading': {
+            'enable-multi-threading': true,
+            'http-dedicated-listener': true,
+            'http-listener-threads': 2,
+            'http-client-threads': 2,
+          },
+          'trust-anchor': tls.ca,
+          'cert-file': tls.cert,
+          'key-file': tls.key,
+          'require-client-certs': true,
+          peers: a.ha.peers.map((x) => ({
+            name: x.name,
+            url: `https://${x.address}:${String(port)}/`,
+            role: x.role,
+            'auto-failover': true,
+          })),
+        },
+      ],
+    },
+  });
+  return hooks;
+}
+
+const multiThreading = { 'enable-multi-threading': true, 'thread-pool-size': 4, 'packet-queue-size': 64 };
+
 /** The Dhcp4 configuration of this node. */
 export function renderKea4(a: KeaApplyArgs, p: KeaPaths): Record<string, unknown> {
-  const hooks: Record<string, unknown>[] = [{ library: `${p.hooksDir}/libdhcp_lease_cmds.so` }];
-  if (a.ha) {
-    const self = a.ha.peers.find((x) => x.name === a.ha?.thisServer);
-    if (!self) throw new TypeError('ha.thisServer is not one of the peers');
-    // the HA channel carries lease updates: mutual TLS only
-    const tls = p.tls;
-    if (!tls) throw new TypeError('an HA pair needs TLS (node certificates)');
-    hooks.push({
-      library: `${p.hooksDir}/libdhcp_ha.so`,
-      parameters: {
-        'high-availability': [
-          {
-            'this-server-name': a.ha.thisServer,
-            mode: a.ha.mode,
-            'heartbeat-delay': 10_000,
-            'max-response-delay': 60_000,
-            'max-ack-delay': 5000,
-            'max-unacked-clients': 5,
-            'multi-threading': {
-              'enable-multi-threading': true,
-              'http-dedicated-listener': true,
-              'http-listener-threads': 2,
-              'http-client-threads': 2,
-            },
-            'trust-anchor': tls.ca,
-            'cert-file': tls.cert,
-            'key-file': tls.key,
-            'require-client-certs': true,
-            peers: a.ha.peers.map((x) => ({
-              name: x.name,
-              url: `https://${x.address}:${String(KEA_HA_PORT)}/`,
-              role: x.role,
-              'auto-failover': true,
-            })),
-          },
-        ],
-      },
-    });
-  }
+  const hooks = hooksFor(a, p, KEA_HA_PORT);
   return {
     Dhcp4: {
       'interfaces-config': { interfaces: a.interfaces, 'dhcp-socket-type': 'raw' },
@@ -234,9 +389,7 @@ export function renderKea4(a: KeaApplyArgs, p: KeaPaths): Record<string, unknown
       'valid-lifetime': a.leaseSeconds,
       'renew-timer': Math.floor(a.leaseSeconds / 2),
       'rebind-timer': Math.floor((a.leaseSeconds * 7) / 8),
-      ...(a.ha
-        ? { 'multi-threading': { 'enable-multi-threading': true, 'thread-pool-size': 4, 'packet-queue-size': 64 } }
-        : {}),
+      ...(a.ha ? { 'multi-threading': multiThreading } : {}),
       'hooks-libraries': hooks,
       'option-data': options({ ...a.globals }),
       subnet4: a.subnets
@@ -253,6 +406,47 @@ export function renderKea4(a: KeaApplyArgs, p: KeaPaths): Record<string, unknown
             .map((r) => ({ 'hw-address': r.mac, 'ip-address': r.ip, ...(r.hostname ? { hostname: r.hostname } : {}) })),
         })),
       loggers: [{ name: 'kea-dhcp4', output_options: [{ output: 'syslog' }], severity: 'INFO' }],
+    },
+  };
+}
+
+/** The Dhcp6 configuration of this node (lifetimes after RFC 8415: T1 = 0.5, T2 = 0.8 of the preferred). */
+export function renderKea6(a: KeaApplyArgs, p: KeaPaths): Record<string, unknown> {
+  const preferred = Math.floor((a.leaseSeconds * 3) / 4);
+  const options6 = (o: { dnsServers: string[]; domainSearch: string[] }): Option[] => [
+    ...(o.dnsServers.length ? [{ name: 'dns-servers', data: o.dnsServers.join(', ') }] : []),
+    ...(o.domainSearch.length ? [{ name: 'domain-search', data: o.domainSearch.join(', ') }] : []),
+  ];
+  return {
+    Dhcp6: {
+      'interfaces-config': { interfaces: a.interfaces },
+      'control-socket': { 'socket-type': 'unix', 'socket-name': p.controlSocket },
+      'lease-database': { type: 'memfile', persist: true, name: p.leaseFile, 'lfc-interval': 3600 },
+      'valid-lifetime': a.leaseSeconds,
+      'preferred-lifetime': preferred,
+      'renew-timer': Math.floor(preferred / 2),
+      'rebind-timer': Math.floor((preferred * 4) / 5),
+      ...(a.ha ? { 'multi-threading': multiThreading } : {}),
+      'hooks-libraries': hooksFor(a, p, KEA_HA_PORT6),
+      subnet6: a.subnets6
+        .slice()
+        .sort((x, y) => x.id - y.id)
+        .map((s) => ({
+          id: s.id,
+          subnet: s.prefix,
+          interface: s.interface,
+          pools: s.pools.map((x) => ({ pool: `${x.from} - ${x.to}` })),
+          'option-data': options6(s),
+          reservations: s.reservations
+            .slice()
+            .sort((x, y) => (ip6ToBig(x.ip) < ip6ToBig(y.ip) ? -1 : 1))
+            .map((r) => ({
+              ...(r.duid ? { duid: r.duid } : { 'hw-address': r.mac }),
+              'ip-addresses': [r.ip],
+              ...(r.hostname ? { hostname: r.hostname } : {}),
+            })),
+        })),
+      loggers: [{ name: 'kea-dhcp6', output_options: [{ output: 'syslog' }], severity: 'INFO' }],
     },
   };
 }

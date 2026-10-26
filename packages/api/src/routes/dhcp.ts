@@ -1,24 +1,32 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * /api/v1/dhcp (ROADMAP Phase 3): services, subnets and reservations are platform objects under CN=DHCP; the
- * serving nodes' watchers render Kea from them. Checks across objects happen here: servers are computer accounts
- * (their host names come from the directory), subnets of a service don't overlap, a reservation's address lies in
- * its subnet and is unique there, and nothing is deleted while something still refers to it. Leases are this
- * node's (its own Kea).
+ * /api/v1/dhcp (ROADMAP Phase 3): services, subnets and reservations (IPv4 and IPv6) are platform objects under
+ * CN=DHCP; the serving nodes' watchers render Kea from them. Checks across objects happen here: servers are
+ * computer accounts (their host names come from the directory), subnets of a service don't overlap, a reservation's
+ * address lies in its subnet and is unique there (so is its client), an IPv6 subnet names its interface when the
+ * service has several, and nothing is deleted while something still refers to it. Leases are this node's (its own
+ * Kea).
  */
 import { PlatformError } from '@opendc/shared';
 import type { AgentClient } from '@opendc/shared/agent';
 import { empty, idParams } from '@opendc/shared/api';
 import {
   dhcpReservation,
+  dhcpReservation6,
   dhcpService,
   dhcpSubnet,
+  dhcpSubnet6,
   inSubnet,
+  inSubnet6,
+  ip6ToBig,
   ipToInt,
   parseCidr,
+  parseCidr6,
   type DhcpReservation,
+  type DhcpReservation6,
   type DhcpService,
   type DhcpSubnet,
+  type DhcpSubnet6,
 } from '@opendc/shared/dhcp';
 import { pkiCert } from '@opendc/shared/pki';
 import { z } from 'zod';
@@ -34,12 +42,16 @@ export const dhcpOverview = z.object({
   services: z.array(z.looseObject({ id: z.string() })),
   subnets: z.array(z.looseObject({ id: z.string() })),
   reservations: z.array(z.looseObject({ id: z.string() })),
+  subnets6: z.array(z.looseObject({ id: z.string() })),
+  reservations6: z.array(z.looseObject({ id: z.string() })),
 });
 const leases = z.object({
   leases: z.array(
     z.object({
+      family: z.union([z.literal(4), z.literal(6)]),
       ip: z.string(),
       mac: z.string(),
+      duid: z.string().nullable(),
       hostname: z.string().nullable(),
       subnetId: z.number(),
       expires: z.string(),
@@ -75,6 +87,22 @@ export function dhcpRoutes(
     schemaVersion: 1,
     data: dhcpReservation,
     name: (x) => `${x.ip} ${x.mac}`,
+  });
+  const subnets6 = new PlatformObjects({
+    dir: d.directory,
+    path: ['DHCP', 'Subnets6'],
+    kind: 'dhcp.subnet6',
+    schemaVersion: 1,
+    data: dhcpSubnet6,
+    name: (x) => x.prefix,
+  });
+  const reservations6 = new PlatformObjects({
+    dir: d.directory,
+    path: ['DHCP', 'Reservations6'],
+    kind: 'dhcp.reservation6',
+    schemaVersion: 1,
+    data: dhcpReservation6,
+    name: (x) => `${x.ip} ${x.duid ?? x.mac ?? ''}`,
   });
   const certs = new PlatformObjects({
     dir: d.directory,
@@ -145,6 +173,31 @@ export function dhcpRoutes(
       if (mine.network <= end(other) && other.network <= end(mine)) invalid(`cidr: overlaps ${o.data.cidr}`);
     }
   };
+  const checkSubnet6 = async (s: DhcpSubnet6, self: string | null): Promise<void> => {
+    const svc = (await all(services)).find((x) => x.id === s.serviceId);
+    if (!svc) return invalid(`serviceId: no DHCP service ${s.serviceId}`);
+    if (s.interface === null && svc.data.interfaces.length > 1)
+      invalid(`interface: the service listens on ${svc.data.interfaces.join(', ')}; name the subnet's link`);
+    if (s.interface !== null && !svc.data.interfaces.includes(s.interface))
+      invalid(`interface: ${s.interface} is not one of the service's interfaces (${svc.data.interfaces.join(', ')})`);
+    const mine = parseCidr6(s.prefix);
+    for (const o of await all(subnets6)) {
+      if (o.id === self || o.data.serviceId !== s.serviceId) continue;
+      const other = parseCidr6(o.data.prefix);
+      if (mine.network <= other.last && other.network <= mine.last) invalid(`prefix: overlaps ${o.data.prefix}`);
+    }
+  };
+  const checkReservation6 = async (r: DhcpReservation6, self: string | null): Promise<void> => {
+    const subnet = (await all(subnets6)).find((s) => s.id === r.subnetId);
+    if (!subnet) return invalid(`subnetId: no IPv6 subnet ${r.subnetId}`);
+    if (!inSubnet6(subnet.data.prefix, r.ip)) invalid(`ip: not an address of ${subnet.data.prefix}`);
+    for (const o of await all(reservations6)) {
+      if (o.id === self || o.data.subnetId !== r.subnetId) continue;
+      if (o.data.ip === r.ip) invalid(`ip: ${r.ip} is already reserved`);
+      if (r.duid && o.data.duid === r.duid) invalid(`duid: ${r.duid} already has ${o.data.ip}`);
+      if (r.mac && o.data.mac === r.mac) invalid(`mac: ${r.mac} already has ${o.data.ip}`);
+    }
+  };
   const checkReservation = async (r: DhcpReservation, self: string | null): Promise<void> => {
     const subnet = (await all(subnets)).find((s) => s.id === r.subnetId);
     if (!subnet) return invalid(`subnetId: no DHCP subnet ${r.subnetId}`);
@@ -154,6 +207,12 @@ export function dhcpRoutes(
       if (o.data.ip === r.ip) invalid(`ip: ${r.ip} is already reserved for ${o.data.mac}`);
       if (o.data.mac === r.mac) invalid(`mac: ${r.mac} already has ${o.data.ip}`);
     }
+  };
+
+  const order6 = (a: string, b: string): number => {
+    const x = ip6ToBig(a);
+    const y = ip6ToBig(b);
+    return x < y ? -1 : x > y ? 1 : 0;
   };
 
   t.add({
@@ -172,6 +231,12 @@ export function dhcpRoutes(
       reservations: (await all(reservations))
         .map((x) => ({ id: x.id, ...x.data }))
         .sort((a, b) => ipToInt(a.ip) - ipToInt(b.ip)),
+      subnets6: (await all(subnets6))
+        .map((x) => ({ id: x.id, ...x.data }))
+        .sort((a, b) => order6(a.prefix.split('/')[0] ?? '::', b.prefix.split('/')[0] ?? '::')),
+      reservations6: (await all(reservations6))
+        .map((x) => ({ id: x.id, ...x.data }))
+        .sort((a, b) => order6(a.ip, b.ip)),
     }),
   });
 
@@ -248,7 +313,9 @@ export function dhcpRoutes(
     schema: dhcpService,
     check: (s) => checkService(s),
     inUse: async (id) => {
-      const n = (await all(subnets)).filter((s) => s.data.serviceId === id).length;
+      const n =
+        (await all(subnets)).filter((s) => s.data.serviceId === id).length +
+        (await all(subnets6)).filter((s) => s.data.serviceId === id).length;
       return n ? `${String(n)} subnet(s)` : null;
     },
   });
@@ -273,6 +340,31 @@ export function dhcpRoutes(
     schema: dhcpReservation,
     check: async (r, self) => {
       await checkReservation(r, self);
+      return undefined;
+    },
+    inUse: () => Promise.resolve(null),
+  });
+  crud({
+    path: 'subnets6',
+    what: 'Subnet6',
+    store: subnets6,
+    schema: dhcpSubnet6,
+    check: async (s, self) => {
+      await checkSubnet6(s, self);
+      return undefined;
+    },
+    inUse: async (id) => {
+      const n = (await all(reservations6)).filter((r) => r.data.subnetId === id).length;
+      return n ? `${String(n)} reservation(s)` : null;
+    },
+  });
+  crud({
+    path: 'reservations6',
+    what: 'Reservation6',
+    store: reservations6,
+    schema: dhcpReservation6,
+    check: async (r, self) => {
+      await checkReservation6(r, self);
       return undefined;
     },
     inUse: () => Promise.resolve(null),

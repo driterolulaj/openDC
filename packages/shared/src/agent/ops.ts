@@ -256,7 +256,12 @@ export const ops = {
   'dhcp.apply': {
     v: 1,
     args: keaApplyArgs,
-    result: z.object({ changed: z.boolean(), action: z.enum(['none', 'reloaded', 'started', 'stopped']) }),
+    /** action: DHCPv4 (kea-dhcp4), action6: DHCPv6 (kea-dhcp6, runs only while there are IPv6 subnets) */
+    result: z.object({
+      changed: z.boolean(),
+      action: z.enum(['none', 'reloaded', 'started', 'stopped']),
+      action6: z.enum(['none', 'reloaded', 'started', 'stopped']),
+    }),
   },
   'dhcp.leases': {
     v: 1,
@@ -264,8 +269,11 @@ export const ops = {
     result: z.object({
       leases: z.array(
         z.object({
+          family: z.union([z.literal(4), z.literal(6)]),
           ip: z.string(),
+          /** '' when Kea doesn't know it (DHCPv6 clients identify by DUID) */
           mac: z.string(),
+          duid: z.string().nullable(),
           hostname: z.string().nullable(),
           subnetId: z.number(),
           expires: z.string(),

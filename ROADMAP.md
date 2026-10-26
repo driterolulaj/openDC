@@ -135,10 +135,11 @@ are updated.
   `_msdcs`, delegation); spike agent vs LDAP record writes. *Spike S3: writes through the agent, reads over LDAP.
   Forwarders/scavenging are per DC (the DC the console runs on until node RPC in Phase 4).*
 - [ ] Kea DHCPv4/v6: subnets, pools, reservations, options from directory + DHCP policies; config-test before swap;
-  lease viewer; HA pair; optional DNS registration (GSS-TSIG or lease hook, per spike). *DHCPv4 done: services
-  (one server or an HA pair over mutual TLS), subnets, pools, reservations, options, DHCP policies, `kea-dhcp4 -t`
-  as `_kea` before the swap, `config-reload`, lease viewer. Open: DHCPv6; DNS registration waits for Q25 (the
-  lease-hook plan fails under Kea's AppArmor profile).*
+  lease viewer; HA pair; optional DNS registration (GSS-TSIG or lease hook, per spike). *Done except DNS
+  registration, which waits for Q25 (the lease-hook plan fails under Kea's AppArmor profile): services (one
+  server or an HA pair over mutual TLS), IPv4 and IPv6 subnets, pools, reservations (IPv6 by DUID or MAC),
+  options, DHCP policies (server-wide IPv4 options), `kea-dhcp4/6 -t` as `_kea` before the swap,
+  `config-reload`, lease viewer; each daemon runs only while the node serves subnets of its family.*
 - [ ] PKI: root + per-DC issuing CAs, node/service/web/LDAPS certificates, revocation, CRL publication, expiry
   warnings, auto-renew; ACME via the chosen client. *Done except ACME (waits for Q7) and expiry warnings in the
   diagnostics framework (Phase 4); a DC's issuing CA needs a tier-0 approval on the root holder.*

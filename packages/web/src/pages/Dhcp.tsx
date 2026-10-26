@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** DHCP (ROADMAP Phase 3): services, subnets, reservations, and this node's leases. */
+/** DHCP (ROADMAP Phase 3): services, IPv4 and IPv6 subnets, reservations, and this node's leases. */
 import { useState } from 'react';
 import {
   Badge,
@@ -34,12 +34,21 @@ const service = z.object({
   interfaces: z.array(z.string()),
   leaseSeconds: z.number(),
 });
+const pool = z.object({ from: z.string(), to: z.string() });
 const subnet = z.object({
   id: z.string(),
   serviceId: z.string(),
   cidr: z.string(),
-  pools: z.array(z.object({ from: z.string(), to: z.string() })),
+  pools: z.array(pool),
   routers: z.array(z.string()),
+  dnsServers: z.array(z.string()),
+});
+const subnet6 = z.object({
+  id: z.string(),
+  serviceId: z.string(),
+  prefix: z.string(),
+  interface: z.string().nullable(),
+  pools: z.array(pool),
   dnsServers: z.array(z.string()),
 });
 const reservation = z.object({
@@ -49,16 +58,36 @@ const reservation = z.object({
   ip: z.string(),
   hostname: z.string().nullable(),
 });
-const overview = z.object({ services: z.array(service), subnets: z.array(subnet), reservations: z.array(reservation) });
+const reservation6 = z.object({
+  id: z.string(),
+  subnetId: z.string(),
+  duid: z.string().nullable(),
+  mac: z.string().nullable(),
+  ip: z.string(),
+  hostname: z.string().nullable(),
+});
+const overview = z.object({
+  services: z.array(service),
+  subnets: z.array(subnet),
+  reservations: z.array(reservation),
+  subnets6: z.array(subnet6),
+  reservations6: z.array(reservation6),
+});
 const leases = z.object({
-  leases: z.array(z.object({ ip: z.string(), mac: z.string(), hostname: z.string().nullable(), expires: z.string() })),
+  leases: z.array(
+    z.object({
+      family: z.number(),
+      ip: z.string(),
+      mac: z.string(),
+      duid: z.string().nullable(),
+      hostname: z.string().nullable(),
+      expires: z.string(),
+    }),
+  ),
 });
 type Overview = z.infer<typeof overview>;
 const csv = (s: string): string[] => s.split(/[\s,]+/).filter(Boolean);
-
-function useDhcp() {
-  return useQuery({ queryKey: ['dhcp'], queryFn: () => api('/dhcp', { schema: overview }) });
-}
+const MAC = /^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$/;
 
 function Services({ data, canWrite }: { data: Overview; canWrite: boolean }) {
   const { t } = useTranslation();
@@ -159,15 +188,20 @@ function Services({ data, canWrite }: { data: Overview; canWrite: boolean }) {
               ))}
             </Group>
             {servers.length === 2 ? (
-              <SegmentedControl
-                aria-label={t('dhcp.ha-mode')}
-                value={mode}
-                onChange={setMode}
-                data={[
-                  { value: 'hot-standby', label: t('dhcp.mode-hot-standby') },
-                  { value: 'load-balancing', label: t('dhcp.mode-load-balancing') },
-                ]}
-              />
+              <>
+                <SegmentedControl
+                  aria-label={t('dhcp.ha-mode')}
+                  value={mode}
+                  onChange={setMode}
+                  data={[
+                    { value: 'hot-standby', label: t('dhcp.mode-hot-standby') },
+                    { value: 'load-balancing', label: t('dhcp.mode-load-balancing') },
+                  ]}
+                />
+                <Text size="sm" c="dimmed">
+                  {t('dhcp.ha-hint')}
+                </Text>
+              </>
             ) : null}
             <Group justify="flex-end">
               <Button disabled={!name || !servers.length} loading={create.isPending} onClick={() => create.mutate()}>
@@ -181,44 +215,64 @@ function Services({ data, canWrite }: { data: Overview; canWrite: boolean }) {
   );
 }
 
-function Reservations({ data, subnetId, canWrite }: { data: Overview; subnetId: string; canWrite: boolean }) {
+/** Reservations of one subnet; `v6` adds the DUID as the client id. */
+function Reservations({
+  data,
+  subnetId,
+  v6,
+  canWrite,
+}: {
+  data: Overview;
+  subnetId: string;
+  v6: boolean;
+  canWrite: boolean;
+}) {
   const { t } = useTranslation();
   const qc = useQueryClient();
-  const [mac, setMac] = useState('');
+  const [client, setClient] = useState('');
   const [ip, setIp] = useState('');
   const [hostname, setHostname] = useState('');
   const [edit, setEdit] = useState<{ id: string; ip: string } | null>(null);
+  const path = v6 ? 'reservations6' : 'reservations';
   const done = async () => {
-    setMac('');
+    setClient('');
     setIp('');
     setHostname('');
     setEdit(null);
     await qc.invalidateQueries({ queryKey: ['dhcp'] });
   };
+  /** v6: a MAC address or a DUID, told apart by their form */
+  const clientId = (c: string): Record<string, string | null> =>
+    v6 ? (MAC.test(c) ? { mac: c, duid: null } : { duid: c, mac: null }) : { mac: c };
+  const rows = [
+    ...(v6
+      ? data.reservations6.map((r) => ({ ...r, client: r.duid ?? r.mac ?? '' }))
+      : data.reservations.map((r) => ({ ...r, client: r.mac }))),
+  ].filter((r) => r.subnetId === subnetId);
   const add = useMutation({
     mutationFn: () =>
-      api('/dhcp/reservations', {
+      api(`/dhcp/${path}`, {
         method: 'POST',
-        body: { subnetId, mac, ip, hostname: hostname || null },
+        body: { subnetId, ...clientId(client), ip, hostname: hostname || null },
         schema: z.object({ id: z.string() }),
       }),
     onSuccess: done,
   });
   const update = useMutation({
-    mutationFn: (r: z.infer<typeof reservation> & { newIp: string }) =>
-      api(`/dhcp/reservations/${r.id}`, {
+    mutationFn: (r: { id: string; client: string; hostname: string | null; newIp: string }) =>
+      api(`/dhcp/${path}/${r.id}`, {
         method: 'PUT',
-        body: { subnetId: r.subnetId, mac: r.mac, ip: r.newIp, hostname: r.hostname },
+        body: { subnetId, ...clientId(r.client), ip: r.newIp, hostname: r.hostname },
         schema: z.object({}),
       }),
     onSuccess: done,
   });
   const del = useMutation({
-    mutationFn: (id: string) => api(`/dhcp/reservations/${id}`, { method: 'DELETE', schema: z.object({}) }),
+    mutationFn: (id: string) => api(`/dhcp/${path}/${id}`, { method: 'DELETE', schema: z.object({}) }),
     onSuccess: done,
   });
-  const rows = data.reservations.filter((r) => r.subnetId === subnetId);
   const err = add.error ?? update.error ?? del.error;
+  const clientLabel = v6 ? t('dhcp.client6') : t('dhcp.mac');
   return (
     <Stack gap="xs">
       {err ? <ErrorView error={err} /> : null}
@@ -226,7 +280,7 @@ function Reservations({ data, subnetId, canWrite }: { data: Overview; subnetId: 
         <Table.Thead>
           <Table.Tr>
             <Table.Th>{t('dhcp.ip')}</Table.Th>
-            <Table.Th>{t('dhcp.mac')}</Table.Th>
+            <Table.Th>{clientLabel}</Table.Th>
             <Table.Th>{t('dhcp.hostname')}</Table.Th>
             <Table.Th />
           </Table.Tr>
@@ -249,7 +303,7 @@ function Reservations({ data, subnetId, canWrite }: { data: Overview; subnetId: 
                   r.ip
                 )}
               </Table.Td>
-              <Table.Td ff="monospace">{r.mac}</Table.Td>
+              <Table.Td ff="monospace">{r.client}</Table.Td>
               <Table.Td>{r.hostname ?? ''}</Table.Td>
               <Table.Td>
                 {canWrite ? (
@@ -279,7 +333,7 @@ function Reservations({ data, subnetId, canWrite }: { data: Overview; subnetId: 
       </Table>
       {canWrite ? (
         <Group align="flex-end">
-          <TextInput size="xs" label={t('dhcp.mac')} value={mac} onChange={(e) => setMac(e.currentTarget.value)} />
+          <TextInput size="xs" label={clientLabel} value={client} onChange={(e) => setClient(e.currentTarget.value)} />
           <TextInput size="xs" label={t('dhcp.ip')} value={ip} onChange={(e) => setIp(e.currentTarget.value)} />
           <TextInput
             size="xs"
@@ -287,7 +341,7 @@ function Reservations({ data, subnetId, canWrite }: { data: Overview; subnetId: 
             value={hostname}
             onChange={(e) => setHostname(e.currentTarget.value)}
           />
-          <Button size="xs" disabled={!mac || !ip} loading={add.isPending} onClick={() => add.mutate()}>
+          <Button size="xs" disabled={!client || !ip} loading={add.isPending} onClick={() => add.mutate()}>
             {t('dhcp.reserve')}
           </Button>
         </Group>
@@ -296,35 +350,97 @@ function Reservations({ data, subnetId, canWrite }: { data: Overview; subnetId: 
   );
 }
 
-function Subnets({ data, canWrite }: { data: Overview; canWrite: boolean }) {
+function NewSubnet({ data }: { data: Overview }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const [family, setFamily] = useState('4');
   const [serviceId, setServiceId] = useState<string | null>(null);
-  const [cidr, setCidr] = useState('');
+  const [network, setNetwork] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [routers, setRouters] = useState('');
   const [dns, setDns] = useState('');
+  const [iface, setIface] = useState('');
   const create = useMutation({
-    mutationFn: () =>
-      api('/dhcp/subnets', {
-        method: 'POST',
-        body: {
-          serviceId,
-          cidr,
-          pools: from && to ? [{ from, to }] : [],
-          routers: csv(routers),
-          dnsServers: csv(dns),
-        },
-        schema: z.object({ id: z.string() }),
-      }),
+    mutationFn: () => {
+      const pools = from && to ? [{ from, to }] : [];
+      return family === '4'
+        ? api('/dhcp/subnets', {
+            method: 'POST',
+            body: { serviceId, cidr: network, pools, routers: csv(routers), dnsServers: csv(dns) },
+            schema: z.object({ id: z.string() }),
+          })
+        : api('/dhcp/subnets6', {
+            method: 'POST',
+            body: { serviceId, prefix: network, interface: iface || null, pools, dnsServers: csv(dns) },
+            schema: z.object({ id: z.string() }),
+          });
+    },
     onSuccess: async () => {
-      setCidr('');
+      setNetwork('');
       setFrom('');
       setTo('');
       await qc.invalidateQueries({ queryKey: ['dhcp'] });
     },
   });
+  return (
+    <Card withBorder>
+      <Stack>
+        <Group justify="space-between">
+          <Title order={4}>{t('dhcp.new-subnet')}</Title>
+          <SegmentedControl
+            aria-label={t('dhcp.family')}
+            value={family}
+            onChange={setFamily}
+            data={[
+              { value: '4', label: t('dhcp.ipv4') },
+              { value: '6', label: t('dhcp.ipv6') },
+            ]}
+          />
+        </Group>
+        {create.error ? <ErrorView error={create.error} /> : null}
+        <SimpleGrid cols={{ base: 1, sm: 3 }}>
+          <Select
+            label={t('dhcp.service')}
+            data={data.services.map((s) => ({ value: s.id, label: s.name }))}
+            value={serviceId}
+            onChange={setServiceId}
+          />
+          <TextInput
+            label={family === '4' ? t('dhcp.cidr') : t('dhcp.prefix')}
+            placeholder={family === '4' ? '10.0.0.0/24' : 'fd00:10::/64'}
+            value={network}
+            onChange={(e) => setNetwork(e.currentTarget.value)}
+          />
+          {family === '4' ? (
+            <TextInput label={t('dhcp.router')} value={routers} onChange={(e) => setRouters(e.currentTarget.value)} />
+          ) : (
+            <TextInput
+              label={t('dhcp.interface')}
+              description={t('dhcp.interface-hint')}
+              value={iface}
+              onChange={(e) => setIface(e.currentTarget.value)}
+            />
+          )}
+          <TextInput label={t('dhcp.pool-from')} value={from} onChange={(e) => setFrom(e.currentTarget.value)} />
+          <TextInput label={t('dhcp.pool-to')} value={to} onChange={(e) => setTo(e.currentTarget.value)} />
+          <TextInput label={t('dhcp.dns')} value={dns} onChange={(e) => setDns(e.currentTarget.value)} />
+        </SimpleGrid>
+        <Group justify="flex-end">
+          <Button disabled={!serviceId || !network} loading={create.isPending} onClick={() => create.mutate()}>
+            {t('dhcp.create')}
+          </Button>
+        </Group>
+      </Stack>
+    </Card>
+  );
+}
+
+function Subnets({ data, canWrite }: { data: Overview; canWrite: boolean }) {
+  const { t } = useTranslation();
+  const serviceName = (id: string): string => data.services.find((x) => x.id === id)?.name ?? id;
+  const pools = (p: { from: string; to: string }[]): string =>
+    p.length ? ` · ${p.map((x) => `${x.from} – ${x.to}`).join(', ')}` : '';
   return (
     <Stack>
       {data.subnets.map((s) => (
@@ -335,46 +451,36 @@ function Subnets({ data, canWrite }: { data: Overview; canWrite: boolean }) {
                 {s.cidr}
               </Text>
               <Text size="sm" c="dimmed">
-                {data.services.find((x) => x.id === s.serviceId)?.name ?? s.serviceId}
-                {s.pools.length ? ` · ${s.pools.map((p) => `${p.from} – ${p.to}`).join(', ')}` : ''}
+                {serviceName(s.serviceId)}
+                {pools(s.pools)}
                 {s.routers.length ? ` · ${t('dhcp.router')} ${s.routers.join(', ')}` : ''}
               </Text>
             </Group>
-            <Reservations data={data} subnetId={s.id} canWrite={canWrite} />
+            <Reservations data={data} subnetId={s.id} v6={false} canWrite={canWrite} />
           </Stack>
         </Card>
       ))}
-      {canWrite && data.services.length ? (
-        <Card withBorder>
-          <Stack>
-            <Title order={4}>{t('dhcp.new-subnet')}</Title>
-            {create.error ? <ErrorView error={create.error} /> : null}
-            <SimpleGrid cols={{ base: 1, sm: 3 }}>
-              <Select
-                label={t('dhcp.service')}
-                data={data.services.map((s) => ({ value: s.id, label: s.name }))}
-                value={serviceId}
-                onChange={setServiceId}
-              />
-              <TextInput
-                label={t('dhcp.cidr')}
-                placeholder="10.0.0.0/24"
-                value={cidr}
-                onChange={(e) => setCidr(e.currentTarget.value)}
-              />
-              <TextInput label={t('dhcp.router')} value={routers} onChange={(e) => setRouters(e.currentTarget.value)} />
-              <TextInput label={t('dhcp.pool-from')} value={from} onChange={(e) => setFrom(e.currentTarget.value)} />
-              <TextInput label={t('dhcp.pool-to')} value={to} onChange={(e) => setTo(e.currentTarget.value)} />
-              <TextInput label={t('dhcp.dns')} value={dns} onChange={(e) => setDns(e.currentTarget.value)} />
-            </SimpleGrid>
-            <Group justify="flex-end">
-              <Button disabled={!serviceId || !cidr} loading={create.isPending} onClick={() => create.mutate()}>
-                {t('dhcp.create')}
-              </Button>
+      {data.subnets6.map((s) => (
+        <Card key={s.id} withBorder>
+          <Stack gap="xs">
+            <Group justify="space-between">
+              <Group gap={6}>
+                <Text fw={500} ff="monospace">
+                  {s.prefix}
+                </Text>
+                <Badge variant="light">{t('dhcp.ipv6')}</Badge>
+              </Group>
+              <Text size="sm" c="dimmed">
+                {serviceName(s.serviceId)}
+                {s.interface ? ` · ${s.interface}` : ''}
+                {pools(s.pools)}
+              </Text>
             </Group>
+            <Reservations data={data} subnetId={s.id} v6 canWrite={canWrite} />
           </Stack>
         </Card>
-      ) : null}
+      ))}
+      {canWrite && data.services.length ? <NewSubnet data={data} /> : null}
     </Stack>
   );
 }
@@ -390,16 +496,16 @@ function Leases() {
       <Table.Thead>
         <Table.Tr>
           <Table.Th>{t('dhcp.ip')}</Table.Th>
-          <Table.Th>{t('dhcp.mac')}</Table.Th>
+          <Table.Th>{t('dhcp.client')}</Table.Th>
           <Table.Th>{t('dhcp.hostname')}</Table.Th>
           <Table.Th>{t('dhcp.expires')}</Table.Th>
         </Table.Tr>
       </Table.Thead>
       <Table.Tbody>
         {q.data.leases.map((l) => (
-          <Table.Tr key={`${l.ip}-${l.mac}`}>
+          <Table.Tr key={`${l.ip}-${l.mac}-${l.duid ?? ''}`}>
             <Table.Td ff="monospace">{l.ip}</Table.Td>
-            <Table.Td ff="monospace">{l.mac}</Table.Td>
+            <Table.Td ff="monospace">{l.duid ?? l.mac}</Table.Td>
             <Table.Td>{l.hostname ?? ''}</Table.Td>
             <Table.Td>{l.expires.replace('T', ' ').slice(0, 16)}</Table.Td>
           </Table.Tr>
@@ -412,7 +518,7 @@ function Leases() {
 export default function Dhcp() {
   const { t } = useTranslation();
   const { has } = useSession();
-  const q = useDhcp();
+  const q = useQuery({ queryKey: ['dhcp'], queryFn: () => api('/dhcp', { schema: overview }) });
   if (!has('dhcp.read')) return <Text>{t('error.forbidden')}</Text>;
   const canWrite = has('dhcp.write');
   return (

@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Kea DHCPv4 on this node (ROADMAP Phase 3, Spike S4). `dhcp.apply` renders the configuration from typed data
- * (never takes a Kea configuration), checks it with `kea-dhcp4 -t`, swaps it in as Kea's user and applies it with
- * the control socket's `config-reload` (Kea keeps running); a failed reload restores the previous file. A node
- * that serves no DHCP stops Kea. `dhcp.leases` reads the leases through the same socket (lease_cmds hook).
+ * Kea DHCPv4 and DHCPv6 on this node (ROADMAP Phase 3, Spike S4). `dhcp.apply` renders each daemon's
+ * configuration from typed data (never takes a Kea configuration), checks it with `kea-dhcp4/6 -t`, swaps it in as
+ * Kea's user and applies it with the control socket's `config-reload` (Kea keeps running); a failed reload restores
+ * the previous file. A daemon runs only while this node serves subnets of its family. `dhcp.leases` reads the
+ * leases through the same sockets (lease_cmds hook).
  */
 import { randomBytes } from 'node:crypto';
 import { copyFile, chown, readFile, rm, writeFile } from 'node:fs/promises';
@@ -11,8 +12,8 @@ import { createConnection } from 'node:net';
 import { dirname, join } from 'node:path';
 import { PlatformError } from '@opendc/shared';
 import type { OpResult } from '@opendc/shared/agent';
-import { renderKea4, type KeaApplyArgs } from '@opendc/shared/dhcp';
-import { writeSystemFile, type OsActions } from '@opendc/os';
+import { renderKea4, renderKea6, type KeaApplyArgs } from '@opendc/shared/dhcp';
+import { writeSystemFile, type KeaDaemon, type OsActions } from '@opendc/os';
 
 /** One command over Kea's Unix control socket (Kea answers and closes the connection). */
 export function keaCommand(
@@ -58,63 +59,35 @@ async function account(user: string): Promise<{ uid: number; gid: number } | nul
   return null;
 }
 
-export async function keaApply(
-  os: OsActions,
-  a: KeaApplyArgs,
-  pki: { keys: string; trust: string },
-): Promise<OpResult<'dhcp.apply'>> {
-  const k = await os.facts.kea();
-  const unit = k.unit;
-  const active = async (): Promise<boolean> => (await os.services.status(unit).catch(() => null))?.active === 'active';
-  if (!a.enabled) {
-    if (await active()) {
-      await os.services.disable(unit, true);
-      return { changed: true, action: 'stopped' };
-    }
-    return { changed: false, action: 'none' };
-  }
+type Action = OpResult<'dhcp.apply'>['action'];
+type Owner = { uid: number; gid: number } | null;
+
+async function ensurePackages(os: OsActions, logical: string): Promise<void> {
   const missing: string[] = [];
-  for (const p of os.facts.packageNames('kea')) if (!(await os.packages.installed(p))) missing.push(p);
+  for (const p of os.facts.packageNames(logical)) if (!(await os.packages.installed(p))) missing.push(p);
   if (missing.length) await os.packages.install(missing);
-  const owner = await account(k.user);
+}
 
-  // the HA channel carries lease updates: mutual TLS with this node's certificate (copied where Kea's user can
-  // read it), never plain HTTP
-  let tls: { cert: string; key: string; ca: string } | null = null;
-  if (a.ha) {
-    const dir = join(dirname(k.configFile), 'opendc-tls');
-    const node = {
-      cert: join(pki.keys, 'node.pem'),
-      key: join(pki.keys, 'node.key'),
-      ca: join(pki.trust, 'ca-bundle.pem'),
-    };
-    if ((await readFile(node.cert, 'utf8').catch(() => '')).trim() === '')
-      throw new PlatformError('validation.invalid', {
-        issues: "the DHCP HA channel needs this node's certificate, and it has none yet",
-      });
-    tls = { cert: join(dir, 'node.pem'), key: join(dir, 'node.key'), ca: join(dir, 'ca-bundle.pem') };
-    for (const [from, to] of [
-      [node.cert, tls.cert],
-      [node.key, tls.key],
-      [node.ca, tls.ca],
-    ] as const) {
-      await writeSystemFile(to, await readFile(from, 'utf8'), 0o640);
-      if (owner) await chown(to, 0, owner.gid);
-    }
-    if (owner) await chown(dir, owner.uid, owner.gid);
+/** One daemon: stopped when `json` is null, otherwise checked, swapped in and reloaded (or started). */
+async function applyDaemon(os: OsActions, d: KeaDaemon, owner: Owner, json: string | null): Promise<Action> {
+  const active = async (): Promise<boolean> =>
+    (await os.services.status(d.unit).catch(() => null))?.active === 'active';
+  if (json === null) {
+    if (!(await active())) return 'none';
+    await os.services.disable(d.unit, true);
+    return 'stopped';
   }
-
-  const json = `${JSON.stringify(renderKea4(a, { hooksDir: k.hooksDir, leaseFile: k.leaseFile, controlSocket: k.controlSocket, tls }), null, 2)}\n`;
-  const current = await readFile(k.configFile, 'utf8').catch(() => null);
-  if (current === json && (await active())) return { changed: false, action: 'none' };
+  // a freshly installed package runs the distribution's example configuration until ours replaces it
+  const current = await readFile(d.configFile, 'utf8').catch(() => null);
+  if (current === json && (await active())) return 'none';
 
   // the candidate must pass Kea's own check before it replaces anything; as Kea's user, because Kea's AppArmor
   // profile denies root the DAC override it would need for /etc/kea (0750 _kea)
-  const candidate = join(dirname(k.configFile), `.opendc-${randomBytes(4).toString('hex')}.conf`);
+  const candidate = join(dirname(d.configFile), `.opendc-${randomBytes(4).toString('hex')}.conf`);
   await writeFile(candidate, json, { mode: 0o640 });
   try {
     if (owner) await chown(candidate, owner.uid, owner.gid);
-    await os.exec(await os.facts.binaries.resolve('kea-dhcp4'), ['-t', candidate], {
+    await os.exec(await os.facts.binaries.resolve(d.binary), ['-t', candidate], {
       timeoutMs: 60_000,
       ...(owner ? { user: owner } : {}),
     });
@@ -125,43 +98,111 @@ export async function keaApply(
   } finally {
     await rm(candidate, { force: true });
   }
-  await writeSystemFile(k.configFile, json, 0o640);
-  if (owner) await chown(k.configFile, owner.uid, owner.gid);
+  await writeSystemFile(d.configFile, json, 0o640);
+  if (owner) await chown(d.configFile, owner.uid, owner.gid);
 
   if (!(await active())) {
-    await os.services.enable(unit, false);
-    await os.services.startAndWait(unit, 60_000);
-    return { changed: true, action: 'started' };
+    await os.services.enable(d.unit, false);
+    await os.services.startAndWait(d.unit, 60_000);
+    return 'started';
   }
-  const r = await keaCommand(k.controlSocket, { command: 'config-reload' }).catch((e: unknown) => ({
+  const r = await keaCommand(d.controlSocket, { command: 'config-reload' }).catch((e: unknown) => ({
     result: 1,
     text: e instanceof Error ? e.message : String(e),
   }));
   if (r.result !== 0) {
     // back to the previous configuration (writeSystemFile kept it next to the file)
-    await copyFile(`${k.configFile}.opendc-prev`, k.configFile).catch(() => undefined);
-    if (owner) await chown(k.configFile, owner.uid, owner.gid).catch(() => undefined);
-    await keaCommand(k.controlSocket, { command: 'config-reload' }).catch(() => undefined);
+    await copyFile(`${d.configFile}.opendc-prev`, d.configFile).catch(() => undefined);
+    if (owner) await chown(d.configFile, owner.uid, owner.gid).catch(() => undefined);
+    await keaCommand(d.controlSocket, { command: 'config-reload' }).catch(() => undefined);
     throw new PlatformError('validation.invalid', { issues: `Kea did not apply the configuration: ${r.text ?? '?'}` });
   }
-  return { changed: true, action: 'reloaded' };
+  return 'reloaded';
 }
+
+/**
+ * The HA channel carries lease updates: mutual TLS with this node's certificate (copied where Kea's user can read
+ * it), never plain HTTP.
+ */
+async function haTls(
+  configDir: string,
+  owner: Owner,
+  pki: { keys: string; trust: string },
+): Promise<{ cert: string; key: string; ca: string }> {
+  const dir = join(configDir, 'opendc-tls');
+  const node = {
+    cert: join(pki.keys, 'node.pem'),
+    key: join(pki.keys, 'node.key'),
+    ca: join(pki.trust, 'ca-bundle.pem'),
+  };
+  if ((await readFile(node.cert, 'utf8').catch(() => '')).trim() === '')
+    throw new PlatformError('validation.invalid', {
+      issues: "the DHCP HA channel needs this node's certificate, and it has none yet",
+    });
+  const tls = { cert: join(dir, 'node.pem'), key: join(dir, 'node.key'), ca: join(dir, 'ca-bundle.pem') };
+  for (const [from, to] of [
+    [node.cert, tls.cert],
+    [node.key, tls.key],
+    [node.ca, tls.ca],
+  ] as const) {
+    await writeSystemFile(to, await readFile(from, 'utf8'), 0o640);
+    if (owner) await chown(to, 0, owner.gid);
+  }
+  if (owner) await chown(dir, owner.uid, owner.gid);
+  return tls;
+}
+
+export async function keaApply(
+  os: OsActions,
+  a: KeaApplyArgs,
+  pki: { keys: string; trust: string },
+): Promise<OpResult<'dhcp.apply'>> {
+  const k = await os.facts.kea();
+  const want4 = a.enabled && a.subnets.length > 0;
+  const want6 = a.enabled && a.subnets6.length > 0;
+  // packages first: they create Kea's account
+  if (want4) await ensurePackages(os, k.v4.packages);
+  if (want6) await ensurePackages(os, k.v6.packages);
+  const owner = want4 || want6 ? await account(k.user) : null;
+  const tls = a.ha && (want4 || want6) ? await haTls(dirname(k.v4.configFile), owner, pki) : null;
+  const paths = (d: KeaDaemon) => ({
+    hooksDir: k.hooksDir,
+    leaseFile: d.leaseFile,
+    controlSocket: d.controlSocket,
+    tls,
+  });
+  const json = (o: Record<string, unknown>): string => `${JSON.stringify(o, null, 2)}\n`;
+  const action = await applyDaemon(os, k.v4, owner, want4 ? json(renderKea4(a, paths(k.v4))) : null);
+  const action6 = await applyDaemon(os, k.v6, owner, want6 ? json(renderKea6(a, paths(k.v6))) : null);
+  return { changed: action !== 'none' || action6 !== 'none', action, action6 };
+}
+
+const str = (v: unknown): string => (typeof v === 'string' ? v : '');
 
 export async function keaLeases(os: OsActions): Promise<OpResult<'dhcp.leases'>> {
   const k = await os.facts.kea();
-  // a node that serves no DHCP has no leases (and no Kea to ask)
-  if ((await os.services.status(k.unit).catch(() => null))?.active !== 'active') return { leases: [] };
-  const r = await keaCommand(k.controlSocket, { command: 'lease4-get-all' });
-  // 3 = empty
-  if (r.result !== 0 && r.result !== 3)
-    throw new PlatformError('validation.invalid', { issues: `Kea: ${r.text ?? '?'}` });
-  const leases = ((r.arguments as { leases?: Record<string, unknown>[] } | undefined)?.leases ?? []).map((l) => ({
-    ip: typeof l['ip-address'] === 'string' ? l['ip-address'] : '',
-    mac: typeof l['hw-address'] === 'string' ? l['hw-address'] : '',
-    hostname: typeof l.hostname === 'string' && l.hostname ? l.hostname : null,
-    subnetId: Number(l['subnet-id'] ?? 0),
-    expires: new Date((Number(l.cltt ?? 0) + Number(l['valid-lft'] ?? 0)) * 1000).toISOString(),
-    state: Number(l.state ?? 0),
-  }));
+  const leases: OpResult<'dhcp.leases'>['leases'] = [];
+  for (const [family, d] of [
+    [4, k.v4],
+    [6, k.v6],
+  ] as const) {
+    // a daemon that isn't running has no leases (and no socket to ask)
+    if ((await os.services.status(d.unit).catch(() => null))?.active !== 'active') continue;
+    const r = await keaCommand(d.controlSocket, { command: family === 4 ? 'lease4-get-all' : 'lease6-get-all' });
+    // 3 = empty
+    if (r.result !== 0 && r.result !== 3)
+      throw new PlatformError('validation.invalid', { issues: `Kea: ${r.text ?? '?'}` });
+    for (const l of (r.arguments as { leases?: Record<string, unknown>[] } | undefined)?.leases ?? [])
+      leases.push({
+        family,
+        ip: str(l['ip-address']),
+        mac: str(l['hw-address']),
+        duid: family === 6 && str(l.duid) ? str(l.duid) : null,
+        hostname: str(l.hostname) || null,
+        subnetId: Number(l['subnet-id'] ?? 0),
+        expires: new Date((Number(l.cltt ?? 0) + Number(l['valid-lft'] ?? 0)) * 1000).toISOString(),
+        state: Number(l.state ?? 0),
+      });
+  }
   return { leases };
 }

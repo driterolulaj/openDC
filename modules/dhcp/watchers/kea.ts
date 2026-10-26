@@ -8,8 +8,10 @@
 import { lookup } from 'node:dns/promises';
 import {
   dhcpReservation,
+  dhcpReservation6,
   dhcpService,
   dhcpSubnet,
+  dhcpSubnet6,
   keaSubnetId,
   type DhcpReservation,
   type DhcpService,
@@ -88,6 +90,10 @@ const handler: WatchHandler = {
       'dhcp.reservation',
       dhcpReservation,
     );
+    const subnets6 = (await load(ctx, 'Subnets6', 'dhcp.subnet6', dhcpSubnet6)).filter((s) =>
+      mine.some((m) => m.id === s.data.serviceId),
+    );
+    const reservations6 = await load(ctx, 'Reservations6', 'dhcp.reservation6', dhcpReservation6);
     const policy = (await nodePolicyValues(ctx, 'dhcp')) ?? {};
     const first = mine[0]?.data;
     // an HA pair: the first server is the primary
@@ -128,13 +134,40 @@ const handler: WatchHandler = {
           .filter((x) => x.data.subnetId === s.id)
           .map((x) => ({ mac: x.data.mac, ip: x.data.ip, hostname: x.data.hostname })),
       })),
+      subnets6: subnets6.flatMap((s) => {
+        // DHCPv6 serves direct clients by interface: the subnet's, or its service's only one
+        const svc = mine.find((m) => m.id === s.data.serviceId)?.data;
+        const iface = s.data.interface ?? (svc?.interfaces.length === 1 ? svc.interfaces[0] : undefined);
+        if (!iface) {
+          ctx.log('warn', 'IPv6 subnet skipped: it needs an interface (its service has several)', {
+            prefix: s.data.prefix,
+          });
+          return [];
+        }
+        return [
+          {
+            id: keaSubnetId(s.id),
+            prefix: s.data.prefix,
+            interface: iface,
+            pools: s.data.pools,
+            dnsServers: s.data.dnsServers,
+            domainSearch: s.data.domainSearch,
+            reservations: reservations6
+              .filter((x) => x.data.subnetId === s.id)
+              .map((x) => ({ duid: x.data.duid, mac: x.data.mac, ip: x.data.ip, hostname: x.data.hostname })),
+          },
+        ];
+      }),
       ha,
     });
     if (r.changed)
       ctx.log('info', 'DHCP configuration applied', {
         action: r.action,
+        action6: r.action6,
         subnets: subnets.length,
+        subnets6: subnets6.length,
         reservations: reservations.length,
+        reservations6: reservations6.length,
       });
   },
 };

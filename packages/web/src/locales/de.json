@@ -600,7 +600,16 @@
     "hostname": "Hostname",
     "reserve": "Reservieren",
     "expires": "Läuft ab",
-    "no-leases": "Keine Leases auf diesem Knoten (er stellt womöglich kein DHCP bereit)."
+    "no-leases": "Keine Leases auf diesem Knoten (er stellt womöglich kein DHCP bereit).",
+    "family": "Adressfamilie",
+    "prefix": "Präfix",
+    "interface": "Schnittstelle",
+    "interface-hint": "Die Verbindung, auf der Kea dieses Präfix bedient; darf leer bleiben, wenn der Dienst eine Schnittstelle hat",
+    "client6": "DUID oder MAC-Adresse",
+    "client": "Client",
+    "ha-hint": "Die beiden Server tauschen Lease-Updates über gegenseitiges TLS mit ihren Knotenzertifikaten aus; Mitglieder erhalten ihres mit der Knotenregistrierung.",
+    "ipv4": "IPv4",
+    "ipv6": "IPv6"
   },
   "gpo": {
     "title": "Gruppenrichtlinien",
