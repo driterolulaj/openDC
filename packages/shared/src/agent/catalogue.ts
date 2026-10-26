@@ -87,8 +87,9 @@ export const catalogue = {
   // PSOs and the default policy aren't readable/writable by the delegated account (Phase 2)
   'samba.passwordPolicy.show': { sockets: [A, C], risk: 'read', phase: 2 },
   'samba.passwordPolicy.set': { sockets: [A, C], risk: 'tier0', phase: 2 },
-  'samba.gpo.list': { sockets: [A, W, C], risk: 'read', phase: 3 },
   'samba.gpo.backup': { sockets: [A, C], risk: 'write', phase: 3 },
+  'samba.gpo.backup.list': { sockets: [A, C], risk: 'read', phase: 3 },
+  'samba.gpo.backup.delete': { sockets: [A, C], risk: 'write', phase: 3 },
   'samba.gpo.restore': { sockets: [A, C], risk: 'tier0', confirm: 'typed', phase: 3 },
   'samba.gpo.setlink': { sockets: [A, C], risk: 'write', phase: 3 },
   'samba.gpo.dellink': { sockets: [A, C], risk: 'write', phase: 3 },

@@ -1,0 +1,10 @@
+{
+  "module": {
+    "title": "Gruppenrichtlinien",
+    "description": "Gruppenrichtlinienobjekte: erstellen, sichern, wiederherstellen, verknüpfen und Verknüpfungen lösen."
+  },
+  "perm": {
+    "read": "Gruppenrichtlinienobjekte, ihre Verknüpfungen und Sicherungen ansehen",
+    "write": "Gruppenrichtlinienobjekte erstellen, sichern und wiederherstellen; verknüpfen und Verknüpfungen lösen"
+  }
+}

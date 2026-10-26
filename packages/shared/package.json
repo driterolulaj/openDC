@@ -64,6 +64,11 @@
       "types": "./src/dhcp/index.ts",
       "development": "./src/dhcp/index.ts",
       "default": "./dist/dhcp/index.js"
+    },
+    "./gpo": {
+      "types": "./src/gpo/index.ts",
+      "development": "./src/gpo/index.ts",
+      "default": "./dist/gpo/index.js"
     }
   },
   "files": [

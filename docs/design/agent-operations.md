@@ -112,11 +112,15 @@ Legend for sockets: **A** = api, **W** = watch, **C** = cli. Risk: R = read, W =
 | `platform.watchAccess.ensure` | — (this DC's own `odcw-<host>`): DS-Replication-Get-Changes on the domain head and read on `CN=Deleted Objects` (tombstones), idempotent; the watcher calls it at start | W, C | W | 3 |
 | `directory.posixIds.fill` | `guids[]` (≤ 500 users or groups; per-object results); the agent computes `idBase + RID` (ADR-0018, Q22), never overwrites, refuses a used ID | A, W, C | W | 3 |
 | `policy.password.reconcile` | `users?[]` (≤ 5000 GUIDs; all users when absent). Reads the password policies in `CN=Policies`, sets the domain default from the head-linked winner, keeps PSO `OpenDC-<id>` + shadow group `pso-<id>` per other policy, memberships = users whose effective policy it is (shared resolver); removes orphans | A, W, C | W | 3 |
-| `samba.gpo.list` | — | AWC | R | 3 |
-| `samba.gpo.backup` | `gpoGuid, targetId` | AC | W | 3 |
-| `samba.gpo.restore` | `backupId, newName?` | AC | T0 ✔c | 3 |
-| `samba.gpo.setlink/dellink` | `gpoGuid, containerGuid, enforced?, disabled?` | AC | W (T0 for domain/DC OU) | 3 |
-| `samba.gpo.create` | `displayName` | AC | W | 3 |
+| `samba.gpo.backup` | `gpo` (PDC emulator only; kept in the DC's state directory until backup targets, Phase 4) | AC | W | 3 |
+| `samba.gpo.backup.list` / `.delete` | — / `id` | AC | R / W | 3 |
+| `samba.gpo.restore` | `backupId, newName?` (PDC emulator only; in place with a higher version, or as a new GPO) | AC | T0 ✔c | 3 |
+| `samba.gpo.setlink/dellink` | `gpo, container (objectGUID), enforced?, disabled?` | AC | W (T0 for domain/DC OU) | 3 |
+| `samba.gpo.create` | `displayName` (PDC emulator only) | AC | W | 3 |
+
+GPOs are listed over LDAP by the API. samba-tool's own `gpo create/backup/restore` write SYSVOL over SMB with an
+account's credentials, so the agent does them with the DC's local privileges instead (ADR-0012): the container
+through `sam.ldb`, the folder on the file system, then `samba-tool ntacl sysvolreset`.
 | `samba.dbcheck` | `fix: false` (only read mode via API; `fix: true` only via CLI) | AC (fix: C) | R / T0 | 4 |
 | `samba.ntacl.sysvolreset` | — | WC | W | 4 |
 | `samba.sysvol.pull` | `sourceNodeGuid` (must be the current PDC emulator) | WC | W | 4 |

@@ -12,6 +12,15 @@ import { runSdPropIfPdc } from './samba/sdprop.ts';
 import { fillPosixIds } from './samba/posix.ts';
 import { PlatformBootstrap } from './samba/platform.ts';
 import * as dnsOps from './samba/dns.ts';
+import {
+  gpoBackup,
+  gpoBackupDelete,
+  gpoBackupList,
+  gpoCreate,
+  gpoDelLink,
+  gpoRestore,
+  gpoSetLink,
+} from './samba/gpo.ts';
 import { Pki, pkiPaths } from './samba/pki.ts';
 import { keaApply, keaLeases } from './dhcp.ts';
 import { joinMember } from './samba/member.ts';
@@ -63,6 +72,11 @@ export const timeouts: Partial<Record<ImplementedOp, number>> = {
   'samba.level.raise': 600_000,
   'samba.passwordPolicy.set': 300_000,
   'policy.password.reconcile': 600_000,
+  'samba.gpo.create': 600_000,
+  'samba.gpo.backup': 600_000,
+  'samba.gpo.restore': 600_000,
+  'samba.gpo.setlink': 120_000,
+  'samba.gpo.dellink': 120_000,
   'ca.init': 300_000,
   'pki.maintain': 300_000,
   'cert.revoke': 120_000,
@@ -219,6 +233,16 @@ export const implementations: Impls = {
   'policy.password.reconcile': async (args, ctx) =>
     reconcilePasswordPolicies(new SambaLocal(ctx.os), args.users ? { users: args.users } : {}),
   'directory.posixIds.fill': async (args, ctx) => fillPosixIds(new SambaLocal(ctx.os), args.guids),
+  'samba.gpo.create': async (args, ctx) =>
+    gpoCreate(new SambaLocal(ctx.os), (await ctx.os.system.info()).hostname, args),
+  'samba.gpo.backup': async (args, ctx) =>
+    gpoBackup(new SambaLocal(ctx.os), ctx.os, (await ctx.os.system.info()).hostname, args),
+  'samba.gpo.backup.list': async (_args, ctx) => gpoBackupList(ctx.os),
+  'samba.gpo.backup.delete': async (args, ctx) => gpoBackupDelete(ctx.os, args),
+  'samba.gpo.restore': async (args, ctx) =>
+    gpoRestore(new SambaLocal(ctx.os), ctx.os, (await ctx.os.system.info()).hostname, args),
+  'samba.gpo.setlink': async (args, ctx) => gpoSetLink(new SambaLocal(ctx.os), args),
+  'samba.gpo.dellink': async (args, ctx) => gpoDelLink(new SambaLocal(ctx.os), args),
   'dns.zone.list': async (_args, ctx) => dnsOps.zoneList(new SambaLocal(ctx.os)),
   'dns.zone.create': async (args, ctx) => dnsOps.zoneCreate(new SambaLocal(ctx.os), args),
   'dns.zone.delete': async (args, ctx) => dnsOps.zoneDelete(new SambaLocal(ctx.os), args),

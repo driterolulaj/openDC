@@ -7,6 +7,7 @@
 import { z } from 'zod';
 import { dnsFqdn, recordData, recordName } from '../dns/index.ts';
 import { keaApplyArgs } from '../dhcp/index.ts';
+import { gpoBackupInfo, gpoGuid, gpoName } from '../gpo/index.ts';
 
 const pkiLeaf = z.object({
   profile: z.enum(['node', 'web', 'ldaps']),
@@ -221,6 +222,36 @@ export const ops = {
       scavenging: z.boolean().optional(),
     }),
     result: z.object({ forwarders: z.array(z.string()), scavenging: z.boolean(), restarted: z.boolean() }),
+  },
+  'samba.gpo.create': {
+    v: 1,
+    args: z.strictObject({ displayName: gpoName }),
+    result: z.object({ gpo: z.string(), dn: z.string() }),
+  },
+  'samba.gpo.backup': { v: 1, args: z.strictObject({ gpo: gpoGuid }), result: gpoBackupInfo },
+  'samba.gpo.backup.list': { v: 1, args: empty, result: z.object({ backups: z.array(gpoBackupInfo) }) },
+  'samba.gpo.backup.delete': { v: 1, args: z.strictObject({ id: z.uuid() }), result: z.object({ id: z.string() }) },
+  'samba.gpo.restore': {
+    v: 1,
+    /** without newName: over the GPO the backup came from (re-created if it was deleted); with: as a new GPO */
+    args: z.strictObject({ backupId: z.uuid(), newName: gpoName.nullable().default(null) }),
+    result: z.object({ gpo: z.string(), created: z.boolean(), version: z.number().int() }),
+  },
+  'samba.gpo.setlink': {
+    v: 1,
+    /** creates the link or changes its options; container = objectGUID of the domain or an OU */
+    args: z.strictObject({
+      gpo: gpoGuid,
+      container: z.guid(),
+      enforced: z.boolean().default(false),
+      disabled: z.boolean().default(false),
+    }),
+    result: z.object({ container: z.string() }),
+  },
+  'samba.gpo.dellink': {
+    v: 1,
+    args: z.strictObject({ gpo: gpoGuid, container: z.guid() }),
+    result: z.object({ container: z.string() }),
   },
   'dhcp.apply': {
     v: 1,

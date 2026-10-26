@@ -1,0 +1,10 @@
+{
+  "module": {
+    "title": "Group policy",
+    "description": "Group policy objects: create, back up, restore, link and unlink."
+  },
+  "perm": {
+    "read": "View group policy objects, their links and backups",
+    "write": "Create, back up and restore group policy objects; link and unlink them"
+  }
+}

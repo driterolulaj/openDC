@@ -5,7 +5,7 @@ import { expectAccessible, login } from './helpers.ts';
 
 test('network services pages', async ({ page }) => {
   await login(page);
-  for (const name of ['Policies', 'DNS', 'Certificates', 'DHCP']) {
+  for (const name of ['Policies', 'DNS', 'Certificates', 'Group policy', 'DHCP']) {
     await page.getByRole('link', { name, exact: true }).click();
     await expect(page.getByRole('heading', { level: 2, name, exact: true })).toBeVisible();
     await expect(page.getByText('Something went wrong')).toHaveCount(0);

@@ -627,6 +627,36 @@ const catalogue = {
       fix: 'Domänencontroller registrieren diese Einträge und Zonen selbst.',
     },
   },
+  'gpo.not-pdc': {
+    http: 409,
+    en: {
+      message: 'Group policies are changed on the PDC emulator ({{pdc}}), not on this domain controller.',
+      fix: 'Open the console on {{pdc}}: SYSVOL is copied from there to the other domain controllers.',
+    },
+    de: {
+      message: 'Gruppenrichtlinien werden auf dem PDC-Emulator ({{pdc}}) geändert, nicht auf diesem Domänencontroller.',
+      fix: 'Öffnen Sie die Konsole auf {{pdc}}: SYSVOL wird von dort auf die anderen Domänencontroller kopiert.',
+    },
+  },
+  'gpo.not-found': {
+    http: 404,
+    en: { message: '{{what}} does not exist.', fix: 'Reload the list; someone may have changed it meanwhile.' },
+    de: {
+      message: '{{what}} existiert nicht.',
+      fix: 'Laden Sie die Liste neu; jemand hat sie womöglich inzwischen geändert.',
+    },
+  },
+  'gpo.failed': {
+    http: 502,
+    en: {
+      message: 'Samba refused the group policy change: {{reason}}',
+      fix: 'Check the agent log (journalctl -u opendc-agent) and the Samba log (journalctl -u samba-ad-dc).',
+    },
+    de: {
+      message: 'Samba hat die Gruppenrichtlinien-Änderung abgelehnt: {{reason}}',
+      fix: 'Prüfen Sie das Agent-Protokoll (journalctl -u opendc-agent) und das Samba-Protokoll (journalctl -u samba-ad-dc).',
+    },
+  },
   'dns.failed': {
     http: 502,
     en: {

@@ -31,6 +31,20 @@ export const operations = [
     "auth": "session"
   },
   {
+    "operationId": "backupGpo",
+    "method": "POST",
+    "path": "/api/v1/gpo/:id/backup",
+    "tag": "gpo",
+    "summary": "Back up a GPO (container and SYSVOL folder; kept on the PDC emulator)",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [],
+    "body": false,
+    "stream": false,
+    "auth": "gpo.write"
+  },
+  {
     "operationId": "beginTotp",
     "method": "POST",
     "path": "/api/v1/session/totp/begin",
@@ -129,6 +143,18 @@ export const operations = [
     "body": true,
     "stream": false,
     "auth": "dns.zones.manage"
+  },
+  {
+    "operationId": "createGpo",
+    "method": "POST",
+    "path": "/api/v1/gpo",
+    "tag": "gpo",
+    "summary": "Create an empty GPO (on the PDC emulator)",
+    "pathParams": [],
+    "queryParams": [],
+    "body": true,
+    "stream": false,
+    "auth": "gpo.write"
   },
   {
     "operationId": "createGroup",
@@ -305,6 +331,35 @@ export const operations = [
     "body": true,
     "stream": false,
     "auth": "dns.zones.manage"
+  },
+  {
+    "operationId": "deleteGpoBackup",
+    "method": "DELETE",
+    "path": "/api/v1/gpo/backups/:backupId",
+    "tag": "gpo",
+    "summary": "Delete a GPO backup",
+    "pathParams": [
+      "backupId"
+    ],
+    "queryParams": [],
+    "body": false,
+    "stream": false,
+    "auth": "gpo.write"
+  },
+  {
+    "operationId": "deleteGpoLink",
+    "method": "DELETE",
+    "path": "/api/v1/gpo/:id/links/:container",
+    "tag": "gpo",
+    "summary": "Unlink a GPO (domain and Domain Controllers OU: tier 0)",
+    "pathParams": [
+      "id",
+      "container"
+    ],
+    "queryParams": [],
+    "body": false,
+    "stream": false,
+    "auth": "gpo.write"
   },
   {
     "operationId": "deletePolicy",
@@ -832,6 +887,30 @@ export const operations = [
     "auth": "dns.zones.read"
   },
   {
+    "operationId": "listGpoBackups",
+    "method": "GET",
+    "path": "/api/v1/gpo/backups",
+    "tag": "gpo",
+    "summary": "This DC's GPO backups",
+    "pathParams": [],
+    "queryParams": [],
+    "body": false,
+    "stream": false,
+    "auth": "gpo.read"
+  },
+  {
+    "operationId": "listGpos",
+    "method": "GET",
+    "path": "/api/v1/gpo",
+    "tag": "gpo",
+    "summary": "Group policy objects with their links, and where they can be changed",
+    "pathParams": [],
+    "queryParams": [],
+    "body": false,
+    "stream": false,
+    "auth": "gpo.read"
+  },
+  {
     "operationId": "listGroupMembers",
     "method": "GET",
     "path": "/api/v1/directory/groups/:guid/members",
@@ -1046,6 +1125,20 @@ export const operations = [
     "auth": "domain.users.password"
   },
   {
+    "operationId": "restoreGpo",
+    "method": "POST",
+    "path": "/api/v1/gpo/backups/:backupId/restore",
+    "tag": "gpo",
+    "summary": "Restore a backup over its GPO or as a new GPO (tier 0; type the GPO's name to confirm)",
+    "pathParams": [
+      "backupId"
+    ],
+    "queryParams": [],
+    "body": true,
+    "stream": false,
+    "auth": "gpo.write"
+  },
+  {
     "operationId": "revokeApiToken",
     "method": "DELETE",
     "path": "/api/v1/session/tokens/:id",
@@ -1122,6 +1215,21 @@ export const operations = [
     "body": true,
     "stream": false,
     "auth": "dns.zones.manage"
+  },
+  {
+    "operationId": "setGpoLink",
+    "method": "PUT",
+    "path": "/api/v1/gpo/:id/links/:container",
+    "tag": "gpo",
+    "summary": "Link a GPO to the domain or an OU, or change the link (domain and Domain Controllers OU: tier 0)",
+    "pathParams": [
+      "id",
+      "container"
+    ],
+    "queryParams": [],
+    "body": true,
+    "stream": false,
+    "auth": "gpo.write"
   },
   {
     "operationId": "setPasswordPolicy",

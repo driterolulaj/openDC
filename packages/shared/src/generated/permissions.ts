@@ -298,6 +298,21 @@ export const permissions = [
     ]
   },
   {
+    "module": "gpo",
+    "name": "gpo.read",
+    "title": "gpo:perm.read",
+    "scope": "global"
+  },
+  {
+    "module": "gpo",
+    "name": "gpo.write",
+    "title": "gpo:perm.write",
+    "scope": "global",
+    "implies": [
+      "gpo.read"
+    ]
+  },
+  {
     "module": "pki",
     "name": "pki.manage",
     "title": "pki:perm.manage",

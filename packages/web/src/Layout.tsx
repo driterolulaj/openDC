@@ -18,6 +18,7 @@ const NAV = [
   { to: '/policies', label: 'nav.policies', permission: 'policies.policy.read' },
   { to: '/dns', label: 'nav.dns', permission: 'dns.zones.read' },
   { to: '/dhcp', label: 'nav.dhcp', permission: 'dhcp.read' },
+  { to: '/group-policy', label: 'nav.gpo', permission: 'gpo.read' },
   { to: '/certificates', label: 'nav.certificates', permission: 'pki.read' },
   { to: '/rbac', label: 'nav.rbac', permission: 'domain.rbac.read' },
   { to: '/audit', label: 'nav.audit', permission: 'core.audit.read' },
