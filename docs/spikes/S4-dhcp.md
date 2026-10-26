@@ -29,7 +29,8 @@ Lab: member1 (Debian 13), client1 (Ubuntu 24.04)
   capability and no exec rights. `/etc/kea` is `_kea:_kea 0750`, so `kea-dhcp4 -t` fails as root ("Unable to
   open file") and has to run as `_kea`. The profile only reads `/etc/kea/**`, so the configuration check's
   candidate file and the HA TLS files live there (`/etc/kea/opendc-tls`). Without exec rights, the
-  `run_script` lease hook can't start OpenDC: Q25 proposes reconciling DNS from the leases instead.
+  `run_script` lease hook can't start OpenDC. Decided (Q25 (a), 2026-10-26): the serving node reconciles A/PTR
+  records from its leases every 30 s, through the DNS module's agent path, removing only records it created.
 - **HA:** an HA pair runs only over mutual TLS with node certificates. The API refuses a pair whose servers lack
   a valid node certificate (members get theirs with node enrolment, Phase 4), and the agent and renderer refuse
   plain HTTP. Lab: dc1 (Debian 13, Kea 2.6.3) primary and dc2 (Ubuntu 24.04, Kea 2.4.1) standby reached

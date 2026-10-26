@@ -1,6 +1,6 @@
 # ADR-0012: `ldapts` and the directory bind model
 
-Status: Accepted 2026-10-24 · Date: 2026-10-06 · Decided by the project owner (Q4) · Amended 2026-10-24: account naming (Q18) · Amended 2026-10-25: OpenDC SDProp (Q21)
+Status: Accepted 2026-10-24 · Date: 2026-10-06 · Decided by the project owner (Q4) · Amended 2026-10-24: account naming (Q18) · Amended 2026-10-25: OpenDC SDProp (Q21) · Amended 2026-10-26: watch accounts read tombstones (Q24)
 
 ## Context
 The API needs an identity to bind to the directory with. `ldapts` supports simple and a few SASL binds but
@@ -29,7 +29,8 @@ would mean keeping their plaintext password in session memory for the whole sess
      / ldb against the local `sam.ldb`). The API calls them only after checking a tier-0 permission, and for
      high-impact operations only after a typed confirmation.
    - **Watcher identity:** `opendc-watch-<host>` with read access plus "Replicating Directory Changes" (for
-     DirSync), and no write rights.
+     DirSync), and no write rights. It may also list and read `CN=Deleted Objects` (`LCRP`, Q24), so DirSync
+     delivers tombstones; see ADR-0004's amendment.
    - **RODC:** the API on an RODC has a read-only account whose password is in the RODC's password replication
      policy. Writes are proxied over mTLS to a writable DC's API, which re-checks RBAC.
 3. **Account naming (Q18).** `sAMAccountName` is limited to 20 characters, so each service account has two names:

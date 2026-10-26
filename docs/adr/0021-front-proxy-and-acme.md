@@ -1,6 +1,6 @@
 # ADR-0021: Front proxy (nginx) and ACME client (lego)
 
-Status: Proposed · Date: 2026-10-06 · **Needs the project owner's decision (OPEN-QUESTIONS Q7)**
+Status: Accepted 2026-10-26 · Date: 2026-10-06 · Decided by the project owner (Q7)
 
 ## Context
 - The console, the portal and every App Center app (Keycloak, Nextcloud, ...) need HTTPS on 443, reached by

@@ -1,6 +1,6 @@
 # ADR-0004: Change propagation with a per-node DirSync/USN watcher
 
-Status: Accepted 2026-10-24 · Date: 2026-10-06
+Status: Accepted 2026-10-24 · Date: 2026-10-06 · Amended 2026-10-26: watch accounts read tombstones (Q24)
 
 ## Context
 When directory objects change, local configuration has to follow. For example, a DHCP reservation changes, so
@@ -46,6 +46,16 @@ Details are in `docs/spikes/S2-dirsync.md`.
 - **Wake-up (amends point 2):** Samba advertises change notification, but `ldapts` can't stream search entries.
   The watcher therefore polls DirSync, by default every 5 s; a pass without changes costs milliseconds. A
   streaming wake-up reader (built on `ldapts`' BER classes) stays optional and is decided in Phase 3.
+
+## Amendment 2026-10-26: tombstones need read access (Q24, approved by the project owner)
+DirSync silently drops tombstones for an account that can't read `CN=Deleted Objects`, whose default DACL admits
+only SYSTEM and Administrators (Spike S2 saw them because it ran as Administrator). Every watch account (DCs'
+`odcw-<host>` and members' watch accounts, all in the `OpenDC Watchers` group) gets one more ACE on
+`CN=Deleted Objects`: `(A;;LCRP;;;<sid>)` (list contents, read properties), appended to the existing DACL. Setup
+grants it, and the watcher ensures it at start through the agent operation `platform.watchAccess.ensure` (no
+arguments; only this node's own watch account). Tombstones hold no secrets: passwords and other secret attributes
+are removed on deletion. Verified in the lab: before the ACE a deleted platform object produced no DirSync entry
+for the watch account; after it, the tombstone arrives with `isDeleted` and `lastKnownParent`.
 
 ## Consequences
 - No extra infrastructure (queue or broker), and it keeps working when the network is partitioned (the node

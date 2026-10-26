@@ -126,7 +126,7 @@ are updated.
 
 ## Phase 3: Network services
 - [x] Watcher: DirSync/USN follower, per-DC checkpoints, full resync, handler quarantine, metrics. *DirSync only
-  (the uSNChanged fallback isn't needed on Samba 4.22); the watch account may read tombstones (Q24, pending).*
+  (the uSNChanged fallback isn't needed on Samba 4.22); the watch account may read tombstones (Q24, approved 2026-10-26).*
 - [x] POSIX IDs for users and groups created outside OpenDC: watcher handler and a bulk action (ADR-0018, Q22).
 - [x] Policies module: policy types, links, enforced/priority, effective-policy viewer; registry `domain-policy`
   layer; OU-linked password policies through shadow groups + PSOs. *Types so far: password, registry; DHCP
@@ -136,12 +136,12 @@ are updated.
   Forwarders/scavenging are per DC (the DC the console runs on until node RPC in Phase 4).*
 - [x] Kea DHCPv4/v6: subnets, pools, reservations, options from directory + DHCP policies; config-test before swap;
   lease viewer; HA pair; optional DNS registration (GSS-TSIG or lease hook, per spike). *The optional DNS
-  registration waits for Q25 (the lease-hook plan fails under Kea's AppArmor profile). Built: services (one
+  registration is decided (Q25 (a): reconcile A/PTR from the leases) and still to be built. Built: services (one
   server or an HA pair over mutual TLS), IPv4 and IPv6 subnets, pools, reservations (IPv6 by DUID or MAC),
   options, DHCP policies (server-wide IPv4 options), `kea-dhcp4/6 -t` as `_kea` before the swap,
   `config-reload`, lease viewer; each daemon runs only while the node serves subnets of its family.*
 - [ ] PKI: root + per-DC issuing CAs, node/service/web/LDAPS certificates, revocation, CRL publication, expiry
-  warnings, auto-renew; ACME via the chosen client. *Done except ACME (waits for Q7) and expiry warnings in the
+  warnings, auto-renew; ACME via the chosen client. *Done except ACME (decided, Q7: nginx front proxy + lego; still to be built) and expiry warnings in the
   diagnostics framework (Phase 4); a DC's issuing CA needs a tier-0 approval on the root holder.*
 - [x] GPO: list/backup/restore/link/unlink. *Listed over LDAP; create, backup and restore run on the PDC emulator
   with the DC's local privileges (samba-tool's own commands write SYSVOL over SMB with an account's

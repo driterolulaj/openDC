@@ -63,7 +63,7 @@ Pin policy: the newest release that is at least two weeks old, except security f
 |---|---|---|
 | Node.js 24 LTS (official linux-x64/arm64) | ADR-0010. 24.22.1, SHA-256 pinned in `packaging/build.ts` | Approved (Q8) |
 | `nfpm` | Build-time only, packaging. 2.47.0, SHA-256 pinned in `packaging/build.ts` | Approved (spec) |
-| `lego` | ACME client (ADR-0021) | **Pending decision** |
+| `lego` | ACME client (ADR-0021) | Approved (Q7, 2026-10-26); version and SHA-256 pinned when it's built in |
 
 ## 4. Orchestrated system components (distro packages or our image; never bundled into npm)
 
@@ -79,7 +79,7 @@ Pin policy: the newest release that is at least two weeks old, except security f
 | Podman / Docker | Apps, Samba container mode | Podman ≥ 4.4 (quadlet) / Docker ≥ 24 | |
 | chrony | Time, MS-SNTP signing on DCs | distro | |
 | sssd / realmd / adcli, winbind | Linux member join | distro | |
-| nginx | Front proxy (ADR-0021) | distro | **Pending decision**, not in spec §4 |
+| nginx | Front proxy (ADR-0021) | distro | Approved (Q7, 2026-10-26), not in spec §4 |
 | rsync, openssh-client | Backup transfer, SYSVOL fallback | distro | |
 | systemd | Units, credentials (`LoadCredential=`), socket activation | ≥ 247 | Debian 12 ships 252 |
 

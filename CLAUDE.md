@@ -15,7 +15,8 @@ site-specific.** Topology, names, subnets and features are configurable; ship de
 ## Current phase
 See `ROADMAP.md`. Phase 1 (foundation) and Phase 2 (domain core) are complete (2026-10-24, 2026-10-25).
 **Phase 3 (network services) is built on branch `phase-3` (go-ahead 2026-10-25); acceptance 1–6 are met.
-Waiting on the owner: Q7 (ACME client), Q24 (watch account reads tombstones), Q25 (DHCP DNS registration).**
+Q7, Q24 and Q25 are answered (2026-10-26). Still to build from Phase 3: ACME (nginx + lego, ADR-0021) and DHCP DNS
+registration from leases (Q25 (a)).**
 Phase 4 starts only after the user's explicit go-ahead.
 
 Day-to-day commands: `npm ci --ignore-scripts`, `npm run build`, `npm run check` (lint, typecheck, generated

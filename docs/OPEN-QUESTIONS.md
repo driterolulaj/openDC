@@ -2,8 +2,8 @@
 
 **B** = blocks Phase 1. **L** = needed later (phase noted). Each question has a recommendation.
 
-**Status 2026-10-25:** all blocking questions are answered (marked inline). Still open: Q2 (IANA PEN, before any
-schema work), Q7 (front proxy and ACME, needed for the ACME part of Phase 3), Q9, Q14–Q16.
+**Status 2026-10-26:** all blocking questions are answered (marked inline); Q7, Q24 and Q25 were answered on
+2026-10-26. Still open: Q2 (IANA PEN, before any schema work), Q9, Q14–Q16.
 
 ## A. Naming, legal, identifiers
 
@@ -58,7 +58,7 @@ verification guards against, and we avoid a native GSSAPI addon.
 - i. **Audit log:** node-local SQLite with conflict-free pull replication between writable DCs (ADR-0013),
   rather than storing audit entries in AD.
 
-**Q7 (B for Phase 3, L otherwise) — Front proxy and ACME** (ADR-0021).
+**Q7 (B for Phase 3, L otherwise) — Front proxy and ACME** (ADR-0021). *Answered 2026-10-26: nginx + lego; ADR-0021 accepted.*
 - I recommend **nginx** (distro package) as the HTTPS front proxy for the console and apps, and **lego** as the
   ACME client.
 - nginx is a new orchestrated component that isn't in spec §4.
@@ -190,7 +190,7 @@ hosts that already run.
 
 ## J. Raised during Phase 3 (2026-10-25)
 
-**Q24 (B, before Phase 3 ends) — The watch account needs read access to `CN=Deleted Objects` (ADR-0004/0012).**
+**Q24 (B, before Phase 3 ends) — The watch account needs read access to `CN=Deleted Objects` (ADR-0004/0012).** *Answered 2026-10-26: approved; ADR-0004 and ADR-0012 amended.*
 DirSync silently drops tombstones for an account that can't read `CN=Deleted Objects`, whose default DACL admits
 only SYSTEM and Administrators. Spike S2 saw tombstones because it ran as Administrator; the delegated watch
 account `odcw-<host>` didn't, so deletions (a deleted policy, later a deleted DHCP reservation) were never seen.
@@ -204,7 +204,7 @@ reconciles instead of deletion events (slower, and every handler would have to d
 If you approve, I'll add a short amendment to ADR-0004 and ADR-0012.
 
 **Q25 (B, before DHCP DNS registration is built) — How DHCP clients get DNS records (replaces the S4 lease-hook
-plan).** Spike S4 chose Kea's `run_script` hook calling OpenDC, which registers A/PTR with `nsupdate -g`. Running
+plan).** *Answered 2026-10-26: (a), OpenDC reconciles DNS records from the leases.* Spike S4 chose Kea's `run_script` hook calling OpenDC, which registers A/PTR with `nsupdate -g`. Running
 it showed that can't work as planned: Debian's AppArmor profile for `kea-dhcp4` grants no exec rights and has no
 `local/` include, so Kea may not start any script. Making it work means editing the distribution's profile.
 Options:
