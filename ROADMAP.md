@@ -135,7 +135,10 @@ are updated.
   `_msdcs`, delegation); spike agent vs LDAP record writes. *Spike S3: writes through the agent, reads over LDAP.
   Forwarders/scavenging are per DC (the DC the console runs on until node RPC in Phase 4).*
 - [ ] Kea DHCPv4/v6: subnets, pools, reservations, options from directory + DHCP policies; config-test before swap;
-  lease viewer; HA pair; optional DNS registration (GSS-TSIG or lease hook, per spike).
+  lease viewer; HA pair; optional DNS registration (GSS-TSIG or lease hook, per spike). *DHCPv4 done: services
+  (one server or an HA pair over mutual TLS), subnets, pools, reservations, options, DHCP policies, `kea-dhcp4 -t`
+  as `_kea` before the swap, `config-reload`, lease viewer. Open: DHCPv6; DNS registration waits for Q25 (the
+  lease-hook plan fails under Kea's AppArmor profile).*
 - [ ] PKI: root + per-DC issuing CAs, node/service/web/LDAPS certificates, revocation, CRL publication, expiry
   warnings, auto-renew; ACME via the chosen client. *Done except ACME (waits for Q7) and expiry warnings in the
   diagnostics framework (Phase 4); a DC's issuing CA needs a tier-0 approval on the root holder.*
@@ -144,10 +147,14 @@ are updated.
 **Acceptance:**
 1. Editing a DHCP reservation on dc2 changes the rendered Kea config on the member serving that subnet within 30 s
    (same site), with no Kea restart beyond `config-reload`.
+   **Met:** member1 (Kea 2.6.3) rendered the changed reservation 3.2 s after the edit through dc2's API. Kea
+   applied it with `config-reload` (`DHCP4_DYNAMIC_RECONFIGURATION`), same PID.
 2. Killing the watcher mid-batch and restarting it reaches the same end state (idempotency test). Failing over
    the watcher's home DC triggers a full resync, logged and metered.
-   *Idempotency met: watcher killed (SIGKILL) at 20/150 users, all 150 filled after the restart, no duplicate
-   IDs, one audit entry each. Failover: unit-tested; the lab check follows with the member running Kea.*
+   **Met:** idempotency: watcher killed (SIGKILL) at 20/150 users, all 150 filled after the restart, no
+   duplicate IDs, one audit entry each. Failover: with Samba stopped on dc1, member1's watcher moved to dc2 within
+   5 s. Every handler logged a full resync ("another DC") and counted it (`resyncs` 1). A reservation edited on dc2
+   meanwhile reached member1's Kea in 2.6 s.
 3. The effective-policy viewer matches the resolver unit tests on a 5-level OU fixture with enforced links.
    **Met:** the fixture (`packages/shared/src/policy/fixture.ts`) built in the lab; the viewer's order equals the
    unit test's, group and node-role filters included.

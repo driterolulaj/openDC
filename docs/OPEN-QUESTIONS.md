@@ -202,3 +202,18 @@ deletion). Verified in the lab: before, a deleted platform object produced no Di
 account; after, the tombstone arrives with `isDeleted` and `lastKnownParent`. Alternative: periodic full
 reconciles instead of deletion events (slower, and every handler would have to diff against its last output).
 If you approve, I'll add a short amendment to ADR-0004 and ADR-0012.
+
+**Q25 (B, before DHCP DNS registration is built) — How DHCP clients get DNS records (replaces the S4 lease-hook
+plan).** Spike S4 chose Kea's `run_script` hook calling OpenDC, which registers A/PTR with `nsupdate -g`. Running
+it showed that can't work as planned: Debian's AppArmor profile for `kea-dhcp4` grants no exec rights and has no
+`local/` include, so Kea may not start any script. Making it work means editing the distribution's profile.
+Options:
+(a) **OpenDC reconciles from the leases (recommended):** the node serving a subnet reads its leases over the
+control socket (`lease4-get-all`, as the lease viewer already does) every 30 s, and registers or removes A/PTR
+records for subnets with registration switched on. It uses the DNS module's agent path (Kerberos as the machine
+account), and only removes records it created itself (tracked in the node's state DB). Registration lags a lease
+by up to one interval, and Kea stays untouched.
+(b) Ship our own AppArmor profile for Kea: we'd own a security profile of a distribution package.
+(c) Kea's D2 with TSIG keys: Samba's internal DNS only does GSS-TSIG, so this isn't possible.
+Domain members (Windows, sssd) keep registering themselves as usual. Registration is only for devices that can't.
+Until you decide, DHCP runs without DNS registration.
