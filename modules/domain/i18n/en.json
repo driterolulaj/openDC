@@ -191,7 +191,8 @@
       "trust": "Checking the domain's root CA",
       "directory": "Reading the domain",
       "accounts": "Creating the watch account",
-      "services": "Restarting the OpenDC services"
+      "services": "Restarting the OpenDC services",
+      "member-packages": "Installing the Samba client tools"
     }
   }
 }

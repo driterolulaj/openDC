@@ -67,20 +67,31 @@ function fetchRoot(host: string): Promise<string> {
 /** The DC's host name from its LDAPS certificate, verified against the pinned root. */
 function dcName(host: string, rootPem: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const s = connect({ host, port: 636, ca: rootPem, rejectUnauthorized: false, timeout: 10_000 }, () => {
-      const cert = s.getPeerCertificate();
-      const authorized = s.authorized;
-      s.end();
-      if (!authorized) {
-        reject(
-          new Error(`the DC's LDAPS certificate isn't issued under the given root (${String(s.authorizationError)})`),
-        );
-        return;
-      }
-      const name = /DNS:([^,\s]+)/.exec(cert.subjectaltname ?? '')?.[1];
-      if (!name) reject(new Error("the DC's LDAPS certificate names no host"));
-      else resolve(name.toLowerCase());
-    });
+    // the chain is verified against the pinned root; the name is what we learn here (checked on the real bind)
+    const s = connect(
+      {
+        host,
+        port: 636,
+        ca: rootPem,
+        rejectUnauthorized: false,
+        timeout: 10_000,
+        checkServerIdentity: () => undefined,
+      },
+      () => {
+        const cert = s.getPeerCertificate();
+        const authorized = s.authorized;
+        s.end();
+        if (!authorized) {
+          reject(
+            new Error(`the DC's LDAPS certificate isn't issued under the given root (${String(s.authorizationError)})`),
+          );
+          return;
+        }
+        const name = /DNS:([^,\s]+)/.exec(cert.subjectaltname ?? '')?.[1];
+        if (!name) reject(new Error("the DC's LDAPS certificate names no host"));
+        else resolve(name.toLowerCase());
+      },
+    );
     s.on('error', reject);
   });
 }
@@ -161,8 +172,8 @@ export async function joinMember(
     await step('resolver', () =>
       os.host.configureResolver({ nameservers: [...new Set(ips)], searchDomains: [domain], freePort53: false }),
     );
-    progress('packages', 35);
-    await step('packages', async () => {
+    progress('member-packages', 35);
+    await step('member-packages', async () => {
       const missing: string[] = [];
       for (const p of os.facts.packageNames('samba-member')) if (!(await os.packages.installed(p))) missing.push(p);
       await os.packages.install(missing);

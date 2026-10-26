@@ -159,6 +159,8 @@ async function main(): Promise<void> {
     handlers,
     dir: new WatchedDc(ldap, domainDn),
     state,
+    // only a DC that watches itself can be the PDC emulator (members watch a DC)
+    canLead: roleMatches(node.role, ['writable-dc']),
     log,
     context: (h, o) => ({
       domainDn,

@@ -77,6 +77,8 @@ export interface EngineOptions {
   context: (h: WatchedHandler, o: { leader: boolean; signal: AbortSignal; since: number }) => WatchContext;
   log: (level: 'info' | 'warn' | 'error', msg: string, extra?: Record<string, unknown>) => void;
   maxFailures?: number;
+  /** false on members: they watch a DC but are never the leader themselves (ADR-0017) */
+  canLead?: boolean;
   /** first retry delay; doubles per failure up to 5 minutes */
   retryBaseMs?: number;
   defaultTimeoutMs?: number;
@@ -105,6 +107,7 @@ export class WatcherEngine {
   constructor(o: EngineOptions) {
     this.#o = {
       maxFailures: 5,
+      canLead: true,
       retryBaseMs: 5_000,
       defaultTimeoutMs: 60_000,
       now: () => Date.now(),
@@ -172,7 +175,7 @@ export class WatcherEngine {
     this.#status = {
       updatedAt: iso(o.now()),
       dc: id.dnsHostName,
-      leader: id.pdc,
+      leader: o.canLead && id.pdc,
       connected,
       lastError,
       passes: this.#status.passes + 1,
@@ -185,7 +188,8 @@ export class WatcherEngine {
     const o = this.#o;
     const cp = o.state.get(h.id);
     if (cp?.quarantined) return this.#describe(h, cp, 'quarantined');
-    if (h.leader && !id.pdc) return this.#describe(h, cp, 'standby');
+    const leader = this.#o.canLead && id.pdc;
+    if (h.leader && !leader) return this.#describe(h, cp, 'standby');
     if (cp && cp.failures > 0 && o.now() < cp.nextAttemptAt) return this.#describe(h, cp, 'failing');
 
     const reason = !cp?.cookie
@@ -247,7 +251,7 @@ export class WatcherEngine {
     if (events.length || reason) {
       const batch: WatchBatch = { handlerId: h.id, sync: reason !== null, events };
       try {
-        await this.#invoke(h, batch, id.pdc, since);
+        await this.#invoke(h, batch, leader, since);
       } catch (e) {
         return fail(e);
       }

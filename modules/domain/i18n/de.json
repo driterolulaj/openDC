@@ -191,7 +191,8 @@
       "trust": "Stamm-CA der Domäne prüfen",
       "directory": "Domäne lesen",
       "accounts": "Watch-Konto anlegen",
-      "services": "OpenDC-Dienste neu starten"
+      "services": "OpenDC-Dienste neu starten",
+      "member-packages": "Samba-Client-Werkzeuge installieren"
     }
   }
 }

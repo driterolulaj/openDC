@@ -339,3 +339,33 @@ test('base and scope: one level, subtree, base, {platform}, deletions by last kn
   assert.ok(engine.inScope(ous, ev('CN=d', ext)));
   assert.ok(!engine.inScope(h('OU=Other', 'one'), ev('CN=d', ext)));
 });
+
+test('a member watching the PDC is not the leader', async () => {
+  const r = reconciler();
+  const dc = new FakeDc();
+  const { openDb: od } = await import('@opendc/shared/db');
+  const engine = new WatcherEngine({
+    domainDn: DOMAIN,
+    platformDn: PLATFORM,
+    handlers: [
+      {
+        module: 't',
+        id: 'l',
+        base: '',
+        scope: 'sub',
+        filter: '(kind=item)',
+        attributes: [],
+        handler: r.handler,
+        leader: true,
+      },
+    ],
+    dir: dc,
+    state: new SqliteCheckpoints(od(':memory:', watcherMigrations)),
+    context: (_h, o) => ({ leader: o.leader }) as unknown as WatchContext,
+    log: () => undefined,
+    canLead: false,
+  });
+  const s = await engine.pass();
+  assert.equal(s.leader, false);
+  assert.equal(s.handlers[0]?.state, 'standby');
+});
