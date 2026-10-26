@@ -148,11 +148,9 @@ test('Kea rendering: options, pools, sorted reservations, lease cmds, HA over TL
   assert.equal(h?.library, '/usr/lib/kea/hooks/libdhcp_ha.so');
   assert.equal(h?.parameters?.['high-availability'][0]?.peers[1]?.url, 'https://10.0.0.2:8000/');
   assert.equal(h?.parameters?.['high-availability'][0]?.['require-client-certs'], true);
-  const plain = (
-    renderKea4(ha, paths) as {
-      Dhcp4: { 'hooks-libraries': { parameters?: { 'high-availability': { peers: { url: string }[] }[] } }[] };
-    }
-  ).Dhcp4['hooks-libraries'][1];
-  assert.equal(plain?.parameters?.['high-availability'][0]?.peers[0]?.url, 'http://10.0.0.1:8000/');
-  assert.throws(() => renderKea4({ ...ha, ha: { ...ha.ha!, thisServer: 'x' } }, paths), /not one of the peers/);
+  assert.throws(() => renderKea4(ha, paths), /needs TLS/, 'never plain HTTP');
+  assert.throws(
+    () => renderKea4({ ...ha, ha: { ...ha.ha!, thisServer: 'x' } }, { ...paths, tls }),
+    /not one of the peers/,
+  );
 });

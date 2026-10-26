@@ -78,7 +78,8 @@ export async function keaApply(
   if (missing.length) await os.packages.install(missing);
   const owner = await account(k.user);
 
-  // the HA channel uses this node's certificate (copied where Kea's user can read it)
+  // the HA channel carries lease updates: mutual TLS with this node's certificate (copied where Kea's user can
+  // read it), never plain HTTP
   let tls: { cert: string; key: string; ca: string } | null = null;
   if (a.ha) {
     const dir = join(dirname(k.configFile), 'opendc-tls');
@@ -87,19 +88,20 @@ export async function keaApply(
       key: join(pki.keys, 'node.key'),
       ca: join(pki.trust, 'ca-bundle.pem'),
     };
-    const have = (await readFile(node.cert, 'utf8').catch(() => '')).trim() !== '';
-    if (have) {
-      tls = { cert: join(dir, 'node.pem'), key: join(dir, 'node.key'), ca: join(dir, 'ca-bundle.pem') };
-      for (const [from, to] of [
-        [node.cert, tls.cert],
-        [node.key, tls.key],
-        [node.ca, tls.ca],
-      ] as const) {
-        await writeSystemFile(to, await readFile(from, 'utf8'), 0o640);
-        if (owner) await chown(to, 0, owner.gid);
-      }
-      if (owner) await chown(dir, owner.uid, owner.gid);
+    if ((await readFile(node.cert, 'utf8').catch(() => '')).trim() === '')
+      throw new PlatformError('validation.invalid', {
+        issues: "the DHCP HA channel needs this node's certificate, and it has none yet",
+      });
+    tls = { cert: join(dir, 'node.pem'), key: join(dir, 'node.key'), ca: join(dir, 'ca-bundle.pem') };
+    for (const [from, to] of [
+      [node.cert, tls.cert],
+      [node.key, tls.key],
+      [node.ca, tls.ca],
+    ] as const) {
+      await writeSystemFile(to, await readFile(from, 'utf8'), 0o640);
+      if (owner) await chown(to, 0, owner.gid);
     }
+    if (owner) await chown(dir, owner.uid, owner.gid);
   }
 
   const json = `${JSON.stringify(renderKea4(a, { hooksDir: k.hooksDir, leaseFile: k.leaseFile, controlSocket: k.controlSocket, tls }), null, 2)}\n`;

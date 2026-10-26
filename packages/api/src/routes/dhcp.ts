@@ -20,6 +20,7 @@ import {
   type DhcpService,
   type DhcpSubnet,
 } from '@opendc/shared/dhcp';
+import { pkiCert } from '@opendc/shared/pki';
 import { z } from 'zod';
 import type { AuditLog } from '../audit.ts';
 import type { RouteContext, RouteTable } from '../http/route.ts';
@@ -75,6 +76,14 @@ export function dhcpRoutes(
     data: dhcpReservation,
     name: (x) => `${x.ip} ${x.mac}`,
   });
+  const certs = new PlatformObjects({
+    dir: d.directory,
+    path: ['PKI', 'Certificates'],
+    kind: 'pki.cert',
+    schemaVersion: 1,
+    data: pkiCert,
+    name: () => 'pki.cert',
+  });
   const all = async <T>(s: { list(): Promise<Stored<T>[]> }): Promise<Stored<T>[]> =>
     s.list().catch((e: unknown) => {
       // the containers appear with the first object
@@ -112,6 +121,18 @@ export function dhcpRoutes(
       servers.push({ nodeGuid: x.nodeGuid.toLowerCase(), host: String(e?.dNSHostName).toLowerCase() });
     }
     if (new Set(servers.map((x) => x.nodeGuid)).size !== servers.length) invalid('servers: the same computer twice');
+    // the HA channel carries lease updates: mutual TLS with node certificates, never plain HTTP
+    if (servers.length === 2) {
+      const now = new Date().toISOString();
+      const valid = (await all(certs)).filter(
+        (c) => c.data.profile === 'node' && !c.data.revoked && c.data.notAfter > now,
+      );
+      for (const x of servers)
+        if (!valid.some((c) => c.data.nodeGuid?.toLowerCase() === x.nodeGuid))
+          invalid(
+            `servers: ${x.host} has no node certificate for the HA channel (members get theirs with node enrolment)`,
+          );
+    }
     return { ...s, servers };
   };
   const checkSubnet = async (s: DhcpSubnet, self: string | null): Promise<void> => {

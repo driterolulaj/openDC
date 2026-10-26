@@ -191,6 +191,9 @@ export function renderKea4(a: KeaApplyArgs, p: KeaPaths): Record<string, unknown
   if (a.ha) {
     const self = a.ha.peers.find((x) => x.name === a.ha?.thisServer);
     if (!self) throw new TypeError('ha.thisServer is not one of the peers');
+    // the HA channel carries lease updates: mutual TLS only
+    const tls = p.tls;
+    if (!tls) throw new TypeError('an HA pair needs TLS (node certificates)');
     hooks.push({
       library: `${p.hooksDir}/libdhcp_ha.so`,
       parameters: {
@@ -208,17 +211,13 @@ export function renderKea4(a: KeaApplyArgs, p: KeaPaths): Record<string, unknown
               'http-listener-threads': 2,
               'http-client-threads': 2,
             },
-            ...(p.tls
-              ? {
-                  'trust-anchor': p.tls.ca,
-                  'cert-file': p.tls.cert,
-                  'key-file': p.tls.key,
-                  'require-client-certs': true,
-                }
-              : {}),
+            'trust-anchor': tls.ca,
+            'cert-file': tls.cert,
+            'key-file': tls.key,
+            'require-client-certs': true,
             peers: a.ha.peers.map((x) => ({
               name: x.name,
-              url: `${p.tls ? 'https' : 'http'}://${x.address}:${String(KEA_HA_PORT)}/`,
+              url: `https://${x.address}:${String(KEA_HA_PORT)}/`,
               role: x.role,
               'auto-failover': true,
             })),
