@@ -95,6 +95,13 @@ export class SqliteCheckpoints implements CheckpointStore {
     );
   }
 
+  /** Lifts every quarantine; returns the handlers it released. */
+  releaseAll(): string[] {
+    const rows = this.#db.all<{ handler: string }>('SELECT handler FROM checkpoints WHERE quarantined = 1');
+    for (const r of rows) this.release(r.handler);
+    return rows.map((r) => r.handler);
+  }
+
   /** Forgets the cookie (keeps `since`): the next pass does a full resync. */
   resync(handler: string): boolean {
     return this.#db.run("UPDATE checkpoints SET cookie = '' WHERE handler = ?", [handler]).changes > 0;

@@ -220,6 +220,12 @@ test('a handler that keeps failing is quarantined; the others carry on; release 
   assert.equal(state.release('h0'), true);
   await engine.pass();
   assert.equal(bad.batches.length, 4);
+  for (let i = 0; i < 3; i++) {
+    advance(10 * 60_000);
+    await engine.pass();
+  }
+  assert.deepEqual(state.releaseAll(), ['h0'], 'a start lifts every quarantine');
+  assert.deepEqual(state.releaseAll(), []);
   assert.equal(state.resync('h1'), true);
   await engine.pass();
   assert.equal(good.batches.at(-1)?.sync, true);

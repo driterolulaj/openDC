@@ -153,6 +153,11 @@ async function main(): Promise<void> {
   const platformDn = `CN=OpenDC,CN=System,${domainDn}`;
   const auditActor = `opendc-watcher@${node.hostname}`;
 
+  // a (re)start lifts quarantines: an upgrade may have fixed the handler, and restarting the watcher is how an
+  // operator retries one; the frozen checkpoint replays from where it stopped
+  const released = state.releaseAll();
+  if (released.length) log('warn', 'quarantine lifted on start', { handlers: released });
+
   const engine = new WatcherEngine({
     domainDn,
     platformDn,

@@ -159,6 +159,7 @@ Important properties (ADR-0004):
 - Deletions come through DirSync, or through the Show Deleted control when polling.
 - Handlers declare a base DN and LDAP filter, must be idempotent, and run with a timeout. A handler that keeps
   failing is quarantined: its checkpoint stops advancing, other handlers continue, and a diagnostic is raised.
+  Restarting the watcher (which an upgrade does) lifts the quarantine; the handler retries from its checkpoint.
 
 ## 7. Configuration model
 
